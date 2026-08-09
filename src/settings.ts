@@ -224,7 +224,18 @@ export interface MeasureFormatOverride {
   useCustom: boolean;
   units: string;
   decimals: number;
+  /** IBCS scenario override: auto | AC | PY | BU | FC | none. */
+  scenario: string;
 }
+
+const SCENARIO_ITEMS: powerbi.IEnumMember[] = [
+  { value: "auto", displayName: "Auto (detect from name)" },
+  { value: "AC", displayName: "AC — Actual" },
+  { value: "PY", displayName: "PY — Prior year" },
+  { value: "BU", displayName: "BU — Budget/Plan" },
+  { value: "FC", displayName: "FC — Forecast" },
+  { value: "none", displayName: "None" }
+];
 
 /** Build the dynamic per-measure group slices (phase-2 pattern reused by
  *  later per-measure cards). `selector` targets the measure's metadata. */
@@ -259,10 +270,18 @@ export function makePerMeasureValueGroup(
     }
   });
   decimals.selector = selector;
+  const scenarioItem = SCENARIO_ITEMS.find((i) => i.value === persisted.scenario) ?? SCENARIO_ITEMS[0];
+  const scenario = new formattingSettings.ItemDropdown({
+    name: "scenario",
+    displayName: "IBCS scenario",
+    items: SCENARIO_ITEMS,
+    value: scenarioItem
+  });
+  scenario.selector = selector;
   return new formattingSettings.Group({
     name: `valuesM${index}`,
     displayName: displayName,
-    slices: [useCustom, units, decimals]
+    slices: [useCustom, units, decimals, scenario]
   });
 }
 
@@ -470,6 +489,19 @@ class CalculatedColumnsCardSettings extends FormattingSettingsCard {
   }
 }
 
+class IbcsCardSettings extends FormattingSettingsCard {
+  enabled = new formattingSettings.ToggleSwitch({
+    name: "enabled",
+    displayName: "Enable IBCS styling",
+    value: false
+  });
+
+  name: string = "ibcs";
+  displayName: string = "IBCS";
+  displayNameKey: string = "Visual_IBCS";
+  slices: FormattingSettingsSlice[] = [this.enabled];
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   general = new GeneralCardSettings();
   subTotals = new SubTotalsCardSettings();
@@ -478,6 +510,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   values = new ValuesCardSettings();
   cellColors = new CellColorsCardSettings();
   calculatedColumns = new CalculatedColumnsCardSettings();
+  ibcs = new IbcsCardSettings();
 
   cards = [
     this.general,
@@ -486,6 +519,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     this.columnHeaders,
     this.values,
     this.cellColors,
-    this.calculatedColumns
+    this.calculatedColumns,
+    this.ibcs
   ];
 }

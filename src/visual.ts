@@ -33,6 +33,7 @@ import {
   resolveCellColor
 } from "./cellColor";
 import { compileExpression } from "./expressions";
+import { barWidthPct, detectScenario, IbcsScenario } from "./ibcs";
 
 interface CalcDef {
   name: string;
@@ -81,6 +82,10 @@ interface ParseResult {
   calcDefs: CalcDef[];
   /** pathKey → measureName(lower) → leafIdx, for calc-formula lookups. */
   calcLookups: Map<string, Map<string, number>>;
+  /** Resolved IBCS scenario per measure (override else name detection). */
+  measureScenarios: (IbcsScenario | null)[];
+  /** |max| per calc column over non-subtotal rows — variance-bar domain. */
+  calcMaxAbs: number[];
 }
 
 interface RenderInput {
@@ -285,6 +290,15 @@ export class Visual implements IVisual {
     const measureOverrides = valueSources.map((vs) => this.readMeasureOverride(vs));
     const measureColorOverrides = valueSources.map((vs) => this.readMeasureColorOverride(vs));
 
+    const { measureScenarios, calcMaxAbs } = this.resolveIbcsDomains(
+      valueSources,
+      measureOverrides,
+      calcDefs,
+      renderCols,
+      calcLookups,
+      rows
+    );
+
     const measureStats: MeasureStats[] = valueSources.map(() => ({ min: Infinity, max: -Infinity }));
     for (const r of rows) {
       if (r.isSubtotal) continue;
@@ -318,7 +332,9 @@ export class Visual implements IVisual {
       measureColorOverrides,
       renderCols,
       calcDefs,
-      calcLookups
+      calcLookups,
+      measureScenarios,
+      calcMaxAbs
     };
   }
 
@@ -397,16 +413,54 @@ export class Visual implements IVisual {
     return out;
   }
 
-  private evalCalcCell(parsed: ParseResult, row: RowModel, col: { calcIdx: number; pathKey: string }): number | null {
-    const def = parsed.calcDefs[col.calcIdx];
-    const m = parsed.calcLookups.get(col.pathKey);
-    if (!def || !m) return null;
+  private resolveIbcsDomains(
+    valueSources: DataViewMetadataColumn[],
+    measureOverrides: MeasureFormatOverride[],
+    calcDefs: CalcDef[],
+    renderCols: RenderCol[],
+    calcLookups: Map<string, Map<string, number>>,
+    rows: RowModel[]
+  ): { measureScenarios: (IbcsScenario | null)[]; calcMaxAbs: number[] } {
+    const measureScenarios: (IbcsScenario | null)[] = valueSources.map((vs, i) => {
+      const ov = measureOverrides[i].scenario;
+      if (ov === "none") return null;
+      if (ov === "AC" || ov === "PY" || ov === "BU" || ov === "FC") return ov;
+      return detectScenario(vs.displayName);
+    });
+
+    const calcMaxAbs = calcDefs.map(() => 0);
+    if (calcDefs.some((d) => d.display === "bar")) {
+      for (const row of rows) {
+        if (row.isSubtotal) continue;
+        for (const col of renderCols) {
+          if (col.kind !== "calc") continue;
+          const v = this.evalCalc(calcDefs[col.calcIdx], calcLookups.get(col.pathKey), row);
+          if (v !== null) {
+            const a = Math.abs(v);
+            if (a > calcMaxAbs[col.calcIdx]) calcMaxAbs[col.calcIdx] = a;
+          }
+        }
+      }
+    }
+    return { measureScenarios, calcMaxAbs };
+  }
+
+  private evalCalc(
+    def: CalcDef | undefined,
+    lookupMap: Map<string, number> | undefined,
+    row: RowModel
+  ): number | null {
+    if (!def || !lookupMap) return null;
     return def.evaluate((ref) => {
-      const li = m.get(ref.toLowerCase());
+      const li = lookupMap.get(ref.toLowerCase());
       if (li === undefined) return null;
       const cv = row.cells[li];
       return typeof cv === "number" && Number.isFinite(cv) ? cv : null;
     });
+  }
+
+  private evalCalcCell(parsed: ParseResult, row: RowModel, col: { calcIdx: number; pathKey: string }): number | null {
+    return this.evalCalc(parsed.calcDefs[col.calcIdx], parsed.calcLookups.get(col.pathKey), row);
   }
 
   private formatCalcValue(
@@ -454,12 +508,34 @@ export class Visual implements IVisual {
     const td = document.createElement("td");
     td.setAttribute("data-calccol", "1");
     td.classList.add("em-calc");
+    const def = parsed.calcDefs[col.calcIdx];
     const v = this.evalCalcCell(parsed, row, col);
-    if (v !== null) {
-      const formatted = this.formatCalcValue(parsed, col, v);
+    if (v === null) return td;
+    const formatted = this.formatCalcValue(parsed, col, v);
+    ariaParts.push(`${def.name} ${formatted}`);
+
+    if (def.display !== "bar") {
       td.textContent = formatted;
-      ariaParts.push(`${parsed.calcDefs[col.calcIdx].name} ${formatted}`);
+      return td;
     }
+
+    // IBCS variance bar: shared zero axis, good/bad semantic colours.
+    td.classList.add("em-barcell");
+    const flex = document.createElement("div");
+    flex.className = "em-barflex";
+    const wrap = document.createElement("div");
+    wrap.className = "em-barwrap";
+    const bar = document.createElement("div");
+    bar.className = v >= 0 ? "em-bar em-bar-pos" : "em-bar em-bar-neg";
+    bar.style.width = `${barWidthPct(v, parsed.calcMaxAbs[col.calcIdx]) / 2}%`;
+    if (this.isHighContrast) bar.style.backgroundColor = this.hcForeground;
+    wrap.appendChild(bar);
+    const label = document.createElement("span");
+    label.className = "em-barlabel";
+    label.textContent = formatted;
+    flex.appendChild(wrap);
+    flex.appendChild(label);
+    td.appendChild(flex);
     return td;
   }
 
@@ -515,10 +591,14 @@ export class Visual implements IVisual {
     })?.values;
     const units = String(persisted?.displayUnits ?? "auto");
     const decimals = Number(persisted?.decimals);
+    const scenario = String(
+      (persisted as { scenario?: unknown } | undefined)?.scenario ?? "auto"
+    );
     return {
       useCustom: persisted?.useCustom === true,
       units: (DISPLAY_UNIT_VALUES as readonly string[]).includes(units) ? units : "auto",
-      decimals: Number.isFinite(decimals) ? Math.min(6, Math.max(0, decimals)) : 0
+      decimals: Number.isFinite(decimals) ? Math.min(6, Math.max(0, decimals)) : 0,
+      scenario: ["auto", "AC", "PY", "BU", "FC", "none"].includes(scenario) ? scenario : "auto"
     };
   }
 
@@ -563,7 +643,9 @@ export class Visual implements IVisual {
       measureColorOverrides: [],
       renderCols: [],
       calcDefs: [],
-      calcLookups: new Map()
+      calcLookups: new Map(),
+      measureScenarios: [],
+      calcMaxAbs: []
     };
   }
 
@@ -696,6 +778,22 @@ export class Visual implements IVisual {
       }
       thead.appendChild(tr);
     });
+
+    // IBCS scenario decorations on the measure-level header row (only when
+    // its cells map 1:1 onto the grid columns).
+    if (this.formattingSettings.ibcs.enabled.value === true && !this.isHighContrast) {
+      const lastRow = thead.lastElementChild;
+      const cells = lastRow ? Array.from(lastRow.querySelectorAll("th:not(.em-corner)")) : [];
+      if (cells.length === parsed.renderCols.length) {
+        cells.forEach((cell, idx) => {
+          const col = parsed.renderCols[idx];
+          if (col.kind === "leaf") {
+            const sc = parsed.measureScenarios[parsed.leaves[col.leafIdx].measureIndex];
+            if (sc) cell.classList.add(`ibcs-${sc.toLowerCase()}`);
+          }
+        });
+      }
+    }
     return thead;
   }
 
@@ -720,6 +818,7 @@ export class Visual implements IVisual {
     const rhColor = this.isHighContrast ? "" : safeHexOrEmpty(rh.fontColor.value?.value);
     const rhBold = rh.bold.value === true;
     const rhItalic = rh.italic.value === true;
+    const ibcsOn = this.formattingSettings.ibcs.enabled.value === true && !this.isHighContrast;
     tbody.replaceChildren();
     if (spec.topPad > 0) tbody.appendChild(this.makeSpacerRow(spec.topPad, colCount));
 
@@ -763,6 +862,10 @@ export class Visual implements IVisual {
         const td = document.createElement("td");
         td.setAttribute("data-cell", "1");
         td.setAttribute("data-leaf-idx", String(leafIdx));
+        if (ibcsOn) {
+          const sc = parsed.measureScenarios[leaf.measureIndex];
+          if (sc === "PY" || sc === "FC") td.classList.add(`ibcs-${sc.toLowerCase()}`);
+        }
         const raw = row.cells[leafIdx];
         if (typeof raw === "number") {
           const fmt = this.measureFormat(parsed, leaf.measureIndex);

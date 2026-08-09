@@ -303,6 +303,37 @@
           "type": {
             "numeric": true
           }
+        },
+        "scenario": {
+          "displayName": "IBCS scenario",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Auto (detect from name)",
+                "value": "auto"
+              },
+              {
+                "displayName": "AC - Actual",
+                "value": "AC"
+              },
+              {
+                "displayName": "PY - Prior year",
+                "value": "PY"
+              },
+              {
+                "displayName": "BU - Budget/Plan",
+                "value": "BU"
+              },
+              {
+                "displayName": "FC - Forecast",
+                "value": "FC"
+              },
+              {
+                "displayName": "None",
+                "value": "none"
+              }
+            ]
+          }
         }
       }
     },
@@ -537,6 +568,18 @@
                 "value": "bar"
               }
             ]
+          }
+        }
+      }
+    },
+    "ibcs": {
+      "displayName": "IBCS",
+      "displayNameKey": "Visual_IBCS",
+      "properties": {
+        "enabled": {
+          "displayName": "Enable IBCS styling",
+          "type": {
+            "bool": true
           }
         }
       }

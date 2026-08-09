@@ -91,7 +91,8 @@ describe("settings model", () => {
       "columnHeaders",
       "values",
       "cellColors",
-      "calculatedColumns"
+      "calculatedColumns",
+      "ibcs"
     ]);
     expect(new Set(names).size).toBe(names.length);
   });

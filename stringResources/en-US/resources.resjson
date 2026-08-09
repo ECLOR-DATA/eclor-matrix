@@ -9,5 +9,6 @@
   "Visual_CellColors": "Cell colors",
   "Visual_RowHeaders": "Row headers",
   "Visual_ColumnHeaders": "Column headers",
-  "Visual_CalculatedColumns": "Calculated columns"
+  "Visual_CalculatedColumns": "Calculated columns",
+  "Visual_IBCS": "IBCS"
 }

@@ -3,6 +3,13 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.5.0.0] — 2026-08-09
+
+### Added
+
+- **IBCS styling** (Format → IBCS): scenario detection from measure names (EN/FR tokens — Actual/Réel, Prior/PY/N-1, Budget/Plan, Forecast/Prévision) with per-measure override on the Values card. Header semantics: AC solid underline, PY grey, BU outlined, FC hatched; PY/FC data cells styled accordingly.
+- **In-cell variance bars**: calculated columns can display as IBCS bars on a shared zero axis (good `#1EF5B1` / bad `#FF4D6D`, formatted value alongside), domain = |max| per column over detail rows; high-contrast falls back to the HC foreground.
+
 ## [1.4.0.0] — 2026-08-09
 
 ### Added

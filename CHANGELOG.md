@@ -3,6 +3,13 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.5.1.0] — 2026-08-09
+
+### Documentation
+
+- `docs/BENCHMARK.md` — market positioning vs Zebra BI / Inforiver / Vari / Synaptrix (feature matrix, assumed differentiators, prioritized gaps; knowledge-based, to be refreshed online before public use).
+- README roadmap updated (phases 1-6 shipped), CONTEXT.md §12-15 (virtualization, per-measure persistence pattern, calc engine, IBCS), CLAUDE.md architecture + decisions.
+
 ## [1.5.0.0] — 2026-08-09
 
 ### Added

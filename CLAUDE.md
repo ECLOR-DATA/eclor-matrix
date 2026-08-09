@@ -32,13 +32,17 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 4. [CONTEXT.md](CONTEXT.md) — design decisions and why
 5. [CHANGELOG.md](CHANGELOG.md) — Keep-a-Changelog
 
-## Architecture (in 5 lines)
+## Architecture
 
 - [src/visual.ts](src/visual.ts) — main `IVisual` class (constructor, update, parseMatrix, renderFromInput, interactions, destroy)
 - [src/matrixModel.ts](src/matrixModel.ts) — PURE matrix-tree flattening (flattenRows/flattenColumns/buildHeaderRows/computeMaxAbs) — no host coupling, fully testable
-- [src/settings.ts](src/settings.ts) — `FormattingSettingsModel` (general / subTotals / values cards)
+- [src/settings.ts](src/settings.ts) — `FormattingSettingsModel` (8 cards; dynamic per-measure groups for values/cellColors)
 - [src/format.ts](src/format.ts) — pure number/format-string helpers, copied verbatim from eclor-waterfall (scale-then-format pipeline, ~15 bugs already paid for — don't fork lightly)
-- Tests in [test/](test/) — Jest + jsdom + ts-jest; shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
+- [src/virtualize.ts](src/virtualize.ts) — pure windowed-scroll math (computeWindow/estimateRowHeight)
+- [src/cellColor.ts](src/cellColor.ts) — pure rules/heat-map engine + WCAG auto text contrast
+- [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard)
+- [src/ibcs.ts](src/ibcs.ts) — IBCS scenario detection (EN/FR tokens) + bar math
+- Tests in [test/](test/) — Jest + jsdom + ts-jest, 101 tests / 13 suites; shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
 
 ## Agent workflow (see docs/WORKFLOW.md for detail)
 
@@ -55,7 +59,10 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 - **The `subtotals` capabilities block is load-bearing and complete** — all SIX switch mappings declared (`columnSubtotalsPerLevel` included). `rowSubtotalsPerLevel`/`perColumnLevel` default `false` (per-level route needs persisted per-field props we don't emit). Breaking this is SILENT (playbook §4.3.6). Never add a second `dataViewMappings` object (§4.3.5 — crashes the host query generator).
 - **Two empty-state branches** in `update()`: `dv.matrix === undefined` → page-switch transient → replay `lastValidRenderInput`; parsed but 0 rows → user-cleared → wipe caches. Ghost-frame class of bugs (playbook §4.1.2).
 - **Tooltip-only measures** (roles.tooltips without roles.values) are excluded from grid columns (`renderLeafIdxs`) but keep their global `cellKey` — cell keys are DFS ordinals over ALL column leaves, never re-indexed.
-- **MAX_RENDER_ROWS = 5000** DOM cap with host warning — placeholder until virtual scrolling lands (phase 1 backlog). The 10k cert budget is tested on the pure pipeline.
+- **Virtual scrolling above 400 rows** (spacers + windowed slice, `virtualize.ts`) — rows are single-line `nowrap` so the uniform row-height estimate holds; don't add multi-line cells without revisiting it. Keyboard nav outside the window is a known gap.
+- **The per-measure pattern** (CONTEXT.md §13): dynamic Groups with `selector={metadata:queryName}` rebuilt each update; persisted values come back on `valueSources[i].objects`, NEVER through populate. Resolution = override-if-enabled else global card.
+- **Calc columns force flat headers** when a column tree exists (spans no longer match). Subtotal rows evaluate formulas on engine subtotals (ratio-correct). Invalid formulas skip silently.
+- **IBCS detection order PY/BU/FC before AC** — "Actual vs Budget" must read BU. Hatching = CSS repeating-linear-gradient (HTML rendering win).
 
 ## Project-specific gotchas
 

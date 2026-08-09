@@ -109,3 +109,41 @@ These are CSS defaults in [style/visual.less](style/visual.less) — when the
 matching Format-pane slices land (headers card, grid card…), their defaults must
 quote the same values, and the report theme (visualStyles on our GUID) must stay
 able to override them.
+
+## 12. Virtualisation (phase 2, 1.1.0.0)
+
+Windowed tbody above 400 rows: spacer `<tr>`s + slice re-render on scroll,
+uniform row height (rows are `nowrap` single-line, so the estimate from
+textSize/density/rowPadding holds). Pure math in `virtualize.ts`. Known
+limitation: keyboard navigation cannot focus rows outside the window yet.
+
+## 13. The per-measure persistence pattern (phase 2-3-6)
+
+One pattern for every per-measure option (format overrides, colour rules,
+IBCS scenario): dynamic Groups rebuilt each update on a CompositeCard with
+`selector = { metadata: queryName }`; the host persists instances on the
+measure and they come back on `valueSources[i].objects.<card>` — NOT through
+populateFormattingSettingsModel. `parseMatrix` reads/validates them
+(readMeasureOverride / readMeasureColorOverride). Resolution is always
+override-if-enabled else global card. Group names must stay globally unique
+(`valuesM0…`, `cellColorsM0…`).
+
+## 14. Calculated columns (phase 5, 1.4.0.0)
+
+`expressions.ts` — tokenizer + shunting-yard + RPN evaluator; zero
+eval/new Function (cert-fatal otherwise). Null-propagation everywhere
+(missing ref, ÷0, NaN → blank cell, never Infinity). Columns interleave
+after each column-group's measures; the header collapses to the FLAT shape
+when calcs are active because tree spans no longer match. Subtotal rows
+evaluate the formula ON the engine subtotals — the only correct approach for
+ratios. Invalid formulas skip the column silently (no crash, no error UI).
+
+## 15. IBCS (phase 6, 1.5.0.0)
+
+Scenario = per-measure override else token-based name detection (EN + FR;
+PY/BU/FC win over AC so "Actual vs Budget" reads as a budget-relative
+column). Semantics are CSS classes (AC underline, PY grey, BU outline, FC
+hatch — hatching is a plain repeating-linear-gradient, one more win for HTML
+rendering). Variance bars live on calculated columns (`display: bar`),
+shared zero axis, domain |max| over detail rows, good/bad = theme
+`#1EF5B1`/`#FF4D6D`, HC-safe. Full market positioning: docs/BENCHMARK.md.

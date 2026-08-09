@@ -11,9 +11,13 @@ audit⇄fix agent pipeline, certification conventions.
 
 ## Status
 
-`1.0.0.0` — working skeleton (Stage A). Renders hierarchical matrix DataViews with
-subtotals, expand/collapse, selection, tooltips, keyboard navigation, high-contrast
-and localization (en-US / fr-FR). Feature roadmap below.
+`1.5.0.0` — feature-complete core (Stage A, cert prep underway). Hierarchical
+matrix with engine subtotals and expand/collapse, virtual scrolling (10k+ rows),
+per-measure format overrides, rule-based colours + heat maps, custom headers
+(rotation 0/45/90°), client-side calculated columns (eval-free formula engine),
+IBCS scenarios (AC/PY/BU/FC, EN+FR detection) with in-cell variance bars,
+selection/tooltips/keyboard/high-contrast, en-US + fr-FR.
+Market positioning: [docs/BENCHMARK.md](docs/BENCHMARK.md).
 
 ## Data roles
 
@@ -44,21 +48,26 @@ CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the same chain on
 |---|---|
 | `src/visual.ts` | `IVisual` orchestration: host wiring, update pipeline, DOM render, interactions |
 | `src/matrixModel.ts` | Pure matrix-tree flattening (rows, column leaves, header spans) — fully unit-tested |
-| `src/settings.ts` | Format-pane model (General / Subtotals / Values) |
+| `src/settings.ts` | Format-pane model (8 cards incl. dynamic per-measure groups) |
 | `src/format.ts` | Pure number/format-string pipeline, shared with Eclor Waterfall |
+| `src/virtualize.ts` | Pure windowed-scrolling math |
+| `src/cellColor.ts` | Pure rules/heat-map colour engine (WCAG auto text contrast) |
+| `src/expressions.ts` | Eval-free formula engine for calculated columns |
+| `src/ibcs.ts` | IBCS scenario detection (EN/FR) + variance-bar math |
 
 Design decisions and their rationale: [CONTEXT.md](CONTEXT.md).
 Portable pbiviz patterns and certification standards: [docs/CLAUDE_PLAYBOOK.md](docs/CLAUDE_PLAYBOOK.md).
 
 ## Roadmap
 
-1. ~~Core matrix skeleton~~ (this release)
-2. Virtual scrolling + dynamic formats (conditional, per-measure)
-3. Rule-based colours + heat maps
-4. Custom headers (styling, rotation) + spacing controls
-5. Client-side calculated rows/columns (no-DAX expression engine)
-6. IBCS templates (variance columns, semantic hatching, P&L presets)
-7. AppSource listing + Microsoft certification
+1. ~~Core matrix skeleton~~ (1.0)
+2. ~~Virtual scrolling + per-measure dynamic formats~~ (1.1)
+3. ~~Rule-based colours + heat maps~~ (1.2)
+4. ~~Custom headers (styling, rotation) + spacing controls~~ (1.3)
+5. ~~Client-side calculated columns (no-DAX expression engine)~~ (1.4)
+6. ~~IBCS scenarios, semantic styling, variance bars~~ (1.5)
+7. Top-N + comments + in-cell charts (see [docs/BENCHMARK.md](docs/BENCHMARK.md) gaps)
+8. AppSource listing + Microsoft certification (audit⇄fix loop)
 
 ## Demo data
 

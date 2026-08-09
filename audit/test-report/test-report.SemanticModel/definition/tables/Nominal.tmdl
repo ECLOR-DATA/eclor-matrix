@@ -1,0 +1,53 @@
+table Nominal
+	lineageTag: 910052e2-c670-4c43-b463-e4341f0ffac9
+
+	column Category
+		dataType: string
+		lineageTag: 943d0167-8e0c-4447-b326-740488a75714
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: double
+		lineageTag: b2417c00-14df-4332-915e-ac0b5c76ddd7
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: double
+		lineageTag: b1c1100d-2044-4d82-92df-9fb6d5e3291a
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Nominal = calculated
+		mode: import
+		source =
+				DATATABLE(
+				    "Category", STRING,
+				    "Actual", DOUBLE,
+				    "Variance", DOUBLE,
+				    {
+				        {"Q1 Sales", 850000, 42000},
+				        {"Q2 Sales", 920000, -35500},
+				        {"Q3 Sales", 610000, 18750},
+				        {"Q4 Sales", 1150000, -92000},
+				        {"Services", 480000, 27300},
+				        {"Licensing", 355000, -12800},
+				        {"Hardware", 1020000, 65400},
+				        {"Support", 245000, -8900}
+				    }
+				)
+

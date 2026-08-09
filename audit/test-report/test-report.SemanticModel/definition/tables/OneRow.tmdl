@@ -1,0 +1,46 @@
+table OneRow
+	lineageTag: 0be85b1b-a02d-42a7-998b-6c12413d83cc
+
+	column Category
+		dataType: string
+		lineageTag: b20fe73e-34b9-44a0-a6df-64660195c6de
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: double
+		lineageTag: f630d429-28a2-41dd-a648-b4021abed587
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: double
+		lineageTag: 6f94130a-b4a0-4842-be81-17b96b4dd959
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition OneRow = calculated
+		mode: import
+		source =
+				DATATABLE(
+				    "Category", STRING,
+				    "Actual", DOUBLE,
+				    "Variance", DOUBLE,
+				    {
+				        {"Solo", 500000, 25000}
+				    }
+				)
+

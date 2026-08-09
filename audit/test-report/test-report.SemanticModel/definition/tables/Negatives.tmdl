@@ -1,0 +1,51 @@
+table Negatives
+	lineageTag: f616b097-574a-45c8-aad7-cdf5d3e0dca7
+
+	column Category
+		dataType: string
+		lineageTag: 33d4edb3-278e-4bb6-b29c-6f073be6e1e8
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: double
+		lineageTag: f3d31dee-dc3c-4721-8160-ff38c0b32e62
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: double
+		lineageTag: 6463f1e0-4aa7-4a96-9656-c33328e03f98
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Negatives = calculated
+		mode: import
+		source =
+				DATATABLE(
+				    "Category", STRING,
+				    "Actual", DOUBLE,
+				    "Variance", DOUBLE,
+				    {
+				        {"Write-off", -125000, -8200},
+				        {"Refunds", -64000, 5300},
+				        {"Discounts", -230000, 12400},
+				        {"Chargebacks", -18500, -2100},
+				        {"Rebates", -87600, 4700},
+				        {"Provisions", -342000, -15600}
+				    }
+				)
+

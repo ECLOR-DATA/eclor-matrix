@@ -1,0 +1,147 @@
+// Eclor Matrix — container, table, hover and a11y styles.
+// Colours flow through CSS custom properties set from visual.ts so
+// high-contrast mode can override every value in one place.
+
+.eclor-matrix-root {
+  --em-fg: #252423;
+  --em-bg: transparent;
+  --em-accent: #0078d4;
+  --em-grid: #e1dfdd;
+  --em-subtotal-bg: #f3f2f1;
+  --em-hover-bg: rgba(0, 120, 212, 0.08);
+  --em-selected-bg: rgba(0, 120, 212, 0.16);
+
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Segoe UI", wf_segoe-ui_normal, helvetica, arial, sans-serif;
+  color: var(--em-fg);
+  background: var(--em-bg);
+}
+
+.em-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.em-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+
+  th,
+  td {
+    border: 1px solid var(--em-grid);
+    padding: 4px 8px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--em-subtotal-bg);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  th.em-rowheader {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--em-bg, #ffffff);
+    background-color: #ffffff;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  thead th.em-corner {
+    z-index: 3;
+    left: 0;
+  }
+
+  tr.em-subtotal {
+    font-weight: 600;
+
+    td,
+    th.em-rowheader {
+      background-color: var(--em-subtotal-bg);
+    }
+  }
+
+  tbody tr:hover td,
+  tbody tr:hover th.em-rowheader {
+    background-color: var(--em-hover-bg);
+  }
+
+  tbody tr.em-selected td,
+  tbody tr.em-selected th.em-rowheader {
+    background-color: var(--em-selected-bg);
+  }
+
+  tbody tr:focus-visible {
+    outline: none;
+
+    th.em-rowheader {
+      box-shadow: inset 0 0 0 2px var(--em-accent);
+    }
+  }
+}
+
+.em-chevron {
+  display: inline-block;
+  width: 14px;
+  margin-right: 4px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--em-accent);
+}
+
+.em-density-compact .em-table th,
+.em-density-compact .em-table td {
+  padding: 1px 6px;
+}
+
+.em-density-comfortable .em-table th,
+.em-density-comfortable .em-table td {
+  padding: 8px 12px;
+}
+
+.em-empty {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: #605e5c;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+// High-contrast mode: visual.ts adds .em-hc and sets the custom properties
+// from the host palette. Force every themed surface through them.
+.eclor-matrix-root.em-hc {
+  .em-table th,
+  .em-table td,
+  .em-table th.em-rowheader,
+  .em-table thead th,
+  .em-table tr.em-subtotal td,
+  .em-table tr.em-subtotal th.em-rowheader {
+    background-color: var(--em-bg) !important;
+    color: var(--em-fg) !important;
+    border-color: var(--em-fg) !important;
+  }
+
+  .em-table tbody tr.em-selected td,
+  .em-table tbody tr.em-selected th.em-rowheader {
+    color: var(--em-accent) !important;
+  }
+
+  .em-empty {
+    color: var(--em-fg);
+  }
+}

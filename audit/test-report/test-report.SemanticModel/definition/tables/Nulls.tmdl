@@ -1,0 +1,51 @@
+table Nulls
+	lineageTag: 082aa6e4-48a1-4baa-aa2a-357f30e0dbc7
+
+	column Category
+		dataType: string
+		lineageTag: 4b94ab41-2560-4ca8-86a7-f6c5defa032d
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: double
+		lineageTag: 18291823-9c14-43b7-a976-7dc744563951
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: double
+		lineageTag: f4f0f85d-ed77-4d61-963a-f0e0d65e2fa8
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Nulls = calculated
+		mode: import
+		source =
+				DATATABLE(
+				    "Category", STRING,
+				    "Actual", DOUBLE,
+				    "Variance", DOUBLE,
+				    {
+				        {"Alpha", 320000, 15000},
+				        {"Bravo", BLANK(), 22000},
+				        {"Charlie", 450000, BLANK()},
+				        {"Delta", BLANK(), -18000},
+				        {"Echo", 275000, -9500},
+				        {"Foxtrot", 510000, 31000}
+				    }
+				)
+

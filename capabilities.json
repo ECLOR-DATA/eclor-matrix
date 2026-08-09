@@ -1,0 +1,257 @@
+{
+  "dataRoles": [
+    {
+      "displayName": "Rows",
+      "name": "rows",
+      "kind": "Grouping",
+      "description": "One or more dimension columns forming the row hierarchy. Order defines the drill levels (top → bottom)."
+    },
+    {
+      "displayName": "Columns",
+      "name": "columns",
+      "kind": "Grouping",
+      "description": "Optional. One or more dimension columns forming the column hierarchy (cross-tab)."
+    },
+    {
+      "displayName": "Values",
+      "name": "values",
+      "kind": "Measure",
+      "description": "One or more measures shown at each row × column intersection. Field parameters are supported."
+    },
+    {
+      "displayName": "Tooltips",
+      "name": "tooltips",
+      "kind": "Measure",
+      "description": "Optional. Additional measures displayed in the hover tooltip of each cell."
+    }
+  ],
+  "dataViewMappings": [
+    {
+      "matrix": {
+        "rows": {
+          "for": {
+            "in": "rows"
+          },
+          "dataReductionAlgorithm": {
+            "top": {
+              "count": 10000
+            }
+          }
+        },
+        "columns": {
+          "for": {
+            "in": "columns"
+          }
+        },
+        "values": {
+          "select": [
+            {
+              "for": {
+                "in": "values"
+              }
+            },
+            {
+              "for": {
+                "in": "tooltips"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "objects": {
+    "general": {
+      "displayName": "General",
+      "displayNameKey": "Visual_General",
+      "properties": {
+        "textSize": {
+          "displayName": "Text size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "density": {
+          "displayName": "Row density",
+          "type": {
+            "enumeration": [
+              {
+                "value": "compact",
+                "displayName": "Compact"
+              },
+              {
+                "value": "normal",
+                "displayName": "Normal"
+              },
+              {
+                "value": "comfortable",
+                "displayName": "Comfortable"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "subTotals": {
+      "displayName": "Subtotals",
+      "displayNameKey": "Visual_SubTotals",
+      "properties": {
+        "rowSubtotals": {
+          "displayName": "Row subtotals",
+          "type": {
+            "bool": true
+          }
+        },
+        "perRowLevel": {
+          "displayName": "Per row level",
+          "type": {
+            "bool": true
+          }
+        },
+        "levelSubtotalEnabled": {
+          "displayName": "Per level",
+          "type": {
+            "bool": true
+          }
+        },
+        "columnSubtotals": {
+          "displayName": "Column subtotals",
+          "type": {
+            "bool": true
+          }
+        },
+        "perColumnLevel": {
+          "displayName": "Per column level",
+          "type": {
+            "bool": true
+          }
+        },
+        "rowSubtotalsType": {
+          "displayName": "Row subtotal position",
+          "type": {
+            "enumeration": [
+              {
+                "value": "Top",
+                "displayName": "Top"
+              },
+              {
+                "value": "Bottom",
+                "displayName": "Bottom"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "values": {
+      "displayName": "Values",
+      "displayNameKey": "Visual_Values",
+      "properties": {
+        "displayUnits": {
+          "displayName": "Display units",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "none",
+                "displayName": "None"
+              },
+              {
+                "value": "thousands",
+                "displayName": "Thousands"
+              },
+              {
+                "value": "millions",
+                "displayName": "Millions"
+              },
+              {
+                "value": "billions",
+                "displayName": "Billions"
+              }
+            ]
+          }
+        },
+        "decimals": {
+          "displayName": "Decimal places",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    }
+  },
+  "subtotals": {
+    "matrix": {
+      "rowSubtotals": {
+        "propertyIdentifier": {
+          "objectName": "subTotals",
+          "propertyName": "rowSubtotals"
+        },
+        "defaultValue": true
+      },
+      "rowSubtotalsPerLevel": {
+        "propertyIdentifier": {
+          "objectName": "subTotals",
+          "propertyName": "perRowLevel"
+        },
+        "defaultValue": false
+      },
+      "columnSubtotals": {
+        "propertyIdentifier": {
+          "objectName": "subTotals",
+          "propertyName": "columnSubtotals"
+        },
+        "defaultValue": true
+      },
+      "columnSubtotalsPerLevel": {
+        "propertyIdentifier": {
+          "objectName": "subTotals",
+          "propertyName": "perColumnLevel"
+        },
+        "defaultValue": false
+      },
+      "levelSubtotalEnabled": {
+        "propertyIdentifier": {
+          "objectName": "subTotals",
+          "propertyName": "levelSubtotalEnabled"
+        },
+        "defaultValue": true
+      },
+      "rowSubtotalsType": {
+        "propertyIdentifier": {
+          "objectName": "subTotals",
+          "propertyName": "rowSubtotalsType"
+        },
+        "defaultValue": "Top"
+      }
+    }
+  },
+  "drilldown": {
+    "roles": ["rows", "columns"]
+  },
+  "expandCollapse": {
+    "roles": ["rows"],
+    "addDataViewFlags": {
+      "defaultValue": true
+    }
+  },
+  "sorting": {
+    "default": {}
+  },
+  "supportsLandingPage": true,
+  "supportsKeyboardFocus": true,
+  "supportsMultiVisualSelection": true,
+  "tooltips": {
+    "supportedTypes": {
+      "default": true,
+      "canvas": true
+    },
+    "roles": ["values", "tooltips"]
+  },
+  "privileges": []
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
+  "pageOrder": [
+    "p1-nominal",
+    "p2-interactions",
+    "p3-nulls",
+    "p4-negatives",
+    "p5-hostile-labels",
+    "p6-multi-instance",
+    "p7-huge10k",
+    "p8-tiny"
+  ],
+  "activePageName": "p1-nominal"
+}

@@ -1,0 +1,29 @@
+table KPI
+	lineageTag: 53ffd163-8e1f-4183-8f2c-9e8b96e3f09d
+
+	measure 'Total Actual' = SUM(Nominal[Actual])
+		formatString: $#,##0
+		lineageTag: a4499583-77fb-4271-b08a-37e97ec3467e
+
+	measure Pct = 0.425
+		formatString: 0.0%
+		lineageTag: 5c994beb-a3ed-437b-a90f-704494dfdf11
+
+	measure Precise = 1234.5678
+		formatString: #,##0.000
+		lineageTag: c4acb2be-c176-4b07-841c-de225bd3a2f5
+
+	column Value
+		dataType: int64
+		isHidden
+		lineageTag: 333ce606-c7b4-45a9-8d2a-8680ece296c2
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition KPI = calculated
+		mode: import
+		source = {1}
+

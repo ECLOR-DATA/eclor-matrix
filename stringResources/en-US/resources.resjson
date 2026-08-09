@@ -1,0 +1,9 @@
+{
+  "Visual_General": "General",
+  "Visual_SubTotals": "Subtotals",
+  "Visual_Values": "Values",
+  "Visual_Empty": "Select or drag fields to populate this visual",
+  "Visual_Total": "Total",
+  "Visual_AriaMatrix": "Matrix",
+  "Visual_DataCap": "Data limit reached — showing the first rows only"
+}

@@ -1,0 +1,55 @@
+table Huge10k
+	lineageTag: 4e42b3e3-67b2-4d2e-942e-712fe0e719f5
+
+	column Value
+		dataType: int64
+		lineageTag: 690e47fc-209f-4dde-950a-831903fc07ed
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Category
+		dataType: string
+		lineageTag: dd5c27a4-e6f3-43ef-8c25-baf0d8025fab
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: int64
+		lineageTag: d9e0fad8-b0a5-47ec-94ff-7cc7592b2f76
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: int64
+		lineageTag: f951250b-01e8-42fa-822c-4c26f3c395f9
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Huge10k = calculated
+		mode: import
+		source =
+				ADDCOLUMNS(
+				    GENERATESERIES(1, 10000),
+				    "Category", "C" & [Value],
+				    "Actual", MOD([Value] * 137, 9973) + 1,
+				    "Variance", MOD([Value] * 89, 997) - 498
+				)
+

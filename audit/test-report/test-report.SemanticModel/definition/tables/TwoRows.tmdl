@@ -1,0 +1,47 @@
+table TwoRows
+	lineageTag: b02bff6a-2abf-4bb2-9467-7280dcc6556e
+
+	column Category
+		dataType: string
+		lineageTag: dbf6dba7-c90a-4bd2-8458-37760677507a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: double
+		lineageTag: 9589491f-d60f-46f0-af89-6465f64d00f7
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: double
+		lineageTag: bb447423-b9e1-4244-b23f-ddfe06e82335
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition TwoRows = calculated
+		mode: import
+		source =
+				DATATABLE(
+				    "Category", STRING,
+				    "Actual", DOUBLE,
+				    "Variance", DOUBLE,
+				    {
+				        {"First", 300000, -15000},
+				        {"Second", 450000, 22000}
+				    }
+				)
+

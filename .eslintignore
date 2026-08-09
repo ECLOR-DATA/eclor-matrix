@@ -1,0 +1,9 @@
+node_modules
+dist
+.tmp
+coverage
+releases
+test
+.claude
+webpack.statistics.*.html
+jest.config.js

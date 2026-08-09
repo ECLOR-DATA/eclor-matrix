@@ -1,0 +1,29 @@
+{
+  "visual": {
+    "name": "eclorMatrix",
+    "displayName": "Eclor Matrix",
+    "guid": "eclorMatrixECLOR2026",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Eclor Matrix — advanced matrix/cross-tab with hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic number formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting.",
+    "supportUrl": "https://github.com/ECLOR-DATA/eclor-matrix/issues",
+    "gitHubUrl": "https://github.com/ECLOR-DATA/eclor-matrix"
+  },
+  "apiVersion": "5.11.0",
+  "author": {
+    "name": "ECLOR",
+    "email": "contact@eclor-data.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": [],
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [
+    "stringResources/en-US/resources.resjson",
+    "stringResources/fr-FR/resources.resjson"
+  ],
+  "ignorePackageWarnings": false
+}

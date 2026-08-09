@@ -1,0 +1,51 @@
+table HostileLabels
+	lineageTag: 74cb537b-6634-4688-8ce9-945b410e2d87
+
+	column Category
+		dataType: string
+		lineageTag: 5edeb029-13a1-4e02-8384-612324406725
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Category]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual
+		dataType: double
+		lineageTag: cb071fef-df26-4a53-ac93-928e2d14dc93
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Actual]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Variance
+		dataType: double
+		lineageTag: 7338b076-15a5-4482-be0e-3ddc3e4b8017
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Variance]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition HostileLabels = calculated
+		mode: import
+		source =
+				DATATABLE(
+				    "Category", STRING,
+				    "Actual", DOUBLE,
+				    "Variance", DOUBLE,
+				    {
+				        {"<A & B>", 150000, -12000},
+				        {"""quoted""", 98000, 8500},
+				        {"l'apostrophe", 132000, -4300},
+				        {"🚀 Emoji 📈 label ✨", 76000, 6100},
+				        {"This category label is deliberately extremely long to stress axis truncation, tooltip wrapping and ellipsis behaviour xx", 54000, -2700},
+				        {"مرحبا بالعالم — تسمية عربية طويلة", 112000, 9800}
+				    }
+				)
+

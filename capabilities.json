@@ -189,6 +189,79 @@
           }
         }
       }
+    },
+    "cellColors": {
+      "displayName": "Cell colors",
+      "displayNameKey": "Visual_CellColors",
+      "properties": {
+        "useCustom": {
+          "displayName": "Override rules",
+          "type": {
+            "bool": true
+          }
+        },
+        "mode": {
+          "displayName": "Mode",
+          "type": {
+            "enumeration": [
+              {
+                "value": "none",
+                "displayName": "None"
+              },
+              {
+                "value": "rules",
+                "displayName": "Rules"
+              },
+              {
+                "value": "heatmap",
+                "displayName": "Heat map"
+              }
+            ]
+          }
+        },
+        "thresholdLow": {
+          "displayName": "Low threshold",
+          "type": {
+            "numeric": true
+          }
+        },
+        "thresholdHigh": {
+          "displayName": "High threshold",
+          "type": {
+            "numeric": true
+          }
+        },
+        "colorLow": {
+          "displayName": "Low color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "colorMid": {
+          "displayName": "Middle color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "colorHigh": {
+          "displayName": "High color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
     }
   },
   "subtotals": {

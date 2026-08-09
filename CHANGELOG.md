@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.2.0.0] — 2026-08-09
+
+### Added
+
+- **Cell colors card** (global + per-measure override groups): `Rules` mode (below-low / above-high thresholds → bad `#FF4D6D` / good `#1EF5B1`, optional middle colour) and `Heat map` mode (2- or 3-colour interpolation over each measure's min–max, subtotals excluded from domain and from painting). Text colour auto-contrasts via WCAG linearized luminance. High-contrast mode suppresses all painting. Pure engine in `src/cellColor.ts`.
+
 ## [1.1.0.0] — 2026-08-09
 
 ### Added

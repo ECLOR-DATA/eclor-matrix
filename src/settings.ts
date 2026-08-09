@@ -185,10 +185,144 @@ export function makePerMeasureValueGroup(
   });
 }
 
+const CELL_COLOR_MODE_ITEMS: powerbi.IEnumMember[] = [
+  { value: "none", displayName: "None" },
+  { value: "rules", displayName: "Rules" },
+  { value: "heatmap", displayName: "Heat map" }
+];
+
+function makeCellColorSlices(persisted: {
+  mode: string;
+  thresholdLow: number;
+  thresholdHigh: number;
+  colorLow: string;
+  colorMid: string;
+  colorHigh: string;
+}): FormattingSettingsSlice[] {
+  const modeItem = CELL_COLOR_MODE_ITEMS.find((i) => i.value === persisted.mode) ?? CELL_COLOR_MODE_ITEMS[0];
+  return [
+    new formattingSettings.ItemDropdown({
+      name: "mode",
+      displayName: "Mode",
+      items: CELL_COLOR_MODE_ITEMS,
+      value: modeItem
+    }),
+    new formattingSettings.NumUpDown({
+      name: "thresholdLow",
+      displayName: "Low threshold",
+      value: persisted.thresholdLow
+    }),
+    new formattingSettings.NumUpDown({
+      name: "thresholdHigh",
+      displayName: "High threshold",
+      value: persisted.thresholdHigh
+    }),
+    new formattingSettings.ColorPicker({
+      name: "colorLow",
+      displayName: "Low color",
+      value: { value: persisted.colorLow }
+    }),
+    new formattingSettings.ColorPicker({
+      name: "colorMid",
+      displayName: "Middle color",
+      value: { value: persisted.colorMid }
+    }),
+    new formattingSettings.ColorPicker({
+      name: "colorHigh",
+      displayName: "High color",
+      value: { value: persisted.colorHigh }
+    })
+  ];
+}
+
+/** Cell colors card — global group + per-measure overrides, same persistence
+ *  pattern as the Values card. */
+class CellColorsCardSettings extends formattingSettings.CompositeCard {
+  mode = new formattingSettings.ItemDropdown({
+    name: "mode",
+    displayName: "Mode",
+    items: CELL_COLOR_MODE_ITEMS,
+    value: CELL_COLOR_MODE_ITEMS[0]
+  });
+
+  thresholdLow = new formattingSettings.NumUpDown({
+    name: "thresholdLow",
+    displayName: "Low threshold",
+    value: 0
+  });
+
+  thresholdHigh = new formattingSettings.NumUpDown({
+    name: "thresholdHigh",
+    displayName: "High threshold",
+    value: 0
+  });
+
+  colorLow = new formattingSettings.ColorPicker({
+    name: "colorLow",
+    displayName: "Low color",
+    value: { value: "#FF4D6D" }
+  });
+
+  colorMid = new formattingSettings.ColorPicker({
+    name: "colorMid",
+    displayName: "Middle color",
+    value: { value: "" }
+  });
+
+  colorHigh = new formattingSettings.ColorPicker({
+    name: "colorHigh",
+    displayName: "High color",
+    value: { value: "#1EF5B1" }
+  });
+
+  globalGroup: formattingSettings.Group = new formattingSettings.Group({
+    name: "cellColorsGlobal",
+    displayName: "All measures",
+    slices: [this.mode, this.thresholdLow, this.thresholdHigh, this.colorLow, this.colorMid, this.colorHigh]
+  });
+
+  name: string = "cellColors";
+  displayName: string = "Cell colors";
+  displayNameKey: string = "Visual_CellColors";
+  groups: formattingSettings.Group[] = [this.globalGroup];
+}
+
+/** Per-measure cell-colour override group (selector = measure metadata). */
+export function makePerMeasureColorGroup(
+  index: number,
+  displayName: string,
+  queryName: string,
+  persisted: {
+    useCustom: boolean;
+    mode: string;
+    thresholdLow: number;
+    thresholdHigh: number;
+    colorLow: string;
+    colorMid: string;
+    colorHigh: string;
+  }
+): formattingSettings.Group {
+  const selector = { metadata: queryName } as powerbi.data.Selector;
+  const useCustom = new formattingSettings.ToggleSwitch({
+    name: "useCustom",
+    displayName: "Override rules",
+    value: persisted.useCustom
+  });
+  useCustom.selector = selector;
+  const slices = makeCellColorSlices(persisted);
+  for (const s of slices) (s as { selector?: powerbi.data.Selector }).selector = selector;
+  return new formattingSettings.Group({
+    name: `cellColorsM${index}`,
+    displayName: displayName,
+    slices: [useCustom, ...slices]
+  });
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   general = new GeneralCardSettings();
   subTotals = new SubTotalsCardSettings();
   values = new ValuesCardSettings();
+  cellColors = new CellColorsCardSettings();
 
-  cards = [this.general, this.subTotals, this.values];
+  cards = [this.general, this.subTotals, this.values, this.cellColors];
 }

@@ -19,12 +19,19 @@ import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 
 import {
   DISPLAY_UNIT_VALUES,
+  makePerMeasureColorGroup,
   makePerMeasureValueGroup,
   MeasureFormatOverride,
   VisualFormattingSettingsModel
 } from "./settings";
-import { formatActualLabel, safeHex } from "./format";
+import { formatActualLabel, safeHex, safeHexOrEmpty } from "./format";
 import { computeWindow, estimateRowHeight, WindowSpec } from "./virtualize";
+import {
+  CellColorMode,
+  CellColorOpts,
+  MeasureStats,
+  resolveCellColor
+} from "./cellColor";
 import {
   buildHeaderRows,
   computeMaxAbs,
@@ -52,6 +59,10 @@ interface ParseResult {
   rowLevels: DataViewHierarchyLevel[];
   /** Per-measure format override persisted on valueSources[i].objects.values. */
   measureOverrides: MeasureFormatOverride[];
+  /** Per-measure min/max over non-subtotal rows (heat-map domain). */
+  measureStats: MeasureStats[];
+  /** Per-measure colour override persisted on valueSources[i].objects.cellColors. */
+  measureColorOverrides: (CellColorOpts & { useCustom: boolean })[];
 }
 
 interface RenderInput {
@@ -248,7 +259,86 @@ export class Visual implements IVisual {
     }
 
     const measureOverrides = valueSources.map((vs) => this.readMeasureOverride(vs));
-    return { rows, leaves, headerRows, renderLeafIdxs, valueSources, rowLevels, measureOverrides };
+    const measureColorOverrides = valueSources.map((vs) => this.readMeasureColorOverride(vs));
+
+    const measureStats: MeasureStats[] = valueSources.map(() => ({ min: Infinity, max: -Infinity }));
+    for (const r of rows) {
+      if (r.isSubtotal) continue;
+      for (let li = 0; li < leaves.length; li++) {
+        const v = r.cells[li];
+        if (typeof v === "number" && Number.isFinite(v)) {
+          const s = measureStats[leaves[li].measureIndex];
+          if (s) {
+            if (v < s.min) s.min = v;
+            if (v > s.max) s.max = v;
+          }
+        }
+      }
+    }
+    for (const s of measureStats) {
+      if (s.min === Infinity) {
+        s.min = 0;
+        s.max = 0;
+      }
+    }
+
+    return {
+      rows,
+      leaves,
+      headerRows,
+      renderLeafIdxs,
+      valueSources,
+      rowLevels,
+      measureOverrides,
+      measureStats,
+      measureColorOverrides
+    };
+  }
+
+  private readMeasureColorOverride(
+    vs: DataViewMetadataColumn
+  ): CellColorOpts & { useCustom: boolean } {
+    const readFill = (v: unknown, fallback: string): string => {
+      if (v === undefined) return fallback;
+      const c = (v as { solid?: { color?: unknown } })?.solid?.color;
+      return safeHexOrEmpty(typeof c === "string" ? c : "");
+    };
+    const p = (vs.objects as unknown as {
+      cellColors?: Record<string, unknown>;
+    })?.cellColors;
+    const mode = String(p?.mode ?? "none");
+    const num = (v: unknown): number => (Number.isFinite(Number(v)) ? Number(v) : 0);
+    return {
+      useCustom: p?.useCustom === true,
+      mode: (["none", "rules", "heatmap"] as const).includes(mode as CellColorMode)
+        ? (mode as CellColorMode)
+        : "none",
+      thresholdLow: num(p?.thresholdLow),
+      thresholdHigh: num(p?.thresholdHigh),
+      colorLow: readFill(p?.colorLow, "#FF4D6D"),
+      colorMid: readFill(p?.colorMid, ""),
+      colorHigh: readFill(p?.colorHigh, "#1EF5B1")
+    };
+  }
+
+  private globalColorOpts(): CellColorOpts {
+    const c = this.formattingSettings.cellColors;
+    const mode = String(c.mode.value?.value ?? "none");
+    return {
+      mode: (["none", "rules", "heatmap"] as const).includes(mode as CellColorMode)
+        ? (mode as CellColorMode)
+        : "none",
+      thresholdLow: Number(c.thresholdLow.value) || 0,
+      thresholdHigh: Number(c.thresholdHigh.value) || 0,
+      colorLow: safeHexOrEmpty(c.colorLow.value?.value),
+      colorMid: safeHexOrEmpty(c.colorMid.value?.value),
+      colorHigh: safeHexOrEmpty(c.colorHigh.value?.value)
+    };
+  }
+
+  private measureColorOpts(parsed: ParseResult, mi: number): CellColorOpts {
+    const ov = parsed.measureColorOverrides[mi];
+    return ov?.useCustom ? ov : this.globalColorOpts();
   }
 
   private readMeasureOverride(vs: DataViewMetadataColumn): MeasureFormatOverride {
@@ -276,14 +366,18 @@ export class Visual implements IVisual {
     };
   }
 
-  /** Rebuild the dynamic per-measure groups on the Values card. */
+  /** Rebuild the dynamic per-measure groups on the Values + Cell colors cards. */
   private buildPerMeasureValueGroups(parsed: ParseResult): void {
     const card = this.formattingSettings.values;
     card.groups = [card.globalGroup];
+    const colorCard = this.formattingSettings.cellColors;
+    colorCard.groups = [colorCard.globalGroup];
     parsed.valueSources.forEach((vs, i) => {
       if (!vs.queryName) return;
-      card.groups.push(
-        makePerMeasureValueGroup(i, vs.displayName ?? `Measure ${i + 1}`, vs.queryName, parsed.measureOverrides[i])
+      const label = vs.displayName ?? `Measure ${i + 1}`;
+      card.groups.push(makePerMeasureValueGroup(i, label, vs.queryName, parsed.measureOverrides[i]));
+      colorCard.groups.push(
+        makePerMeasureColorGroup(i, label, vs.queryName, parsed.measureColorOverrides[i])
       );
     });
   }
@@ -296,7 +390,9 @@ export class Visual implements IVisual {
       renderLeafIdxs: [],
       valueSources: [],
       rowLevels: [],
-      measureOverrides: []
+      measureOverrides: [],
+      measureStats: [],
+      measureColorOverrides: []
     };
   }
 
@@ -467,6 +563,16 @@ export class Visual implements IVisual {
           });
           td.textContent = formatted;
           ariaParts.push(formatted);
+          if (!row.isSubtotal && !this.isHighContrast) {
+            const copts = this.measureColorOpts(parsed, leaf.measureIndex);
+            if (copts.mode !== "none") {
+              const paint = resolveCellColor(raw, parsed.measureStats[leaf.measureIndex], copts);
+              if (paint.bg) {
+                td.style.backgroundColor = paint.bg;
+                if (paint.fg) td.style.color = paint.fg;
+              }
+            }
+          }
         } else if (raw !== null) {
           td.textContent = String(raw);
         }

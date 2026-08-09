@@ -1,20 +1,27 @@
 // Eclor Matrix — container, table, hover and a11y styles.
+// Default look mirrors the ECLOR "eclor — Light" report theme's
+// pivotTable/tableEx styles (see CONTEXT.md §11): Arial 11, column headers
+// on a 10% #091612 band, horizontal-only #E5E7E6 grid, #EFEFEF bold totals,
+// #F5F6F5 banded rows, #1EF5B1 emerald accent.
 // Colours flow through CSS custom properties set from visual.ts so
 // high-contrast mode can override every value in one place.
 
 .eclor-matrix-root {
-  --em-fg: #252423;
+  --em-fg: #091612;
   --em-bg: transparent;
-  --em-accent: #0078d4;
-  --em-grid: #e1dfdd;
-  --em-subtotal-bg: #f3f2f1;
-  --em-hover-bg: rgba(0, 120, 212, 0.08);
-  --em-selected-bg: rgba(0, 120, 212, 0.16);
+  --em-accent: #1ef5b1;
+  --em-grid: #e5e7e6;
+  --em-header-bg: rgba(9, 22, 18, 0.1);
+  --em-total-bg: #efefef;
+  --em-band-bg: #f5f6f5;
+  --em-hover-bg: rgba(30, 245, 177, 0.14);
+  --em-selected-bg: rgba(30, 245, 177, 0.28);
+  --em-focus: #091612;
 
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: "Segoe UI", wf_segoe-ui_normal, helvetica, arial, sans-serif;
+  font-family: Arial, "Segoe UI", wf_segoe-ui_normal, helvetica, sans-serif;
   color: var(--em-fg);
   background: var(--em-bg);
 }
@@ -30,9 +37,11 @@
   width: max-content;
   min-width: 100%;
 
+  // Theme grid: horizontal rules only (gridHorizontal #E5E7E6, no vertical).
   th,
   td {
-    border: 1px solid var(--em-grid);
+    border: none;
+    border-bottom: 1px solid var(--em-grid);
     padding: 4px 8px;
     text-align: right;
     white-space: nowrap;
@@ -42,16 +51,16 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--em-subtotal-bg);
-    font-weight: 600;
+    background: var(--em-header-bg);
+    font-weight: 700;
     text-align: center;
+    border-bottom: 1px solid var(--em-fg);
   }
 
   th.em-rowheader {
     position: sticky;
     left: 0;
     z-index: 1;
-    background: var(--em-bg, #ffffff);
     background-color: #ffffff;
     text-align: left;
     font-weight: 400;
@@ -62,30 +71,39 @@
     left: 0;
   }
 
+  // Theme total/subtotal: #EFEFEF band, bold, applyToHeaders.
   tr.em-subtotal {
-    font-weight: 600;
+    font-weight: 700;
 
     td,
     th.em-rowheader {
-      background-color: var(--em-subtotal-bg);
+      background-color: var(--em-total-bg);
     }
   }
 
-  tbody tr:hover td,
-  tbody tr:hover th.em-rowheader {
+  // Theme values backColorSecondary: #F5F6F5 banded rows.
+  tbody tr:nth-child(even):not(.em-subtotal) {
+    td,
+    th.em-rowheader {
+      background-color: var(--em-band-bg);
+    }
+  }
+
+  tbody tr:hover:not(.em-subtotal) td,
+  tbody tr:hover:not(.em-subtotal) th.em-rowheader {
     background-color: var(--em-hover-bg);
   }
 
   tbody tr.em-selected td,
   tbody tr.em-selected th.em-rowheader {
-    background-color: var(--em-selected-bg);
+    background-color: var(--em-selected-bg) !important;
   }
 
   tbody tr:focus-visible {
     outline: none;
 
     th.em-rowheader {
-      box-shadow: inset 0 0 0 2px var(--em-accent);
+      box-shadow: inset 0 0 0 2px var(--em-focus);
     }
   }
 }
@@ -96,7 +114,7 @@
   margin-right: 4px;
   cursor: pointer;
   user-select: none;
-  color: var(--em-accent);
+  color: var(--em-fg);
 }
 
 .em-density-compact .em-table th,
@@ -115,7 +133,7 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  color: #605e5c;
+  color: #5e5e5e;
   font-size: 12px;
   text-align: center;
   padding: 8px;
@@ -130,7 +148,9 @@
   .em-table th.em-rowheader,
   .em-table thead th,
   .em-table tr.em-subtotal td,
-  .em-table tr.em-subtotal th.em-rowheader {
+  .em-table tr.em-subtotal th.em-rowheader,
+  .em-table tbody tr:nth-child(even):not(.em-subtotal) td,
+  .em-table tbody tr:nth-child(even):not(.em-subtotal) th.em-rowheader {
     background-color: var(--em-bg) !important;
     color: var(--em-fg) !important;
     border-color: var(--em-fg) !important;
@@ -139,6 +159,10 @@
   .em-table tbody tr.em-selected td,
   .em-table tbody tr.em-selected th.em-rowheader {
     color: var(--em-accent) !important;
+  }
+
+  .em-table tbody tr:focus-visible th.em-rowheader {
+    box-shadow: inset 0 0 0 2px var(--em-accent);
   }
 
   .em-empty {

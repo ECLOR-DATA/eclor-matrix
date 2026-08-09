@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.0.1.0] — 2026-08-09
+
+### Changed
+
+- Default look now mirrors the ECLOR "eclor — Light" theme (reference: AppSource demo `eclorWaterfallECLOR2026.1.1.76.0.pbix`, vendored at `template/eclor-light-theme.json`): Arial 11, column headers on a 10% `#091612` band with strong bottom rule, horizontal-only `#E5E7E6` grid, `#EFEFEF` bold totals, `#F5F6F5` banded rows, `#1EF5B1` emerald hover/selection accent. Token mapping documented in CONTEXT.md §11.
+
 ## [1.0.0.0] — 2026-08-09
 
 ### Added

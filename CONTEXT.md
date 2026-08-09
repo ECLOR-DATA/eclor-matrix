@@ -85,3 +85,27 @@ matrix-shaped field wells (rows/columns/values). The demo dataset
 `template/Template V.1.0.0.pbix` + its theme JSON are the ECLOR report template
 used for demos and manual testing — same starting point as the waterfall's demo
 reports, so branding and theme behaviour stay consistent across ECLOR visuals.
+
+## 11. Default look = the "eclor — Light" theme (2026-08-09)
+
+Reference designated by the user: the AppSource demo report
+`eclorWaterfallECLOR2026.1.1.76.0.pbix`. Its embedded theme is vendored at
+`template/eclor-light-theme.json`; the matrix DEFAULTS mirror its
+`visualStyles.pivotTable`/`tableEx` blocks so an unformatted Eclor Matrix looks
+native next to an ECLOR-themed native matrix:
+
+| Token | Value | Theme source |
+|---|---|---|
+| Font | Arial 11 | `textClasses.label`, pivotTable fontFamily/fontSize |
+| Foreground | `#091612` | `foreground` / `tableAccent` |
+| Column headers | bg `rgba(9,22,18,.1)`, bold, centered | `columnHeaders.backColor #0916121A` |
+| Grid | horizontal only, `#E5E7E6` | `grid.gridHorizontal(Color)` |
+| Totals/subtotals | bg `#EFEFEF`, bold, applyToHeaders | `total`/`rowTotal`/`columnTotal` |
+| Banded rows | `#F5F6F5` | `values.backColorSecondary` |
+| Accent (hover/selection) | `#1EF5B1` emerald (14% / 28% alpha) | `dataColors[0]` / `good` |
+| Semantic good/bad/neutral | `#1EF5B1` / `#FF4D6D` / `#8A9994` | theme `good`/`bad`/`neutral` — reserve for variance/IBCS phases |
+
+These are CSS defaults in [style/visual.less](style/visual.less) — when the
+matching Format-pane slices land (headers card, grid card…), their defaults must
+quote the same values, and the report theme (visualStyles on our GUID) must stay
+able to override them.

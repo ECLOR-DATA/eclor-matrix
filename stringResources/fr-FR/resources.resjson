@@ -8,5 +8,6 @@
   "Visual_DataCap": "Limite de données atteinte — seules les premières lignes sont affichées",
   "Visual_CellColors": "Couleurs de cellules",
   "Visual_RowHeaders": "En-têtes de lignes",
-  "Visual_ColumnHeaders": "En-têtes de colonnes"
+  "Visual_ColumnHeaders": "En-têtes de colonnes",
+  "Visual_CalculatedColumns": "Colonnes calculées"
 }

@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.4.0.0] — 2026-08-09
+
+### Added
+
+- **Client-side calculated columns** (3 slots): eval-free expression engine (`src/expressions.ts`, tokenizer + shunting-yard) over measure references — `[Actual] - [Budget]`, `([Actual]-[Budget])/[Budget]`, ABS/MIN/MAX, unary minus. Null-safe (missing ref, null operand, ÷0 → blank). Columns interleave after each column-group's measures (flat header mode), formats inherit/number/percent with explicit sign, subtotal rows compute on engine subtotals (ratio-correct). Invalid formulas are skipped silently.
+
 ## [1.3.0.0] — 2026-08-09
 
 ### Added

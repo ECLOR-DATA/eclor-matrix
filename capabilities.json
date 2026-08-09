@@ -378,6 +378,168 @@
           }
         }
       }
+    },
+    "calculatedColumns": {
+      "displayName": "Calculated columns",
+      "displayNameKey": "Visual_CalculatedColumns",
+      "properties": {
+        "calc1Show": {
+          "displayName": "Column 1",
+          "type": {
+            "bool": true
+          }
+        },
+        "calc1Name": {
+          "displayName": "Column 1 name",
+          "type": {
+            "text": true
+          }
+        },
+        "calc1Formula": {
+          "displayName": "Column 1 formula",
+          "type": {
+            "text": true
+          }
+        },
+        "calc1Format": {
+          "displayName": "Column 1 format",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Inherit (first measure)",
+                "value": "inherit"
+              },
+              {
+                "displayName": "Number",
+                "value": "number"
+              },
+              {
+                "displayName": "Percent",
+                "value": "percent"
+              }
+            ]
+          }
+        },
+        "calc1Display": {
+          "displayName": "Column 1 display",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Number",
+                "value": "number"
+              },
+              {
+                "displayName": "Variance bar",
+                "value": "bar"
+              }
+            ]
+          }
+        },
+        "calc2Show": {
+          "displayName": "Column 2",
+          "type": {
+            "bool": true
+          }
+        },
+        "calc2Name": {
+          "displayName": "Column 2 name",
+          "type": {
+            "text": true
+          }
+        },
+        "calc2Formula": {
+          "displayName": "Column 2 formula",
+          "type": {
+            "text": true
+          }
+        },
+        "calc2Format": {
+          "displayName": "Column 2 format",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Inherit (first measure)",
+                "value": "inherit"
+              },
+              {
+                "displayName": "Number",
+                "value": "number"
+              },
+              {
+                "displayName": "Percent",
+                "value": "percent"
+              }
+            ]
+          }
+        },
+        "calc2Display": {
+          "displayName": "Column 2 display",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Number",
+                "value": "number"
+              },
+              {
+                "displayName": "Variance bar",
+                "value": "bar"
+              }
+            ]
+          }
+        },
+        "calc3Show": {
+          "displayName": "Column 3",
+          "type": {
+            "bool": true
+          }
+        },
+        "calc3Name": {
+          "displayName": "Column 3 name",
+          "type": {
+            "text": true
+          }
+        },
+        "calc3Formula": {
+          "displayName": "Column 3 formula",
+          "type": {
+            "text": true
+          }
+        },
+        "calc3Format": {
+          "displayName": "Column 3 format",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Inherit (first measure)",
+                "value": "inherit"
+              },
+              {
+                "displayName": "Number",
+                "value": "number"
+              },
+              {
+                "displayName": "Percent",
+                "value": "percent"
+              }
+            ]
+          }
+        },
+        "calc3Display": {
+          "displayName": "Column 3 display",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Number",
+                "value": "number"
+              },
+              {
+                "displayName": "Variance bar",
+                "value": "bar"
+              }
+            ]
+          }
+        }
+      }
     }
   },
   "subtotals": {
@@ -427,10 +589,15 @@
     }
   },
   "drilldown": {
-    "roles": ["rows", "columns"]
+    "roles": [
+      "rows",
+      "columns"
+    ]
   },
   "expandCollapse": {
-    "roles": ["rows"],
+    "roles": [
+      "rows"
+    ],
     "addDataViewFlags": {
       "defaultValue": true
     }
@@ -446,7 +613,10 @@
       "default": true,
       "canvas": true
     },
-    "roles": ["values", "tooltips"]
+    "roles": [
+      "values",
+      "tooltips"
+    ]
   },
   "privileges": []
 }

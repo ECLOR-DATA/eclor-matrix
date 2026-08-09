@@ -32,6 +32,19 @@ import {
   MeasureStats,
   resolveCellColor
 } from "./cellColor";
+import { compileExpression } from "./expressions";
+
+interface CalcDef {
+  name: string;
+  format: string;
+  display: string;
+  refs: string[];
+  evaluate: (lookup: (ref: string) => number | null) => number | null;
+}
+
+type RenderCol =
+  | { kind: "leaf"; leafIdx: number }
+  | { kind: "calc"; calcIdx: number; path: string[]; pathKey: string };
 import {
   buildHeaderRows,
   computeMaxAbs,
@@ -63,6 +76,11 @@ interface ParseResult {
   measureStats: MeasureStats[];
   /** Per-measure colour override persisted on valueSources[i].objects.cellColors. */
   measureColorOverrides: (CellColorOpts & { useCustom: boolean })[];
+  /** Ordered grid columns: measure leaves + client-side calculated columns. */
+  renderCols: RenderCol[];
+  calcDefs: CalcDef[];
+  /** pathKey → measureName(lower) → leafIdx, for calc-formula lookups. */
+  calcLookups: Map<string, Map<string, number>>;
 }
 
 interface RenderInput {
@@ -258,6 +276,12 @@ export class Visual implements IVisual {
       ];
     }
 
+    const calcDefs = this.readCalcDefs();
+    const rc = this.buildRenderColumns(leaves, renderLeafIdxs, measureNames, calcDefs);
+    const renderCols = rc.renderCols;
+    const calcLookups = rc.calcLookups;
+    if (rc.flatHeader) headerRows = [rc.flatHeader];
+
     const measureOverrides = valueSources.map((vs) => this.readMeasureOverride(vs));
     const measureColorOverrides = valueSources.map((vs) => this.readMeasureColorOverride(vs));
 
@@ -291,8 +315,152 @@ export class Visual implements IVisual {
       rowLevels,
       measureOverrides,
       measureStats,
-      measureColorOverrides
+      measureColorOverrides,
+      renderCols,
+      calcDefs,
+      calcLookups
     };
+  }
+
+  /** Interleave calc columns after each column-group's measure leaves.
+   *  When calc columns are active the header collapses to the flat shape
+   *  (tree spans no longer match the widened groups). */
+  private buildRenderColumns(
+    leaves: ColumnLeaf[],
+    renderLeafIdxs: number[],
+    measureNames: string[],
+    calcDefs: CalcDef[]
+  ): {
+    renderCols: RenderCol[];
+    calcLookups: Map<string, Map<string, number>>;
+    flatHeader: HeaderCell[] | null;
+  } {
+    const renderCols: RenderCol[] = [];
+    const calcLookups = new Map<string, Map<string, number>>();
+    if (calcDefs.length === 0) {
+      for (const li of renderLeafIdxs) renderCols.push({ kind: "leaf", leafIdx: li });
+      return { renderCols, calcLookups, flatHeader: null };
+    }
+    for (let li = 0; li < leaves.length; li++) {
+      const key = leaves[li].path.join(" ");
+      let m = calcLookups.get(key);
+      if (!m) {
+        m = new Map();
+        calcLookups.set(key, m);
+      }
+      const nm = (measureNames[leaves[li].measureIndex] ?? "").toLowerCase();
+      if (!m.has(nm)) m.set(nm, li);
+    }
+    let i = 0;
+    while (i < renderLeafIdxs.length) {
+      const path = leaves[renderLeafIdxs[i]].path;
+      const key = path.join(" ");
+      while (i < renderLeafIdxs.length && leaves[renderLeafIdxs[i]].path.join(" ") === key) {
+        renderCols.push({ kind: "leaf", leafIdx: renderLeafIdxs[i] });
+        i++;
+      }
+      calcDefs.forEach((_c, ci) => renderCols.push({ kind: "calc", calcIdx: ci, path, pathKey: key }));
+    }
+    const flatHeader: HeaderCell[] = renderCols.map((col) => {
+      if (col.kind === "leaf") {
+        const leaf = leaves[col.leafIdx];
+        const parts = [...leaf.path, measureNames[leaf.measureIndex] ?? ""];
+        return {
+          label: parts.filter((p) => p.length > 0).join(" · "),
+          span: 1,
+          isSubtotal: leaf.isSubtotal
+        };
+      }
+      const parts = [...col.path, calcDefs[col.calcIdx].name];
+      return { label: parts.filter((p) => p.length > 0).join(" · "), span: 1, isSubtotal: false };
+    });
+    return { renderCols, calcLookups, flatHeader };
+  }
+
+  private readCalcDefs(): CalcDef[] {
+    const out: CalcDef[] = [];
+    const card = this.formattingSettings.calculatedColumns;
+    card.slots.forEach((slot, i) => {
+      if (slot.show.value !== true) return;
+      const formula = String(slot.formula.value ?? "").trim();
+      if (!formula) return;
+      const compiled = compileExpression(formula);
+      if (!compiled.ok) return; // invalid formula → column silently skipped
+      out.push({
+        name: String(slot.label.value ?? "").trim() || `Calc ${i + 1}`,
+        format: String(slot.format.value?.value ?? "inherit"),
+        display: String(slot.display.value?.value ?? "number"),
+        refs: compiled.refs,
+        evaluate: compiled.evaluate
+      });
+    });
+    return out;
+  }
+
+  private evalCalcCell(parsed: ParseResult, row: RowModel, col: { calcIdx: number; pathKey: string }): number | null {
+    const def = parsed.calcDefs[col.calcIdx];
+    const m = parsed.calcLookups.get(col.pathKey);
+    if (!def || !m) return null;
+    return def.evaluate((ref) => {
+      const li = m.get(ref.toLowerCase());
+      if (li === undefined) return null;
+      const cv = row.cells[li];
+      return typeof cv === "number" && Number.isFinite(cv) ? cv : null;
+    });
+  }
+
+  private formatCalcValue(
+    parsed: ParseResult,
+    col: { calcIdx: number; pathKey: string },
+    value: number
+  ): string {
+    const def = parsed.calcDefs[col.calcIdx];
+    let modelFormat = "";
+    let units = "none";
+    let decimals = Number(this.formattingSettings.values.decimals.value) || 0;
+    if (def.format === "percent") {
+      modelFormat = "0.0%";
+      decimals = 0;
+    } else if (def.format === "inherit") {
+      const m = parsed.calcLookups.get(col.pathKey);
+      const firstRef = def.refs[0];
+      const li = firstRef !== undefined ? m?.get(firstRef.toLowerCase()) : undefined;
+      if (li !== undefined) {
+        const mi = parsed.leaves[li].measureIndex;
+        modelFormat = parsed.valueSources[mi]?.format ?? "";
+        const fmt = this.measureFormat(parsed, mi);
+        units = fmt.units;
+        decimals = fmt.decimals;
+      }
+    }
+    return formatActualLabel({
+      value,
+      modelFormat,
+      cardUnits: units,
+      cardDecimals: decimals,
+      autoDecimals: 0,
+      locale: this.locale,
+      dataMaxAbs: computeMaxAbs(parsed.rows),
+      withSign: true
+    });
+  }
+
+  private buildCalcCell(
+    parsed: ParseResult,
+    row: RowModel,
+    col: { calcIdx: number; path: string[]; pathKey: string },
+    ariaParts: string[]
+  ): HTMLTableCellElement {
+    const td = document.createElement("td");
+    td.setAttribute("data-calccol", "1");
+    td.classList.add("em-calc");
+    const v = this.evalCalcCell(parsed, row, col);
+    if (v !== null) {
+      const formatted = this.formatCalcValue(parsed, col, v);
+      td.textContent = formatted;
+      ariaParts.push(`${parsed.calcDefs[col.calcIdx].name} ${formatted}`);
+    }
+    return td;
   }
 
   private readMeasureColorOverride(
@@ -392,7 +560,10 @@ export class Visual implements IVisual {
       rowLevels: [],
       measureOverrides: [],
       measureStats: [],
-      measureColorOverrides: []
+      measureColorOverrides: [],
+      renderCols: [],
+      calcDefs: [],
+      calcLookups: new Map()
     };
   }
 
@@ -542,7 +713,7 @@ export class Visual implements IVisual {
 
   private fillTbody(tbody: HTMLTableSectionElement, parsed: ParseResult, spec: WindowSpec): void {
     const dataMaxAbs = computeMaxAbs(parsed.rows);
-    const colCount = parsed.renderLeafIdxs.length + 1;
+    const colCount = parsed.renderCols.length + 1;
     const rh = this.formattingSettings.rowHeaders;
     const indentRaw = Number(rh.indent.value);
     const indent = Number.isFinite(indentRaw) ? Math.max(0, indentRaw) : 16;
@@ -582,7 +753,12 @@ export class Visual implements IVisual {
       tr.appendChild(th);
 
       const ariaParts: string[] = [row.label];
-      for (const leafIdx of parsed.renderLeafIdxs) {
+      for (const col of parsed.renderCols) {
+        if (col.kind === "calc") {
+          tr.appendChild(this.buildCalcCell(parsed, row, col, ariaParts));
+          continue;
+        }
+        const leafIdx = col.leafIdx;
         const leaf = parsed.leaves[leafIdx];
         const td = document.createElement("td");
         td.setAttribute("data-cell", "1");
@@ -785,7 +961,7 @@ export class Visual implements IVisual {
     for (let i = 0; i < parsed.leaves.length; i++) {
       if (parsed.renderLeafIdxs.includes(i)) continue;
       const other = parsed.leaves[i];
-      if (other.path.join(" ") === leaf.path.join(" ")) {
+      if (other.path.join(" ") === leaf.path.join(" ")) {
         pushMeasure(other.measureIndex, i);
       }
     }

@@ -84,7 +84,15 @@ describe("settings model", () => {
   test("new cards are registered with unique names", () => {
     const m = new VisualFormattingSettingsModel();
     const names = m.cards.map((c) => c.name);
-    expect(names).toEqual(["general", "subTotals", "rowHeaders", "columnHeaders", "values", "cellColors"]);
+    expect(names).toEqual([
+      "general",
+      "subTotals",
+      "rowHeaders",
+      "columnHeaders",
+      "values",
+      "cellColors",
+      "calculatedColumns"
+    ]);
     expect(new Set(names).size).toBe(names.length);
   });
 });

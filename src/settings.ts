@@ -399,6 +399,77 @@ export function makePerMeasureColorGroup(
   });
 }
 
+export interface CalcSlot {
+  show: formattingSettings.ToggleSwitch;
+  label: formattingSettings.TextInput;
+  formula: formattingSettings.TextInput;
+  format: formattingSettings.ItemDropdown;
+  display: formattingSettings.ItemDropdown;
+}
+
+const CALC_FORMAT_ITEMS: powerbi.IEnumMember[] = [
+  { value: "inherit", displayName: "Inherit (first measure)" },
+  { value: "number", displayName: "Number" },
+  { value: "percent", displayName: "Percent" }
+];
+
+const CALC_DISPLAY_ITEMS: powerbi.IEnumMember[] = [
+  { value: "number", displayName: "Number" },
+  { value: "bar", displayName: "Variance bar" }
+];
+
+export const CALC_SLOT_COUNT = 3;
+
+/** Client-side calculated columns — 3 static slots (Zebra-style formulas
+ *  over the measures already in the visual, e.g. "[Actual] - [Budget]"). */
+class CalculatedColumnsCardSettings extends FormattingSettingsCard {
+  slots: CalcSlot[] = [];
+
+  name: string = "calculatedColumns";
+  displayName: string = "Calculated columns";
+  displayNameKey: string = "Visual_CalculatedColumns";
+  slices: FormattingSettingsSlice[] = [];
+
+  constructor() {
+    super();
+    for (let n = 1; n <= CALC_SLOT_COUNT; n++) {
+      const slot: CalcSlot = {
+        show: new formattingSettings.ToggleSwitch({
+          name: `calc${n}Show`,
+          displayName: `Column ${n}`,
+          value: false
+        }),
+        label: new formattingSettings.TextInput({
+          name: `calc${n}Name`,
+          displayName: `Column ${n} name`,
+          value: n === 1 ? "Δ" : "",
+          placeholder: "Δ vs Budget"
+        }),
+        formula: new formattingSettings.TextInput({
+          name: `calc${n}Formula`,
+          displayName: `Column ${n} formula`,
+          value: "",
+          placeholder: "[Actual] - [Budget]"
+        }),
+        format: new formattingSettings.ItemDropdown({
+          name: `calc${n}Format`,
+          displayName: `Column ${n} format`,
+          items: CALC_FORMAT_ITEMS,
+          value: CALC_FORMAT_ITEMS[0]
+        }),
+        display: new formattingSettings.ItemDropdown({
+          name: `calc${n}Display`,
+          displayName: `Column ${n} display`,
+          items: CALC_DISPLAY_ITEMS,
+          value: CALC_DISPLAY_ITEMS[0]
+        })
+      };
+      this.slots.push(slot);
+      this.slices.push(slot.show, slot.label, slot.formula, slot.format, slot.display);
+    }
+  }
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   general = new GeneralCardSettings();
   subTotals = new SubTotalsCardSettings();
@@ -406,6 +477,15 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   columnHeaders = new ColumnHeadersCardSettings();
   values = new ValuesCardSettings();
   cellColors = new CellColorsCardSettings();
+  calculatedColumns = new CalculatedColumnsCardSettings();
 
-  cards = [this.general, this.subTotals, this.rowHeaders, this.columnHeaders, this.values, this.cellColors];
+  cards = [
+    this.general,
+    this.subTotals,
+    this.rowHeaders,
+    this.columnHeaders,
+    this.values,
+    this.cellColors,
+    this.calculatedColumns
+  ];
 }

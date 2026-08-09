@@ -149,6 +149,12 @@
       "displayName": "Values",
       "displayNameKey": "Visual_Values",
       "properties": {
+        "useCustom": {
+          "displayName": "Override format",
+          "type": {
+            "bool": true
+          }
+        },
         "displayUnits": {
           "displayName": "Display units",
           "type": {

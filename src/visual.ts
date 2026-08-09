@@ -17,8 +17,14 @@ import ITooltipService = powerbi.extensibility.ITooltipService;
 import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
 import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 
-import { VisualFormattingSettingsModel } from "./settings";
+import {
+  DISPLAY_UNIT_VALUES,
+  makePerMeasureValueGroup,
+  MeasureFormatOverride,
+  VisualFormattingSettingsModel
+} from "./settings";
 import { formatActualLabel, safeHex } from "./format";
+import { computeWindow, estimateRowHeight, WindowSpec } from "./virtualize";
 import {
   buildHeaderRows,
   computeMaxAbs,
@@ -30,9 +36,10 @@ import {
   RowModel
 } from "./matrixModel";
 
-/** Rows above this cap are dropped from the DOM (host warning raised) until
- *  virtual scrolling lands — keeps first paint inside the cert budget. */
-const MAX_RENDER_ROWS = 5000;
+/** Below this row count everything renders at once; above it the tbody is
+ *  virtualized (windowed slice + spacer rows) so 10k+ rows stay fluid. */
+const VIRTUALIZE_THRESHOLD = 400;
+const OVERSCAN_ROWS = 20;
 
 interface ParseResult {
   rows: RowModel[];
@@ -43,6 +50,8 @@ interface ParseResult {
   renderLeafIdxs: number[];
   valueSources: DataViewMetadataColumn[];
   rowLevels: DataViewHierarchyLevel[];
+  /** Per-measure format override persisted on valueSources[i].objects.values. */
+  measureOverrides: MeasureFormatOverride[];
 }
 
 interface RenderInput {
@@ -70,6 +79,10 @@ export class Visual implements IVisual {
   private lastValidRenderInput: RenderInput | null = null;
   private rowSelectionIds: (ISelectionId | null)[] = [];
   private selectedRowKeys: Set<string> = new Set();
+  private scrollEl: HTMLDivElement | null = null;
+  private tbodyEl: HTMLTableSectionElement | null = null;
+  private currentWindow: WindowSpec | null = null;
+  private rowHeightPx: number = 17;
 
   constructor(options?: VisualConstructorOptions) {
     if (!options) {
@@ -158,6 +171,7 @@ export class Visual implements IVisual {
       }
 
       this.buildRowSelectionIds(parsed);
+      this.buildPerMeasureValueGroups(parsed);
       this.lastValidRenderInput = { parsed, width, height };
       this.renderFromInput(this.lastValidRenderInput);
       eventService?.renderingFinished(options);
@@ -175,6 +189,9 @@ export class Visual implements IVisual {
     this.lastValidRenderInput = null;
     this.rowSelectionIds = [];
     this.selectedRowKeys.clear();
+    this.scrollEl = null;
+    this.tbodyEl = null;
+    this.currentWindow = null;
     this.target.replaceChildren();
   }
 
@@ -230,7 +247,45 @@ export class Visual implements IVisual {
       ];
     }
 
-    return { rows, leaves, headerRows, renderLeafIdxs, valueSources, rowLevels };
+    const measureOverrides = valueSources.map((vs) => this.readMeasureOverride(vs));
+    return { rows, leaves, headerRows, renderLeafIdxs, valueSources, rowLevels, measureOverrides };
+  }
+
+  private readMeasureOverride(vs: DataViewMetadataColumn): MeasureFormatOverride {
+    const persisted = (vs.objects as unknown as {
+      values?: { useCustom?: unknown; displayUnits?: unknown; decimals?: unknown };
+    })?.values;
+    const units = String(persisted?.displayUnits ?? "auto");
+    const decimals = Number(persisted?.decimals);
+    return {
+      useCustom: persisted?.useCustom === true,
+      units: (DISPLAY_UNIT_VALUES as readonly string[]).includes(units) ? units : "auto",
+      decimals: Number.isFinite(decimals) ? Math.min(6, Math.max(0, decimals)) : 0
+    };
+  }
+
+  /** Resolve the (units, decimals) pair for a measure: its override when
+   *  enabled, otherwise the global Values-card settings. */
+  private measureFormat(parsed: ParseResult, mi: number): { units: string; decimals: number } {
+    const ov = parsed.measureOverrides[mi];
+    if (ov?.useCustom) return { units: ov.units, decimals: ov.decimals };
+    const fs = this.formattingSettings;
+    return {
+      units: String(fs.values.displayUnits.value?.value ?? "auto"),
+      decimals: Number(fs.values.decimals.value) || 0
+    };
+  }
+
+  /** Rebuild the dynamic per-measure groups on the Values card. */
+  private buildPerMeasureValueGroups(parsed: ParseResult): void {
+    const card = this.formattingSettings.values;
+    card.groups = [card.globalGroup];
+    parsed.valueSources.forEach((vs, i) => {
+      if (!vs.queryName) return;
+      card.groups.push(
+        makePerMeasureValueGroup(i, vs.displayName ?? `Measure ${i + 1}`, vs.queryName, parsed.measureOverrides[i])
+      );
+    });
   }
 
   private buildEmptyParseResult(): ParseResult {
@@ -240,7 +295,8 @@ export class Visual implements IVisual {
       headerRows: [],
       renderLeafIdxs: [],
       valueSources: [],
-      rowLevels: []
+      rowLevels: [],
+      measureOverrides: []
     };
   }
 
@@ -282,18 +338,47 @@ export class Visual implements IVisual {
 
     const scroll = document.createElement("div");
     scroll.className = "em-scroll";
+    scroll.addEventListener("scroll", this.handleScroll);
 
     const table = document.createElement("table");
     table.className = "em-table";
     table.style.fontSize = `${Number(fs.general.textSize.value) || 11}px`;
     table.setAttribute("aria-label", this.localize("Visual_AriaMatrix", "Matrix"));
 
+    this.rowHeightPx = estimateRowHeight(Number(fs.general.textSize.value) || 11, density);
+    const tbody = document.createElement("tbody");
+    this.scrollEl = scroll;
+    this.tbodyEl = tbody;
+    this.currentWindow = this.windowFor(input, 0);
+    this.fillTbody(tbody, parsed, this.currentWindow);
+
     table.appendChild(this.buildThead(parsed));
-    table.appendChild(this.buildTbody(parsed));
+    table.appendChild(tbody);
     scroll.appendChild(table);
     this.target.replaceChildren(scroll);
     this.applySelectionVisuals();
   }
+
+  private windowFor(input: RenderInput, scrollTop: number): WindowSpec {
+    const total = input.parsed.rows.length;
+    if (total <= VIRTUALIZE_THRESHOLD) {
+      return { start: 0, end: total, topPad: 0, bottomPad: 0 };
+    }
+    return computeWindow(scrollTop, input.height, this.rowHeightPx, total, OVERSCAN_ROWS);
+  }
+
+  private handleScroll = (): void => {
+    const input = this.lastValidRenderInput;
+    if (!input || !this.scrollEl || !this.tbodyEl) return;
+    if (input.parsed.rows.length <= VIRTUALIZE_THRESHOLD) return;
+    const next = this.windowFor(input, this.scrollEl.scrollTop);
+    if (this.currentWindow && next.start === this.currentWindow.start && next.end === this.currentWindow.end) {
+      return;
+    }
+    this.currentWindow = next;
+    this.fillTbody(this.tbodyEl, input.parsed, next);
+    this.applySelectionVisuals();
+  };
 
   private buildThead(parsed: ParseResult): HTMLTableSectionElement {
     const thead = document.createElement("thead");
@@ -318,23 +403,25 @@ export class Visual implements IVisual {
     return thead;
   }
 
-  private buildTbody(parsed: ParseResult): HTMLTableSectionElement {
-    const fs = this.formattingSettings;
-    const tbody = document.createElement("tbody");
-    const cardUnits = String(fs.values.displayUnits.value?.value ?? "auto");
-    const cardDecimals = Number(fs.values.decimals.value) || 0;
+  private makeSpacerRow(height: number, colCount: number): HTMLTableRowElement {
+    const tr = document.createElement("tr");
+    tr.className = "em-spacer";
+    const td = document.createElement("td");
+    td.colSpan = colCount;
+    td.style.height = `${height}px`;
+    td.style.padding = "0";
+    td.style.border = "none";
+    tr.appendChild(td);
+    return tr;
+  }
+
+  private fillTbody(tbody: HTMLTableSectionElement, parsed: ParseResult, spec: WindowSpec): void {
     const dataMaxAbs = computeMaxAbs(parsed.rows);
+    const colCount = parsed.renderLeafIdxs.length + 1;
+    tbody.replaceChildren();
+    if (spec.topPad > 0) tbody.appendChild(this.makeSpacerRow(spec.topPad, colCount));
 
-    const renderCount = Math.min(parsed.rows.length, MAX_RENDER_ROWS);
-    if (parsed.rows.length > MAX_RENDER_ROWS) {
-      (this.host as unknown as { displayWarningIcon?: (t: string, m: string) => void })
-        .displayWarningIcon?.(
-          this.localize("Visual_DataCap", "Data limit reached"),
-          this.localize("Visual_DataCap", "Data limit reached — showing the first rows only")
-        );
-    }
-
-    for (let rIdx = 0; rIdx < renderCount; rIdx++) {
+    for (let rIdx = spec.start; rIdx < spec.end; rIdx++) {
       const row = parsed.rows[rIdx];
       const tr = document.createElement("tr");
       tr.setAttribute("data-row-idx", String(rIdx));
@@ -368,11 +455,12 @@ export class Visual implements IVisual {
         td.setAttribute("data-leaf-idx", String(leafIdx));
         const raw = row.cells[leafIdx];
         if (typeof raw === "number") {
+          const fmt = this.measureFormat(parsed, leaf.measureIndex);
           const formatted = formatActualLabel({
             value: raw,
             modelFormat: parsed.valueSources[leaf.measureIndex]?.format ?? "",
-            cardUnits,
-            cardDecimals,
+            cardUnits: fmt.units,
+            cardDecimals: fmt.decimals,
             autoDecimals: 0,
             locale: this.locale,
             dataMaxAbs
@@ -387,7 +475,7 @@ export class Visual implements IVisual {
       tr.setAttribute("aria-label", ariaParts.join(", "));
       tbody.appendChild(tr);
     }
-    return tbody;
+    if (spec.bottomPad > 0) tbody.appendChild(this.makeSpacerRow(spec.bottomPad, colCount));
   }
 
   private applyThemeVars(): void {
@@ -525,21 +613,20 @@ export class Visual implements IVisual {
     if (row.label) {
       items.push({ displayName: "", value: row.label });
     }
-    const cardUnits = String(this.formattingSettings.values.displayUnits.value?.value ?? "auto");
-    const cardDecimals = Number(this.formattingSettings.values.decimals.value) || 0;
     const dataMaxAbs = computeMaxAbs(parsed.rows);
 
     const pushMeasure = (mi: number, cellKeyLeafIdx: number): void => {
       const raw = row.cells[cellKeyLeafIdx];
       if (raw === null) return;
       const name = parsed.valueSources[mi]?.displayName ?? "";
+      const fmt = this.measureFormat(parsed, mi);
       const value =
         typeof raw === "number"
           ? formatActualLabel({
               value: raw,
               modelFormat: parsed.valueSources[mi]?.format ?? "",
-              cardUnits,
-              cardDecimals,
+              cardUnits: fmt.units,
+              cardDecimals: fmt.decimals,
               autoDecimals: 0,
               locale: this.locale,
               dataMaxAbs

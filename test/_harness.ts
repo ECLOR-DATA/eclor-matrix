@@ -87,6 +87,8 @@ export interface MeasureSpec {
   values: (number | string | null)[];
   format?: string;
   role?: "values" | "tooltips";
+  /** Persisted per-measure objects (e.g. { values: { useCustom: true } }). */
+  objects?: Record<string, unknown>;
 }
 
 /**
@@ -105,10 +107,12 @@ export function buildSimpleMatrixDV(rowLabels: string[], measures: MeasureSpec[]
       )
     }))
   };
-  const valueSources = measures.map((m) => ({
+  const valueSources = measures.map((m, i) => ({
     displayName: m.name,
+    queryName: `Measures.${m.name.replace(/\s+/g, "_")}_${i}`,
     format: m.format,
-    roles: { [m.role ?? "values"]: true }
+    roles: { [m.role ?? "values"]: true },
+    objects: m.objects
   }));
   return {
     matrix: {

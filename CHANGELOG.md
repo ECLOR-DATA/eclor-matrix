@@ -3,6 +3,13 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.1.0.0] — 2026-08-09
+
+### Added
+
+- **Virtual scrolling**: above 400 rows the tbody renders a window (overscan 20) between two spacer rows, re-windowed on scroll — replaces the MAX_RENDER_ROWS hard cap; 10k+ rows scroll fluidly. Pure math in `src/virtualize.ts`.
+- **Per-measure format overrides**: the Values card is now a CompositeCard — an "All measures" global group plus one group per bound measure (Override format toggle, display units, decimals) persisted per measure via metadata selectors; renderer and tooltips resolve override-then-global.
+
 ## [1.0.1.0] — 2026-08-09
 
 ### Changed

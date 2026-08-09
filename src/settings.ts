@@ -104,7 +104,11 @@ class SubTotalsCardSettings extends FormattingSettingsCard {
   ];
 }
 
-class ValuesCardSettings extends FormattingSettingsCard {
+/** Values card — a CompositeCard: one static "All measures" group plus one
+ *  dynamic group per bound measure (built each update() in visual.ts with
+ *  `selector: { metadata: queryName }`; persisted instances come back on
+ *  `valueSources[i].objects`, patched by parseMatrix — NOT by populate). */
+class ValuesCardSettings extends formattingSettings.CompositeCard {
   displayUnits = new formattingSettings.ItemDropdown({
     name: "displayUnits",
     displayName: "Display units",
@@ -122,10 +126,63 @@ class ValuesCardSettings extends FormattingSettingsCard {
     }
   });
 
+  globalGroup: formattingSettings.Group = new formattingSettings.Group({
+    name: "valuesGlobal",
+    displayName: "All measures",
+    slices: [this.displayUnits, this.decimals]
+  });
+
   name: string = "values";
   displayName: string = "Values";
   displayNameKey: string = "Visual_Values";
-  slices: FormattingSettingsSlice[] = [this.displayUnits, this.decimals];
+  groups: formattingSettings.Group[] = [this.globalGroup];
+}
+
+/** Per-measure format override persisted on the measure's metadata objects. */
+export interface MeasureFormatOverride {
+  useCustom: boolean;
+  units: string;
+  decimals: number;
+}
+
+/** Build the dynamic per-measure group slices (phase-2 pattern reused by
+ *  later per-measure cards). `selector` targets the measure's metadata. */
+export function makePerMeasureValueGroup(
+  index: number,
+  displayName: string,
+  queryName: string,
+  persisted: MeasureFormatOverride
+): formattingSettings.Group {
+  const selector = { metadata: queryName } as powerbi.data.Selector;
+  const useCustom = new formattingSettings.ToggleSwitch({
+    name: "useCustom",
+    displayName: "Override format",
+    value: persisted.useCustom
+  });
+  useCustom.selector = selector;
+  const unitItem = DISPLAY_UNIT_ITEMS.find((i) => i.value === persisted.units) ?? DISPLAY_UNIT_ITEMS[0];
+  const units = new formattingSettings.ItemDropdown({
+    name: "displayUnits",
+    displayName: "Display units",
+    items: DISPLAY_UNIT_ITEMS,
+    value: unitItem
+  });
+  units.selector = selector;
+  const decimals = new formattingSettings.NumUpDown({
+    name: "decimals",
+    displayName: "Decimal places",
+    value: persisted.decimals,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 6 }
+    }
+  });
+  decimals.selector = selector;
+  return new formattingSettings.Group({
+    name: `valuesM${index}`,
+    displayName: displayName,
+    slices: [useCustom, units, decimals]
+  });
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {

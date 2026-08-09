@@ -41,10 +41,91 @@ class GeneralCardSettings extends FormattingSettingsCard {
     value: { value: "normal", displayName: "Normal" }
   });
 
+  rowPadding = new formattingSettings.NumUpDown({
+    name: "rowPadding",
+    displayName: "Row padding (px, 0 = density)",
+    value: 0,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 30 }
+    }
+  });
+
   name: string = "general";
   displayName: string = "General";
   displayNameKey: string = "Visual_General";
-  slices: FormattingSettingsSlice[] = [this.textSize, this.density];
+  slices: FormattingSettingsSlice[] = [this.textSize, this.density, this.rowPadding];
+}
+
+class RowHeadersCardSettings extends FormattingSettingsCard {
+  bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: false });
+  italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  indent = new formattingSettings.NumUpDown({
+    name: "indent",
+    displayName: "Indent per level (px)",
+    value: 16,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 60 }
+    }
+  });
+
+  name: string = "rowHeaders";
+  displayName: string = "Row headers";
+  displayNameKey: string = "Visual_RowHeaders";
+  slices: FormattingSettingsSlice[] = [this.bold, this.italic, this.fontColor, this.indent];
+}
+
+class ColumnHeadersCardSettings extends FormattingSettingsCard {
+  bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: true });
+  italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
+  alignment = new formattingSettings.ItemDropdown({
+    name: "alignment",
+    displayName: "Alignment",
+    items: [
+      { value: "left", displayName: "Left" },
+      { value: "center", displayName: "Center" },
+      { value: "right", displayName: "Right" }
+    ],
+    value: { value: "center", displayName: "Center" }
+  });
+  rotation = new formattingSettings.ItemDropdown({
+    name: "rotation",
+    displayName: "Rotation",
+    items: [
+      { value: "0", displayName: "0°" },
+      { value: "45", displayName: "45°" },
+      { value: "90", displayName: "90°" }
+    ],
+    value: { value: "0", displayName: "0°" }
+  });
+
+  name: string = "columnHeaders";
+  displayName: string = "Column headers";
+  displayNameKey: string = "Visual_ColumnHeaders";
+  slices: FormattingSettingsSlice[] = [
+    this.bold,
+    this.italic,
+    this.fontColor,
+    this.backColor,
+    this.alignment,
+    this.rotation
+  ];
 }
 
 /** Mirrors the capabilities `subtotals` switch mappings 1:1 — all six
@@ -321,8 +402,10 @@ export function makePerMeasureColorGroup(
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   general = new GeneralCardSettings();
   subTotals = new SubTotalsCardSettings();
+  rowHeaders = new RowHeadersCardSettings();
+  columnHeaders = new ColumnHeadersCardSettings();
   values = new ValuesCardSettings();
   cellColors = new CellColorsCardSettings();
 
-  cards = [this.general, this.subTotals, this.values, this.cellColors];
+  cards = [this.general, this.subTotals, this.rowHeaders, this.columnHeaders, this.values, this.cellColors];
 }

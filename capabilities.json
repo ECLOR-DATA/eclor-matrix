@@ -91,6 +91,122 @@
               }
             ]
           }
+        },
+        "rowPadding": {
+          "displayName": "Row padding (px, 0 = density)",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "rowHeaders": {
+      "displayName": "Row headers",
+      "displayNameKey": "Visual_RowHeaders",
+      "properties": {
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "indent": {
+          "displayName": "Indent per level (px)",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "columnHeaders": {
+      "displayName": "Column headers",
+      "displayNameKey": "Visual_ColumnHeaders",
+      "properties": {
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "alignment": {
+          "displayName": "Alignment",
+          "type": {
+            "enumeration": [
+              {
+                "value": "left",
+                "displayName": "Left"
+              },
+              {
+                "value": "center",
+                "displayName": "Center"
+              },
+              {
+                "value": "right",
+                "displayName": "Right"
+              }
+            ]
+          }
+        },
+        "rotation": {
+          "displayName": "Rotation",
+          "type": {
+            "enumeration": [
+              {
+                "value": "0",
+                "displayName": "0°"
+              },
+              {
+                "value": "45",
+                "displayName": "45°"
+              },
+              {
+                "value": "90",
+                "displayName": "90°"
+              }
+            ]
+          }
         }
       }
     },

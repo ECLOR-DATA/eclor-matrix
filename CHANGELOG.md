@@ -3,6 +3,14 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.3.0.0] — 2026-08-09
+
+### Added
+
+- **Row headers card**: bold, italic, font colour, configurable indent per hierarchy level.
+- **Column headers card**: bold, italic, font colour, background colour, alignment, rotation 0°/45°/90° (labels wrapped in rotatable spans).
+- **Spacing**: General → row padding in px (0 = follow the density preset); paddings refactored to the `--em-pad-y` CSS variable.
+
 ## [1.2.0.0] — 2026-08-09
 
 ### Added

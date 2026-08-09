@@ -438,10 +438,22 @@ export class Visual implements IVisual {
 
     const table = document.createElement("table");
     table.className = "em-table";
-    table.style.fontSize = `${Number(fs.general.textSize.value) || 11}px`;
+    const textSize = Number(fs.general.textSize.value) || 11;
+    table.style.fontSize = `${textSize}px`;
     table.setAttribute("aria-label", this.localize("Visual_AriaMatrix", "Matrix"));
 
-    this.rowHeightPx = estimateRowHeight(Number(fs.general.textSize.value) || 11, density);
+    const rotation = String(fs.columnHeaders.rotation.value?.value ?? "0");
+    if (rotation === "45") table.classList.add("em-rot45");
+    else if (rotation === "90") table.classList.add("em-rot90");
+
+    const rowPadding = Number(fs.general.rowPadding.value) || 0;
+    if (rowPadding > 0) {
+      this.target.style.setProperty("--em-pad-y", `${rowPadding}px`);
+      this.rowHeightPx = Math.round(textSize * 1.45) + rowPadding * 2 + 1;
+    } else {
+      this.target.style.removeProperty("--em-pad-y");
+      this.rowHeightPx = estimateRowHeight(textSize, density);
+    }
     const tbody = document.createElement("tbody");
     this.scrollEl = scroll;
     this.tbodyEl = tbody;
@@ -477,6 +489,14 @@ export class Visual implements IVisual {
   };
 
   private buildThead(parsed: ParseResult): HTMLTableSectionElement {
+    const ch = this.formattingSettings.columnHeaders;
+    const hc = this.isHighContrast;
+    const chColor = hc ? "" : safeHexOrEmpty(ch.fontColor.value?.value);
+    const chBg = hc ? "" : safeHexOrEmpty(ch.backColor.value?.value);
+    const chBold = ch.bold.value === true;
+    const chItalic = ch.italic.value === true;
+    const alignment = String(ch.alignment.value?.value ?? "center");
+
     const thead = document.createElement("thead");
     const headerRowCount = Math.max(parsed.headerRows.length, 1);
     parsed.headerRows.forEach((cells, levelIdx) => {
@@ -485,13 +505,22 @@ export class Visual implements IVisual {
         const corner = document.createElement("th");
         corner.className = "em-rowheader em-corner";
         corner.rowSpan = headerRowCount;
+        if (chBg) corner.style.backgroundColor = chBg;
         tr.appendChild(corner);
       }
       for (const cell of cells) {
         const th = document.createElement("th");
-        th.textContent = cell.label;
+        const label = document.createElement("span");
+        label.className = "em-hlabel";
+        label.textContent = cell.label;
+        th.appendChild(label);
         if (cell.span > 1) th.colSpan = cell.span;
         th.setAttribute("scope", "col");
+        th.style.textAlign = alignment;
+        th.style.fontWeight = chBold ? "700" : "400";
+        if (chItalic) th.style.fontStyle = "italic";
+        if (chColor) th.style.color = chColor;
+        if (chBg) th.style.backgroundColor = chBg;
         tr.appendChild(th);
       }
       thead.appendChild(tr);
@@ -514,6 +543,12 @@ export class Visual implements IVisual {
   private fillTbody(tbody: HTMLTableSectionElement, parsed: ParseResult, spec: WindowSpec): void {
     const dataMaxAbs = computeMaxAbs(parsed.rows);
     const colCount = parsed.renderLeafIdxs.length + 1;
+    const rh = this.formattingSettings.rowHeaders;
+    const indentRaw = Number(rh.indent.value);
+    const indent = Number.isFinite(indentRaw) ? Math.max(0, indentRaw) : 16;
+    const rhColor = this.isHighContrast ? "" : safeHexOrEmpty(rh.fontColor.value?.value);
+    const rhBold = rh.bold.value === true;
+    const rhItalic = rh.italic.value === true;
     tbody.replaceChildren();
     if (spec.topPad > 0) tbody.appendChild(this.makeSpacerRow(spec.topPad, colCount));
 
@@ -530,7 +565,10 @@ export class Visual implements IVisual {
       const th = document.createElement("th");
       th.className = "em-rowheader";
       th.setAttribute("scope", "row");
-      th.style.paddingLeft = `${8 + row.level * 16}px`;
+      th.style.paddingLeft = `${8 + row.level * indent}px`;
+      if (rhBold) th.style.fontWeight = "700";
+      if (rhItalic) th.style.fontStyle = "italic";
+      if (rhColor) th.style.color = rhColor;
       if (row.isExpandable) {
         const chevron = document.createElement("span");
         chevron.className = "em-chevron";

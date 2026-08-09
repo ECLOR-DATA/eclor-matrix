@@ -42,7 +42,7 @@
   td {
     border: none;
     border-bottom: 1px solid var(--em-grid);
-    padding: 4px 8px;
+    padding: var(--em-pad-y, 4px) 8px;
     text-align: right;
     white-space: nowrap;
   }
@@ -117,14 +117,33 @@
   color: var(--em-fg);
 }
 
-.em-density-compact .em-table th,
-.em-density-compact .em-table td {
-  padding: 1px 6px;
+.em-density-compact {
+  --em-pad-y: 1px;
 }
 
-.em-density-comfortable .em-table th,
-.em-density-comfortable .em-table td {
-  padding: 8px 12px;
+.em-density-comfortable {
+  --em-pad-y: 8px;
+}
+
+// Column-header rotation (Format → Column headers → Rotation).
+.em-table.em-rot90 thead th .em-hlabel {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  max-height: 140px;
+}
+
+.em-table.em-rot45 thead th {
+  height: 64px;
+  vertical-align: bottom;
+  overflow: visible;
+}
+
+.em-table.em-rot45 thead th .em-hlabel {
+  display: inline-block;
+  transform: rotate(-45deg);
+  transform-origin: left bottom;
+  white-space: nowrap;
 }
 
 .em-empty {

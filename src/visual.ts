@@ -34,6 +34,13 @@ import {
 } from "./cellColor";
 import { compileExpression } from "./expressions";
 import { barWidthPct, detectScenario, IbcsScenario } from "./ibcs";
+import {
+  CustomRowDef,
+  parseCustomRowsState,
+  serializeCustomRowsState,
+  weaveCustomRows,
+  WovenRow
+} from "./customRows";
 
 interface CalcDef {
   name: string;
@@ -118,6 +125,12 @@ export class Visual implements IVisual {
   private currentWindow: WindowSpec | null = null;
   private rowHeightPx: number = 17;
 
+  private customRows: CustomRowDef[] = [];
+  private customRowsDirty: boolean = false;
+  private rowPathKeys: string[] = [];
+  private editPanelOpen: boolean = false;
+  private lastUpdateOptions: VisualUpdateOptions | null = null;
+
   constructor(options?: VisualConstructorOptions) {
     if (!options) {
       throw new Error("Visual constructor: options were not provided by the host.");
@@ -151,6 +164,7 @@ export class Visual implements IVisual {
   public update(options: VisualUpdateOptions): void {
     const eventService = this.host.eventService;
     eventService?.renderingStarted(options);
+    this.lastUpdateOptions = options;
     try {
       const dataView: DataView | undefined = options.dataViews?.[0];
       this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(
@@ -248,10 +262,12 @@ export class Visual implements IVisual {
     const rowRoot = matrix.rows?.root as MatrixNodeLike | undefined;
 
     const leaves = flattenColumns(colRoot, measureNames, totalLabel);
-    const rows = flattenRows(rowRoot, leaves, totalLabel);
+    let rows: RowModel[] = flattenRows(rowRoot, leaves, totalLabel);
     if (rows.length === 0) {
       return this.buildEmptyParseResult();
     }
+
+    rows = this.applyCustomRows(dv, rows, leaves.length);
 
     const isTooltipOnly = (mi: number): boolean => {
       const roles = valueSources[mi]?.roles;
@@ -301,7 +317,7 @@ export class Visual implements IVisual {
 
     const measureStats: MeasureStats[] = valueSources.map(() => ({ min: Infinity, max: -Infinity }));
     for (const r of rows) {
-      if (r.isSubtotal) continue;
+      if (r.isSubtotal || (r as WovenRow).customDef) continue;
       for (let li = 0; li < leaves.length; li++) {
         const v = r.cells[li];
         if (typeof v === "number" && Number.isFinite(v)) {
@@ -393,6 +409,27 @@ export class Visual implements IVisual {
     return { renderCols, calcLookups, flatHeader };
   }
 
+  /** Custom rows (Excel-style ad-hoc subtotals / formula rows) — persisted
+   *  as JSON in the report definition, woven after their anchor rows. */
+  private applyCustomRows(dv: DataView, rows: RowModel[], cellCount: number): RowModel[] {
+    const persistedState = (dv.metadata?.objects as unknown as {
+      customRows?: { state?: unknown };
+    })?.customRows?.state;
+    if (this.customRowsDirty) {
+      if (
+        typeof persistedState === "string" &&
+        persistedState === serializeCustomRowsState(this.customRows)
+      ) {
+        this.customRowsDirty = false;
+      }
+    } else {
+      this.customRows = parseCustomRowsState(persistedState);
+    }
+    const woven = weaveCustomRows(rows, this.customRows, cellCount);
+    this.rowPathKeys = woven.keys;
+    return woven.rows;
+  }
+
   private readCalcDefs(): CalcDef[] {
     const out: CalcDef[] = [];
     const card = this.formattingSettings.calculatedColumns;
@@ -431,7 +468,7 @@ export class Visual implements IVisual {
     const calcMaxAbs = calcDefs.map(() => 0);
     if (calcDefs.some((d) => d.display === "bar")) {
       for (const row of rows) {
-        if (row.isSubtotal) continue;
+        if (row.isSubtotal || (row as WovenRow).customDef) continue;
         for (const col of renderCols) {
           if (col.kind !== "calc") continue;
           const v = this.evalCalc(calcDefs[col.calcIdx], calcLookups.get(col.pathKey), row);
@@ -717,7 +754,235 @@ export class Visual implements IVisual {
     table.appendChild(tbody);
     scroll.appendChild(table);
     this.target.replaceChildren(scroll);
+    this.renderChrome();
     this.applySelectionVisuals();
+  }
+
+  // ---------- In-visual layout editor (custom rows) ----------
+
+  private renderChrome(): void {
+    if (!this.allowInteractions) return;
+    const toolbar = document.createElement("div");
+    toolbar.className = "em-toolbar";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "em-toolbtn";
+    btn.setAttribute("data-em-action", "toggle-panel");
+    btn.setAttribute("aria-label", this.localize("Visual_Edit", "Edit layout"));
+    btn.setAttribute("title", this.localize("Visual_Edit", "Edit layout"));
+    btn.textContent = "✎";
+    toolbar.appendChild(btn);
+    this.target.appendChild(toolbar);
+    if (this.editPanelOpen) this.target.appendChild(this.buildEditPanel());
+  }
+
+  private panelRow(label: string, input: HTMLElement): HTMLDivElement {
+    const wrap = document.createElement("div");
+    wrap.className = "em-field";
+    const lab = document.createElement("label");
+    lab.textContent = label;
+    wrap.appendChild(lab);
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  private buildEditPanel(): HTMLDivElement {
+    const panel = document.createElement("div");
+    panel.className = "em-editpanel";
+
+    const title = document.createElement("div");
+    title.className = "em-paneltitle";
+    title.textContent = this.localize("Visual_CustomRows", "Custom rows");
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "em-panelclose";
+    close.setAttribute("data-em-action", "close-panel");
+    close.setAttribute("aria-label", this.localize("Visual_Close", "Close"));
+    close.textContent = "✕";
+    title.appendChild(close);
+    panel.appendChild(title);
+
+    // Existing definitions.
+    for (const def of this.customRows) {
+      const item = document.createElement("div");
+      item.className = "em-defitem";
+      const kind = document.createElement("span");
+      kind.className = "em-defkind";
+      kind.textContent = def.kind === "subtotal" ? "Σ" : "ƒ";
+      const name = document.createElement("span");
+      name.className = "em-defname";
+      name.textContent = def.label;
+      name.setAttribute("title", def.kind === "formula" ? def.formula ?? "" : (def.refs ?? []).join(", "));
+      const del = document.createElement("button");
+      del.type = "button";
+      del.setAttribute("data-em-action", "del-custom");
+      del.setAttribute("data-def-id", def.id);
+      del.setAttribute("aria-label", this.localize("Visual_Delete", "Delete"));
+      del.textContent = "🗑";
+      item.appendChild(kind);
+      item.appendChild(name);
+      item.appendChild(del);
+      panel.appendChild(item);
+    }
+
+    // Add: subtotal of current selection.
+    const stSection = document.createElement("div");
+    stSection.className = "em-panelsection";
+    const stInput = document.createElement("input");
+    stInput.type = "text";
+    stInput.id = "em-st-label";
+    stInput.placeholder = this.localize("Visual_SubtotalName", "Subtotal name");
+    stSection.appendChild(this.panelRow("Σ", stInput));
+    const stBtn = document.createElement("button");
+    stBtn.type = "button";
+    stBtn.setAttribute("data-em-action", "add-subtotal");
+    stBtn.textContent = this.localize("Visual_AddSubtotal", "Add subtotal of selected rows");
+    stSection.appendChild(stBtn);
+    panel.appendChild(stSection);
+
+    // Add: formula row.
+    const fSection = document.createElement("div");
+    fSection.className = "em-panelsection";
+    const fName = document.createElement("input");
+    fName.type = "text";
+    fName.id = "em-f-label";
+    fName.placeholder = this.localize("Visual_FormulaName", "Row name");
+    const fFormula = document.createElement("input");
+    fFormula.type = "text";
+    fFormula.id = "em-f-formula";
+    fFormula.placeholder = "[Gross Sales] / [Revenue]";
+    const fFormat = document.createElement("select");
+    fFormat.id = "em-f-format";
+    for (const [v, t] of [
+      ["inherit", this.localize("Visual_FormatInherit", "Inherit format")],
+      ["number", this.localize("Visual_FormatNumber", "Number")],
+      ["percent", this.localize("Visual_FormatPercent", "Percent")]
+    ]) {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = t;
+      fFormat.appendChild(opt);
+    }
+    fSection.appendChild(this.panelRow("ƒ", fName));
+    fSection.appendChild(this.panelRow("=", fFormula));
+    fSection.appendChild(this.panelRow("#", fFormat));
+    const fBtn = document.createElement("button");
+    fBtn.type = "button";
+    fBtn.setAttribute("data-em-action", "add-formula");
+    fBtn.textContent = this.localize("Visual_AddFormula", "Add formula row");
+    fSection.appendChild(fBtn);
+    panel.appendChild(fSection);
+
+    const hint = document.createElement("div");
+    hint.className = "em-panelhint";
+    hint.textContent = this.localize(
+      "Visual_PositionHint",
+      "New rows are inserted after the last selected row (or appended at the end)."
+    );
+    panel.appendChild(hint);
+    return panel;
+  }
+
+  /** Path keys of the currently selected data rows — read from the internal
+   *  selection state (DOM classes are applied asynchronously). */
+  private selectedDataRowKeys(): string[] {
+    const out: string[] = [];
+    this.rowSelectionIds.forEach((id, idx) => {
+      if (!id || !this.selectedRowKeys.has(this.selectionKey(id))) return;
+      const key = this.rowPathKeys[idx];
+      if (key && !key.startsWith("custom:")) out.push(key);
+    });
+    return out;
+  }
+
+  private nextCustomId(): string {
+    const buf = new Uint32Array(2);
+    crypto.getRandomValues(buf);
+    return `cr-${buf[0].toString(36)}${buf[1].toString(36)}`;
+  }
+
+  private handleEditAction(el: HTMLElement): void {
+    const action = el.getAttribute("data-em-action");
+    switch (action) {
+      case "toggle-panel":
+        this.editPanelOpen = !this.editPanelOpen;
+        this.refreshChrome();
+        break;
+      case "close-panel":
+        this.editPanelOpen = false;
+        this.refreshChrome();
+        break;
+      case "del-custom": {
+        const id = el.getAttribute("data-def-id");
+        this.customRows = this.customRows.filter((d) => d.id !== id);
+        this.mutateCustomRows();
+        break;
+      }
+      case "add-subtotal": {
+        const refs = this.selectedDataRowKeys();
+        if (refs.length === 0) return;
+        const input = this.target.querySelector("#em-st-label") as HTMLInputElement | null;
+        this.customRows = [
+          ...this.customRows,
+          {
+            id: this.nextCustomId(),
+            kind: "subtotal",
+            label: input?.value.trim() || this.localize("Visual_Total", "Total"),
+            anchor: refs[refs.length - 1],
+            refs
+          }
+        ];
+        this.mutateCustomRows();
+        break;
+      }
+      case "add-formula": {
+        const name = (this.target.querySelector("#em-f-label") as HTMLInputElement | null)?.value.trim();
+        const formulaEl = this.target.querySelector("#em-f-formula") as HTMLInputElement | null;
+        const formula = formulaEl?.value.trim() ?? "";
+        const format = (this.target.querySelector("#em-f-format") as HTMLSelectElement | null)?.value ?? "inherit";
+        if (!formula || !compileExpression(formula).ok) {
+          formulaEl?.classList.add("em-invalid");
+          return;
+        }
+        const sel = this.selectedDataRowKeys();
+        this.customRows = [
+          ...this.customRows,
+          {
+            id: this.nextCustomId(),
+            kind: "formula",
+            label: name || "ƒ",
+            anchor: sel.length > 0 ? sel[sel.length - 1] : "",
+            formula,
+            format
+          }
+        ];
+        this.mutateCustomRows();
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  private refreshChrome(): void {
+    this.target.querySelectorAll(".em-toolbar, .em-editpanel").forEach((n) => n.remove());
+    this.renderChrome();
+  }
+
+  private mutateCustomRows(): void {
+    this.customRowsDirty = true;
+    (this.host as unknown as { persistProperties?: (changes: unknown) => void }).persistProperties?.({
+      merge: [
+        {
+          objectName: "customRows",
+          selector: null,
+          properties: { state: serializeCustomRowsState(this.customRows) }
+        }
+      ]
+    });
+    // Re-render immediately with the local definitions (the host echoes the
+    // persisted state on a later update, which clears the dirty flag).
+    if (this.lastUpdateOptions) this.update(this.lastUpdateOptions);
   }
 
   private windowFor(input: RenderInput, scrollTop: number): WindowSpec {
@@ -797,6 +1062,66 @@ export class Visual implements IVisual {
     return thead;
   }
 
+  private buildLeafCell(
+    parsed: ParseResult,
+    row: RowModel,
+    leafIdx: number,
+    dataMaxAbs: number,
+    ibcsOn: boolean,
+    ariaParts: string[]
+  ): HTMLTableCellElement {
+    const leaf = parsed.leaves[leafIdx];
+    const td = document.createElement("td");
+    td.setAttribute("data-cell", "1");
+    td.setAttribute("data-leaf-idx", String(leafIdx));
+    if (ibcsOn) {
+      const sc = parsed.measureScenarios[leaf.measureIndex];
+      if (sc === "PY" || sc === "FC") td.classList.add(`ibcs-${sc.toLowerCase()}`);
+    }
+    const raw = row.cells[leafIdx];
+    if (typeof raw === "number") {
+      const fmt = this.measureFormat(parsed, leaf.measureIndex);
+      let modelFormat = parsed.valueSources[leaf.measureIndex]?.format ?? "";
+      let cardUnits = fmt.units;
+      let cardDecimals = fmt.decimals;
+      const custom = (row as WovenRow).customDef;
+      if (custom?.kind === "formula") {
+        if (custom.format === "percent") {
+          modelFormat = "0.0%";
+          cardUnits = "none";
+          cardDecimals = 0;
+        } else if (custom.format === "number") {
+          modelFormat = "";
+          cardUnits = "none";
+        }
+      }
+      const formatted = formatActualLabel({
+        value: raw,
+        modelFormat,
+        cardUnits,
+        cardDecimals,
+        autoDecimals: 0,
+        locale: this.locale,
+        dataMaxAbs
+      });
+      td.textContent = formatted;
+      ariaParts.push(formatted);
+      if (!row.isSubtotal && !custom && !this.isHighContrast) {
+        const copts = this.measureColorOpts(parsed, leaf.measureIndex);
+        if (copts.mode !== "none") {
+          const paint = resolveCellColor(raw, parsed.measureStats[leaf.measureIndex], copts);
+          if (paint.bg) {
+            td.style.backgroundColor = paint.bg;
+            if (paint.fg) td.style.color = paint.fg;
+          }
+        }
+      }
+    } else if (raw !== null) {
+      td.textContent = String(raw);
+    }
+    return td;
+  }
+
   private makeSpacerRow(height: number, colCount: number): HTMLTableRowElement {
     const tr = document.createElement("tr");
     tr.className = "em-spacer";
@@ -828,6 +1153,7 @@ export class Visual implements IVisual {
       tr.setAttribute("data-row-idx", String(rIdx));
       tr.setAttribute("tabindex", "0");
       if (row.isSubtotal) tr.classList.add("em-subtotal");
+      if ((row as WovenRow).customDef) tr.classList.add("em-customrow");
       if (row.isExpandable) {
         tr.setAttribute("aria-expanded", row.isCollapsed ? "false" : "true");
       }
@@ -857,43 +1183,7 @@ export class Visual implements IVisual {
           tr.appendChild(this.buildCalcCell(parsed, row, col, ariaParts));
           continue;
         }
-        const leafIdx = col.leafIdx;
-        const leaf = parsed.leaves[leafIdx];
-        const td = document.createElement("td");
-        td.setAttribute("data-cell", "1");
-        td.setAttribute("data-leaf-idx", String(leafIdx));
-        if (ibcsOn) {
-          const sc = parsed.measureScenarios[leaf.measureIndex];
-          if (sc === "PY" || sc === "FC") td.classList.add(`ibcs-${sc.toLowerCase()}`);
-        }
-        const raw = row.cells[leafIdx];
-        if (typeof raw === "number") {
-          const fmt = this.measureFormat(parsed, leaf.measureIndex);
-          const formatted = formatActualLabel({
-            value: raw,
-            modelFormat: parsed.valueSources[leaf.measureIndex]?.format ?? "",
-            cardUnits: fmt.units,
-            cardDecimals: fmt.decimals,
-            autoDecimals: 0,
-            locale: this.locale,
-            dataMaxAbs
-          });
-          td.textContent = formatted;
-          ariaParts.push(formatted);
-          if (!row.isSubtotal && !this.isHighContrast) {
-            const copts = this.measureColorOpts(parsed, leaf.measureIndex);
-            if (copts.mode !== "none") {
-              const paint = resolveCellColor(raw, parsed.measureStats[leaf.measureIndex], copts);
-              if (paint.bg) {
-                td.style.backgroundColor = paint.bg;
-                if (paint.fg) td.style.color = paint.fg;
-              }
-            }
-          }
-        } else if (raw !== null) {
-          td.textContent = String(raw);
-        }
-        tr.appendChild(td);
+        tr.appendChild(this.buildLeafCell(parsed, row, col.leafIdx, dataMaxAbs, ibcsOn, ariaParts));
       }
       tr.setAttribute("aria-label", ariaParts.join(", "));
       tbody.appendChild(tr);
@@ -935,6 +1225,16 @@ export class Visual implements IVisual {
 
   private handleClick = (e: MouseEvent): void => {
     if (!this.allowInteractions) return;
+
+    // Layout-editor chrome first: actions, then inert panel clicks (typing
+    // in the panel must never clear the row selection).
+    const actionEl = (e.target as Element)?.closest?.("[data-em-action]") as HTMLElement | null;
+    if (actionEl) {
+      this.handleEditAction(actionEl);
+      e.stopPropagation();
+      return;
+    }
+    if ((e.target as Element)?.closest?.(".em-editpanel")) return;
 
     const toggle = (e.target as Element)?.closest?.("[data-toggle-idx]") as Element | null;
     if (toggle) {

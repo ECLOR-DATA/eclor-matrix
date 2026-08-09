@@ -66,7 +66,8 @@ export function makeMockHost() {
     },
     locale: "en-US",
     hostCapabilities: { allowInteractions: true },
-    displayWarningIcon: () => {}
+    displayWarningIcon: () => {},
+    persistProperties: () => {}
   };
 }
 

@@ -21,6 +21,7 @@
   --em-bad: #ff4d6d;
   --em-py: #8a9994;
 
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -231,6 +232,159 @@
   transform: rotate(-45deg);
   transform-origin: left bottom;
   white-space: nowrap;
+}
+
+// Custom rows (Excel-style ad-hoc subtotals & formula rows).
+.em-table tbody tr.em-customrow {
+  th.em-rowheader {
+    font-style: italic;
+  }
+
+  td,
+  th.em-rowheader {
+    border-top: 1px dashed var(--em-fg);
+  }
+}
+
+// In-visual layout editor.
+.em-toolbar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 6;
+}
+
+.em-toolbtn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--em-grid);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--em-fg);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+
+  &:hover {
+    background: var(--em-hover-bg);
+  }
+}
+
+.em-editpanel {
+  position: absolute;
+  top: 32px;
+  right: 4px;
+  z-index: 7;
+  width: 280px;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid var(--em-grid);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(9, 22, 18, 0.18);
+  padding: 8px;
+  font-size: 11px;
+  color: var(--em-fg);
+
+  .em-paneltitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .em-panelclose {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--em-fg);
+  }
+
+  .em-defitem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--em-grid);
+
+    .em-defkind {
+      width: 16px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--em-py);
+    }
+
+    .em-defname {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+  }
+
+  .em-panelsection {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--em-grid);
+  }
+
+  .em-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+
+    label {
+      width: 14px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--em-py);
+    }
+
+    input,
+    select {
+      flex: 1;
+      font-size: 11px;
+      padding: 3px 6px;
+      border: 1px solid var(--em-grid);
+      border-radius: 3px;
+      font-family: inherit;
+    }
+
+    input.em-invalid {
+      border-color: var(--em-bad);
+    }
+  }
+
+  .em-panelsection > button {
+    width: 100%;
+    margin-top: 2px;
+    padding: 4px 6px;
+    border: 1px solid var(--em-fg);
+    border-radius: 4px;
+    background: #ffffff;
+    color: var(--em-fg);
+    cursor: pointer;
+    font-size: 11px;
+
+    &:hover {
+      background: var(--em-hover-bg);
+    }
+  }
+
+  .em-panelhint {
+    margin-top: 8px;
+    color: var(--em-py);
+    font-size: 10px;
+  }
 }
 
 .em-empty {

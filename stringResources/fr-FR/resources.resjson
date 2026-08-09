@@ -10,5 +10,17 @@
   "Visual_RowHeaders": "En-têtes de lignes",
   "Visual_ColumnHeaders": "En-têtes de colonnes",
   "Visual_CalculatedColumns": "Colonnes calculées",
-  "Visual_IBCS": "IBCS"
+  "Visual_IBCS": "IBCS",
+  "Visual_AddSubtotal": "Ajouter un sous-total des lignes sélectionnées",
+  "Visual_Delete": "Supprimer",
+  "Visual_Edit": "Éditer la mise en page",
+  "Visual_FormatNumber": "Nombre",
+  "Visual_Close": "Fermer",
+  "Visual_AddFormula": "Ajouter une ligne formule",
+  "Visual_PositionHint": "Les nouvelles lignes sont insérées après la dernière ligne sélectionnée (sinon en fin).",
+  "Visual_CustomRows": "Lignes personnalisées",
+  "Visual_FormatInherit": "Format hérité",
+  "Visual_SubtotalName": "Nom du sous-total",
+  "Visual_FormatPercent": "Pourcentage",
+  "Visual_FormulaName": "Nom de la ligne"
 }

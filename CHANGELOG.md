@@ -3,6 +3,16 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.6.0.0] — 2026-08-10
+
+### Added
+
+- **Excel-style custom rows + in-visual layout editor** (`✎` toolbar): insert rows anywhere, independent of the hierarchy and the model —
+  - **ad-hoc subtotals**: select any rows in the grid, name the subtotal, it lands after the last selected row (sum per column);
+  - **formula rows**: expressions over OTHER ROWS by label (`[Gross Sales] / [Revenue]`, ratios that exist nowhere in the model), scoped resolution (same group as the anchor first), inherit/number/percent formats;
+  - definitions persist in the report via `host.persistProperties` (JSON in `customRows.state`), so they survive save/reopen/publish and travel with the report;
+  - custom rows render distinct (italic label, dashed top rule; subtotal styling for Σ rows), are excluded from heat-map domains and painting, and formula errors render blank — never crash. Panel is DOM-built, localized (fr/en), and never steals the row selection.
+
 ## [1.5.1.0] — 2026-08-09
 
 ### Documentation

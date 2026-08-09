@@ -147,3 +147,22 @@ hatch — hatching is a plain repeating-linear-gradient, one more win for HTML
 rendering). Variance bars live on calculated columns (`display: bar`),
 shared zero axis, domain |max| over detail rows, good/bad = theme
 `#1EF5B1`/`#FF4D6D`, HC-safe. Full market positioning: docs/BENCHMARK.md.
+
+## 16. Custom rows & the in-visual editor (phase 8, 1.6.0.0)
+
+The "Excel freedom" ask: insert rows anywhere, not bound to the hierarchy.
+`customRows.ts` is pure: rows are addressed by label-chain path keys
+("France▸Gross Sales", deduped #n), definitions are JSON persisted through
+`host.persistProperties` on `customRows.state` (an object NOT exposed in the
+Format pane — the modern pane only shows what getFormattingModel returns).
+Dirty-state protocol: local defs win until the host echoes the identical
+serialized state back through a dataView update. Two kinds: additive
+subtotals of arbitrary selected rows, and formula rows evaluated per column
+with the shared expression engine — ref resolution prefers rows in the
+anchor's parent scope, so "[COGS] / [Gross Sales]" under Iberia reads the
+Iberia rows. The editor is in-visual chrome (✎ toolbar + panel) because the
+Format pane cannot host this kind of interaction; panel clicks are routed
+before selection handling so typing never clears the user's row selection.
+Known limits (documented): custom rows can't reference other custom rows,
+label-based anchors break if the source label changes, and custom rows
+don't cross-filter (no data identity).

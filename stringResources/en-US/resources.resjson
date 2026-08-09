@@ -10,5 +10,17 @@
   "Visual_RowHeaders": "Row headers",
   "Visual_ColumnHeaders": "Column headers",
   "Visual_CalculatedColumns": "Calculated columns",
-  "Visual_IBCS": "IBCS"
+  "Visual_IBCS": "IBCS",
+  "Visual_AddSubtotal": "Add subtotal of selected rows",
+  "Visual_Delete": "Delete",
+  "Visual_Edit": "Edit layout",
+  "Visual_FormatNumber": "Number",
+  "Visual_Close": "Close",
+  "Visual_AddFormula": "Add formula row",
+  "Visual_PositionHint": "New rows are inserted after the last selected row (or appended at the end).",
+  "Visual_CustomRows": "Custom rows",
+  "Visual_FormatInherit": "Inherit format",
+  "Visual_SubtotalName": "Subtotal name",
+  "Visual_FormatPercent": "Percent",
+  "Visual_FormulaName": "Row name"
 }

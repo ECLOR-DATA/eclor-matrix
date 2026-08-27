@@ -3,6 +3,23 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.7.0.0] — 2026-08-27
+
+### Added
+
+- **Simplified Excel-style calculation engine** (`src/expressions.ts` v2) — powers BOTH calculated columns and custom formula rows, still 100% eval-free (hand-rolled tokenizer + shunting-yard, certification-safe):
+  - operators `^` (power, Excel semantics: `-2^2 = 4`, left-associative) and postfix `%` (`[Actual] * 110%`);
+  - comparisons `= <> < <= > >=` returning 1/0, so Excel idioms like `([Actual] > [Budget]) * 10` work;
+  - functions `SUM`, `AVERAGE`, `MIN`, `MAX` (variadic, blanks ignored like Excel), `ABS`, `ROUND` (half away from zero, optional/negative digits), `IF`;
+  - French aliases `SOMME`, `MOYENNE`, `ARRONDI`, `SI` and the Excel-FR `;` argument separator;
+  - a leading `=` is tolerated (pasted-from-Excel habit);
+  - null-safety unchanged: missing ref, null operand, ÷0, NaN/overflow → blank, never a crash.
+- Formula hint line in the layout-editor panel (localized fr/en) listing the available operators and functions.
+
+### Changed
+
+- `MIN`/`MAX` are now variadic and skip null arguments (Excel blank-cell behaviour): `MIN([a], [b])` with `[a]` blank now returns `[b]` instead of blank; `MIN(1)` is now a valid formula.
+
 ## [1.6.0.0] — 2026-08-10
 
 ### Added

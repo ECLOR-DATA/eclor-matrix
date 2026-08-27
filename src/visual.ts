@@ -866,6 +866,13 @@ export class Visual implements IVisual {
     fSection.appendChild(this.panelRow("ƒ", fName));
     fSection.appendChild(this.panelRow("=", fFormula));
     fSection.appendChild(this.panelRow("#", fFormat));
+    const fHint = document.createElement("div");
+    fHint.className = "em-panelhint";
+    fHint.textContent = this.localize(
+      "Visual_FormulaHint",
+      "Operators + - * / ^ %, comparisons = <> < <= > >= — functions SUM, AVERAGE, MIN, MAX, ABS, ROUND, IF."
+    );
+    fSection.appendChild(fHint);
     const fBtn = document.createElement("button");
     fBtn.type = "button";
     fBtn.setAttribute("data-em-action", "add-formula");

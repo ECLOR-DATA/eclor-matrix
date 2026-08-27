@@ -22,5 +22,6 @@
   "Visual_FormatInherit": "Inherit format",
   "Visual_SubtotalName": "Subtotal name",
   "Visual_FormatPercent": "Percent",
-  "Visual_FormulaName": "Row name"
+  "Visual_FormulaName": "Row name",
+  "Visual_FormulaHint": "Operators + - * / ^ %, comparisons = <> < <= > >= — functions SUM, AVERAGE, MIN, MAX, ABS, ROUND, IF."
 }

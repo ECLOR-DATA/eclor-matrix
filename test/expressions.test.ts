@@ -139,6 +139,81 @@ describe("compileExpression — Excel-style functions", () => {
   });
 });
 
+describe("compileExpression — 1.8.1.0 hardening", () => {
+  const bad = (f: string) => {
+    expect(compileExpression(f).ok).toBe(false);
+  };
+
+  test("prefix % rejected everywhere, not just at position 0", () => {
+    bad("1 + %2");
+    bad("2 * %10");
+    bad("SUM(1, %2)");
+    bad("1+(%3)");
+    bad("5 -% 2");
+    bad("1 > % 2");
+  });
+
+  test("bare function names rejected, even inside parentheses", () => {
+    bad("(5 MAX)");
+    bad("MAX(1, 2 ABS)");
+    bad("SUM([a] MAX, [b])");
+    bad("(2 ROUND)");
+    bad("(5 IF)");
+    bad("1 * (ABS)");
+  });
+
+  test("empty and trailing argument slots rejected", () => {
+    bad("SUM(1,,2)");
+    bad("SUM(1, 2,)");
+    bad("SOMME(1; 2;)");
+    bad("IF(1, , 2)");
+    bad("SUM(1 2,)"); // missing separator no longer cancels a trailing one
+  });
+
+  test("unary plus accepted (Lotus-era Excel habit)", () => {
+    expect(evalWith("+5 + 3", {})).toBe(8);
+    expect(evalWith("=+[a] - [b]", { a: 7, b: 2 })).toBe(5);
+    expect(evalWith("2 * +3", {})).toBe(6);
+    expect(evalWith("SUM(+1, 2)", {})).toBe(3);
+  });
+
+  test("leading-dot decimals accepted", () => {
+    expect(evalWith("[a] * .5", { a: 8 })).toBe(4);
+    expect(evalWith(".5 + .25", {})).toBe(0.75);
+    bad("1 . 5"); // a lone dot is still not a number
+  });
+
+  test("ROUND: float-noise halves round away from zero, no -0", () => {
+    expect(evalWith("ROUND(1.005, 2)", {})).toBeCloseTo(1.01, 12);
+    expect(evalWith("ROUND(1.255, 2)", {})).toBeCloseTo(1.26, 12);
+    expect(evalWith("ROUND(0 - 1.005, 2)", {})).toBeCloseTo(-1.01, 12);
+    expect(evalWith("ROUND(0 - 0.4)", {})).toBe(0); // toBe uses Object.is: catches -0
+    expect(evalWith("ROUND(1234, -1.5)", {})).toBe(1230); // digits truncate toward zero
+  });
+
+  test("comparisons normalize to 15 significant digits (Excel)", () => {
+    expect(evalWith("10% + 20% = 30%", {})).toBe(1);
+    expect(evalWith("10% + 20% <= 30%", {})).toBe(1);
+    expect(evalWith("10% + 20% <> 30%", {})).toBe(0);
+    expect(evalWith("[a] > -1", { a: 0 })).toBe(1); // unary minus after comparison
+  });
+
+  test("AVG alias", () => {
+    expect(evalWith("AVG(2, 4)", {})).toBe(3);
+  });
+
+  test("large variadic calls evaluate without blowing the stack", () => {
+    const args = Array.from({ length: 2000 }, (_v, i) => (i === 1000 ? "7" : "9")).join(",");
+    expect(evalWith(`MIN(${args})`, {})).toBe(7);
+    expect(evalWith(`MAX(${args.replace("7", "99")})`, {})).toBe(99);
+  });
+
+  test("formula length capped at Excel's 8192 characters", () => {
+    bad("1+".repeat(5000) + "1");
+    expect(compileExpression("1+".repeat(4000) + "1").ok).toBe(true);
+  });
+});
+
 describe("compileExpression — null semantics", () => {
   test("missing ref, null operand, division by zero → null", () => {
     expect(evalWith("[Missing] + 1", {})).toBeNull();

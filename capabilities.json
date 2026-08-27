@@ -686,6 +686,12 @@
             ]
           }
         },
+        "calc1Sign": {
+          "displayName": "Column 1 explicit sign (+/-)",
+          "type": {
+            "bool": true
+          }
+        },
         "calc2Show": {
           "displayName": "Column 2",
           "type": {
@@ -738,6 +744,12 @@
             ]
           }
         },
+        "calc2Sign": {
+          "displayName": "Column 2 explicit sign (+/-)",
+          "type": {
+            "bool": true
+          }
+        },
         "calc3Show": {
           "displayName": "Column 3",
           "type": {
@@ -788,6 +800,12 @@
                 "value": "bar"
               }
             ]
+          }
+        },
+        "calc3Sign": {
+          "displayName": "Column 3 explicit sign (+/-)",
+          "type": {
+            "bool": true
           }
         }
       }

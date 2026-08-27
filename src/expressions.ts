@@ -11,14 +11,15 @@
  *    comparisons = <> < <= > >= (→ 1/0), unary minus, ( ) and , or ;
  *    as the argument separator (Excel-FR types ;);
  *  - functions (case-insensitive, EN + FR aliases):
- *      SUM/SOMME(a, …)      variadic sum        — nulls ignored
- *      AVERAGE/MOYENNE(a,…) variadic mean       — nulls ignored
- *      MIN(a, …) MAX(a, …)  variadic            — nulls ignored
- *      ABS(x)               absolute value
- *      ROUND/ARRONDI(x[,n]) half away from zero, n decimals (default 0,
- *                           negative n rounds to tens/hundreds…)
- *      IF/SI(cond, a, b)    cond ≠ 0 → a else b
- *  - a single leading '=' is tolerated (pasted Excel habit).
+ *      SUM/SOMME(a, …)          variadic sum    — nulls ignored
+ *      AVERAGE/AVG/MOYENNE(a,…) variadic mean   — nulls ignored
+ *      MIN(a, …) MAX(a, …)      variadic        — nulls ignored
+ *      ABS(x)                   absolute value
+ *      ROUND/ARRONDI(x[,n])     half away from zero, n decimals (default 0,
+ *                               negative n rounds to tens/hundreds…)
+ *      IF/SI(cond, a, b)        cond ≠ 0 → a else b
+ *  - a single leading '=' and a unary '+' are tolerated (Excel habits);
+ *  - formulas are capped at 8192 characters (Excel's own cell limit).
  *
  * NO eval / new Function — certification forbids dynamic code. Tokenizer +
  * shunting-yard → RPN, evaluated against a caller-provided lookup.
@@ -26,7 +27,11 @@
  * non-finite results all yield null (rendered blank) — never a crash,
  * never Infinity. The variadic aggregates are the one Excel-style
  * exception: they skip null arguments (blank cells) and only return null
- * when EVERY argument is null.
+ * when EVERY argument is null — which also means an error-derived null
+ * (÷0, overflow) inside an aggregate is skipped like a blank, not
+ * propagated like Excel's #DIV/0!; documented trade-off of a blank-only
+ * error channel. Comparisons normalize both operands to 15 significant
+ * digits first (Excel semantics: 10% + 20% = 30% is TRUE).
  */
 
 type FnName = "SUM" | "AVERAGE" | "MIN" | "MAX" | "ABS" | "ROUND" | "IF";
@@ -113,7 +118,7 @@ function tokenize(src: string): Token[] | string {
       i = close + 1;
       continue;
     }
-    if (c >= "0" && c <= "9") {
+    if ((c >= "0" && c <= "9") || (c === "." && src[i + 1] >= "0" && src[i + 1] <= "9")) {
       let j = i;
       while (j < src.length && ((src[j] >= "0" && src[j] <= "9") || src[j] === ".")) j++;
       const num = Number(src.slice(i, j));
@@ -167,19 +172,31 @@ function tokenize(src: string): Token[] | string {
   return out;
 }
 
-/** Mark unary minus: '-' with no operand before it. Postfix '%' counts as
- *  an operand ending, so "[a]% - 1" stays a binary minus. */
+/** A token that ends an operand — postfix '%' counts ("[a]% - 1" stays a
+ *  binary minus, "% 5" is a misplaced percent). */
+function endsOperand(tok: Token | undefined): boolean {
+  return (
+    tok !== undefined &&
+    (tok.t === "num" || tok.t === "ref" || tok.t === ")" || (tok.t === "op" && tok.v === "%"))
+  );
+}
+
+/** Mark unary minus ('-' with no operand before it) and DROP unary plus —
+ *  "=+5", "+[a]-[b]", "2*+3" are Lotus-era Excel habits, no-ops here. */
 function markUnary(tokens: Token[]): Token[] {
-  return tokens.map((tok, idx) => {
-    if (tok.t === "op" && tok.v === "-") {
-      const prev = tokens[idx - 1];
-      const prevIsOperand =
-        prev !== undefined &&
-        (prev.t === "num" || prev.t === "ref" || prev.t === ")" || (prev.t === "op" && prev.v === "%"));
-      if (!prevIsOperand) return { t: "op", v: "u-" } as Token;
+  const out: Token[] = [];
+  for (const tok of tokens) {
+    const prevIsOperand = endsOperand(out[out.length - 1]);
+    if (tok.t === "op" && tok.v === "-" && !prevIsOperand) {
+      out.push({ t: "op", v: "u-" });
+      continue;
     }
-    return tok;
-  });
+    if (tok.t === "op" && tok.v === "+" && !prevIsOperand) {
+      continue;
+    }
+    out.push(tok);
+  }
+  return out;
 }
 
 function toRpn(tokens: Token[]): Token[] | string {
@@ -198,14 +215,21 @@ function toRpn(tokens: Token[]): Token[] | string {
         stack.push(tok);
         break;
       case ",": {
-        while (stack.length && stack[stack.length - 1].t !== "(") out.push(stack.pop() as Token);
+        if (!endsOperand(prev)) return "empty function argument";
+        while (stack.length && stack[stack.length - 1].t !== "(") {
+          const top = stack.pop() as Token;
+          if (top.t === "fn") return `missing '(' after ${top.v}`;
+          out.push(top);
+        }
         if (!stack.length || !parens.length || !parens[parens.length - 1].fn) return "misplaced ','";
         parens[parens.length - 1].args++;
         break;
       }
       case "op": {
         if (tok.v === "%") {
-          // Postfix percent binds tighter than everything: straight to output.
+          // Postfix percent binds tighter than everything: straight to
+          // output — but ONLY right after an operand ("1 + %2" is invalid).
+          if (!endsOperand(prev)) return "misplaced '%'";
           out.push(tok);
           break;
         }
@@ -224,7 +248,12 @@ function toRpn(tokens: Token[]): Token[] | string {
         stack.push(tok);
         break;
       case ")": {
-        while (stack.length && stack[stack.length - 1].t !== "(") out.push(stack.pop() as Token);
+        if (prev !== undefined && prev.t === ",") return "empty function argument";
+        while (stack.length && stack[stack.length - 1].t !== "(") {
+          const top = stack.pop() as Token;
+          if (top.t === "fn") return `missing '(' after ${top.v}`;
+          out.push(top);
+        }
         if (!stack.length) return "unbalanced ')'";
         stack.pop();
         const info = parens.pop();
@@ -257,16 +286,33 @@ function toRpn(tokens: Token[]): Token[] | string {
 
 /** Excel-style ROUND: half away from zero, n decimals (n < 0 → tens…).
  *  Negative digits multiply back by an integer factor so ROUND(1005, -1)
- *  is exactly 1010 (dividing by 0.1 would leak float noise). */
+ *  is exactly 1010 (dividing by 0.1 would leak float noise). Positive
+ *  digits nudge the scaled value by a few ulps before rounding — binary
+ *  floats put 1.005×100 at 100.4999…, which would otherwise round DOWN
+ *  and betray the documented half-away-from-zero contract. */
 function roundExcel(x: number, digits: number): number {
   const n = Math.max(-12, Math.min(12, Math.trunc(digits)));
   const f = Math.pow(10, Math.abs(n));
   const a = Math.abs(x);
-  const r = n >= 0 ? Math.round(a * f) / f : Math.round(a / f) * f;
-  return Math.sign(x) * r;
+  const s = n >= 0 ? a * f : a / f;
+  const rounded = Math.round(s * (1 + 4 * Number.EPSILON));
+  const r = n >= 0 ? rounded / f : rounded * f;
+  return r === 0 ? 0 : Math.sign(x) * r;
 }
 
+/** Excel comparison semantics: operands normalized to 15 significant
+ *  digits, so 10% + 20% = 30% is TRUE despite binary float noise. */
+function cmpNorm(x: number): number {
+  return Number(x.toPrecision(15));
+}
+
+/** Excel's own cell-formula limit — also the hostile-input backstop. */
+const MAX_FORMULA_LENGTH = 8192;
+
 export function compileExpression(formula: string): CompiledExpression {
+  if (formula.length > MAX_FORMULA_LENGTH) {
+    return { ok: false, error: `formula longer than ${MAX_FORMULA_LENGTH} characters` };
+  }
   const raw = tokenize(formula);
   if (typeof raw === "string") return { ok: false, error: raw };
   const rpn = toRpn(markUnary(raw));
@@ -311,12 +357,12 @@ export function compileExpression(formula: string): CompiledExpression {
           else if (tok.v === "*") st.push(a * b);
           else if (tok.v === "/") st.push(b === 0 ? null : a / b);
           else if (tok.v === "^") st.push(num(Math.pow(a, b)));
-          else if (tok.v === "=") st.push(a === b ? 1 : 0);
-          else if (tok.v === "<>") st.push(a !== b ? 1 : 0);
-          else if (tok.v === "<") st.push(a < b ? 1 : 0);
-          else if (tok.v === "<=") st.push(a <= b ? 1 : 0);
-          else if (tok.v === ">") st.push(a > b ? 1 : 0);
-          else st.push(a >= b ? 1 : 0);
+          else if (tok.v === "=") st.push(cmpNorm(a) === cmpNorm(b) ? 1 : 0);
+          else if (tok.v === "<>") st.push(cmpNorm(a) !== cmpNorm(b) ? 1 : 0);
+          else if (tok.v === "<") st.push(cmpNorm(a) < cmpNorm(b) ? 1 : 0);
+          else if (tok.v === "<=") st.push(cmpNorm(a) <= cmpNorm(b) ? 1 : 0);
+          else if (tok.v === ">") st.push(cmpNorm(a) > cmpNorm(b) ? 1 : 0);
+          else st.push(cmpNorm(a) >= cmpNorm(b) ? 1 : 0);
         }
       } else if (tok.t === "fn") {
         const argc = tok.argc ?? 1;
@@ -337,8 +383,13 @@ export function compileExpression(formula: string): CompiledExpression {
           if (vals.length === 0) st.push(null);
           else if (tok.v === "SUM") st.push(vals.reduce((s, v) => s + v, 0));
           else if (tok.v === "AVERAGE") st.push(vals.reduce((s, v) => s + v, 0) / vals.length);
-          else if (tok.v === "MIN") st.push(Math.min(...vals));
-          else st.push(Math.max(...vals));
+          else {
+            // Loop, not spread: Math.min(...vals) blows the call stack on
+            // very large argument counts.
+            let m = vals[0];
+            for (const v of vals) m = tok.v === "MIN" ? Math.min(m, v) : Math.max(m, v);
+            st.push(m);
+          }
         }
       }
     }

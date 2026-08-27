@@ -56,7 +56,11 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--em-header-bg);
+    // Opaque compositing: the theme band is 10%-alpha, so paint it OVER a
+    // solid white — otherwise rows scrolling under the sticky header bleed
+    // through the translucent band.
+    background-color: #ffffff;
+    background-image: linear-gradient(var(--em-header-bg), var(--em-header-bg));
     font-weight: 700;
     text-align: center;
     border-bottom: 1px solid var(--em-fg);
@@ -531,5 +535,9 @@
 
   .em-cmark {
     background: var(--em-fg) !important;
+  }
+
+  .em-table thead th {
+    background-image: none !important;
   }
 }

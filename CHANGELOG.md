@@ -3,6 +3,26 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.8.1.0] — 2026-08-27
+
+### Fixed
+
+Hardening pass driven by a 60-agent adversarial review of the 1.7.0.0 engine (every finding independently counter-verified):
+
+- **Prefix `%` no longer silently binds to the previous operand** — `1 + %2` used to compile and evaluate to 2.01; now rejected (`misplaced '%'`), like every prefix/infix `%`.
+- **Bare function names rejected everywhere** — `(5 MAX)`, `SUM([a] MAX; [b])` used to evaluate as implicit 1-arg calls; now `missing '(' after MAX`.
+- **Empty/trailing argument slots rejected structurally** — `SUM(1 2,)` used to compile (a missing separator cancelling a trailing one); `SUM(1,,2)`, `SUM(1; 2;)`, `IF(1, , 2)` now fail with `empty function argument`.
+- **`ROUND` half-away-from-zero now holds on decimal halves** — `ROUND(1.005; 2)` returned 1.00 (binary float noise); now 1.01, and `ROUND` can no longer return `-0`.
+- **Variadic `MIN`/`MAX` no longer blow the call stack** on huge argument counts (loop instead of spread), and formulas are capped at **8192 characters — Excel's own limit** (hostile-input backstop).
+- **Comparisons use Excel semantics**: operands normalized to 15 significant digits, so `10% + 20% = 30%` is now TRUE.
+
+### Added
+
+- **Unary `+` and leading-dot decimals accepted** (`=+[Réel]-[Budget]`, `[a]*.5`) — Lotus-era Excel habits.
+- **`AVG`** documented as an `AVERAGE` alias (was implemented, untested).
+- **Per-column "explicit sign" toggle** on calculated columns (default on, preserving the 1.4.0.0 behaviour) — turn it off for flag/rounded columns like `SI([Réel]>=[Budget];1;0)` where a leading `+` reads wrong.
+- **Opaque sticky headers**: the 10%-alpha theme band is now composited over solid white, so rows no longer bleed through the column headers during virtualized scrolling.
+
 ## [1.8.0.0] — 2026-08-27
 
 ### Added

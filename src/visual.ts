@@ -53,6 +53,8 @@ interface CalcDef {
   name: string;
   format: string;
   display: string;
+  /** Explicit +/- sign on formatted values (IBCS-style, default on). */
+  signed: boolean;
   refs: string[];
   evaluate: (lookup: (ref: string) => number | null) => number | null;
 }
@@ -474,6 +476,7 @@ export class Visual implements IVisual {
         name: String(slot.label.value ?? "").trim() || `Calc ${i + 1}`,
         format: String(slot.format.value?.value ?? "inherit"),
         display: String(slot.display.value?.value ?? "number"),
+        signed: slot.sign.value !== false,
         refs: compiled.refs,
         evaluate: compiled.evaluate
       });
@@ -563,7 +566,7 @@ export class Visual implements IVisual {
       autoDecimals: 0,
       locale: this.locale,
       dataMaxAbs: computeMaxAbs(parsed.rows),
-      withSign: true
+      withSign: def.signed
     });
   }
 
@@ -1234,7 +1237,10 @@ export class Visual implements IVisual {
         const corner = document.createElement("th");
         corner.className = "em-rowheader em-corner";
         corner.rowSpan = headerRowCount;
-        if (chBg) corner.style.backgroundColor = chBg;
+        if (chBg) {
+          corner.style.backgroundColor = chBg;
+          corner.style.backgroundImage = "none";
+        }
         tr.appendChild(corner);
       }
       for (const cell of cells) {
@@ -1249,7 +1255,10 @@ export class Visual implements IVisual {
         th.style.fontWeight = chBold ? "700" : "400";
         if (chItalic) th.style.fontStyle = "italic";
         if (chColor) th.style.color = chColor;
-        if (chBg) th.style.backgroundColor = chBg;
+        if (chBg) {
+          th.style.backgroundColor = chBg;
+          th.style.backgroundImage = "none";
+        }
         tr.appendChild(th);
       }
       if (levelIdx === 0 && this.commentColumnOn(parsed)) {
@@ -1263,7 +1272,10 @@ export class Visual implements IVisual {
         th.appendChild(label);
         th.style.fontWeight = chBold ? "700" : "400";
         if (chColor) th.style.color = chColor;
-        if (chBg) th.style.backgroundColor = chBg;
+        if (chBg) {
+          th.style.backgroundColor = chBg;
+          th.style.backgroundImage = "none";
+        }
         tr.appendChild(th);
       }
       thead.appendChild(tr);

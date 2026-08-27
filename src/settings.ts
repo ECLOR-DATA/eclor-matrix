@@ -623,6 +623,7 @@ export interface CalcSlot {
   formula: formattingSettings.TextInput;
   format: formattingSettings.ItemDropdown;
   display: formattingSettings.ItemDropdown;
+  sign: formattingSettings.ToggleSwitch;
 }
 
 const CALC_FORMAT_ITEMS: powerbi.IEnumMember[] = [
@@ -680,10 +681,15 @@ class CalculatedColumnsCardSettings extends FormattingSettingsCard {
           displayName: `Column ${n} display`,
           items: CALC_DISPLAY_ITEMS,
           value: CALC_DISPLAY_ITEMS[0]
+        }),
+        sign: new formattingSettings.ToggleSwitch({
+          name: `calc${n}Sign`,
+          displayName: `Column ${n} explicit sign (+/-)`,
+          value: true
         })
       };
       this.slots.push(slot);
-      this.slices.push(slot.show, slot.label, slot.formula, slot.format, slot.display);
+      this.slices.push(slot.show, slot.label, slot.formula, slot.format, slot.display, slot.sign);
     }
   }
 }

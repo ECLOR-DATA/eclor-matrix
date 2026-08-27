@@ -46,7 +46,7 @@
   th,
   td {
     border: none;
-    border-bottom: var(--em-grid-w, 1px) solid var(--em-grid);
+    border-bottom: var(--em-grid-w, 1px) solid var(--em-hgrid-c, var(--em-grid));
     padding: var(--em-pad-y, 4px) var(--em-pad-x, 8px);
     text-align: right;
     white-space: nowrap;
@@ -176,15 +176,11 @@
   font-weight: 700;
 }
 
+// The custom group background also holds on hover: swapping an opaque
+// user colour for the 14%-alpha hover tint would break text contrast.
 .em-groupbg .em-table tbody tr.em-grouprow td,
 .em-groupbg .em-table tbody tr.em-grouprow th.em-rowheader {
   background-color: var(--em-group-bg);
-}
-
-// Hover feedback must still win over the group background.
-.em-groupbg .em-table tbody tr.em-grouprow:hover:not(.em-subtotal) td,
-.em-groupbg .em-table tbody tr.em-grouprow:hover:not(.em-subtotal) th.em-rowheader {
-  background-color: var(--em-hover-bg);
 }
 
 // ---- Data comments (comments role) ----
@@ -201,9 +197,15 @@
 
 .em-table td.em-commentcell {
   text-align: left;
+}
+
+// The clamp lives on a block div INSIDE the cell — max-width on a table
+// cell is undefined in auto table layout and Firefox ignores it.
+.em-commentclamp {
   max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .em-table thead th.em-commentth {
@@ -540,4 +542,26 @@
   .em-table thead th {
     background-image: none !important;
   }
+
+  // Panels and toolbar hardcode a white surface for the normal theme —
+  // in HC they must follow the host palette (white-on-white otherwise).
+  .em-editpanel,
+  .em-commentspanel,
+  .em-toolbtn,
+  .em-panelsection > button {
+    background: var(--em-bg) !important;
+    color: var(--em-fg) !important;
+    border-color: var(--em-fg) !important;
+  }
+}
+
+// Structure toggles stay honoured in high-contrast mode: the HC block
+// forces border COLOURS, but a disabled rule is still a disabled rule.
+.eclor-matrix-root.em-hc.em-nohgrid .em-table tbody td,
+.eclor-matrix-root.em-hc.em-nohgrid .em-table tbody th.em-rowheader {
+  border-bottom-color: transparent !important;
+}
+
+.eclor-matrix-root.em-hc.em-noheadrule .em-table thead th {
+  border-bottom-color: transparent !important;
 }

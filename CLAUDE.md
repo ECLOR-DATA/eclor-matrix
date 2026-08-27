@@ -7,7 +7,7 @@
 Power BI custom visual (`.pbiviz`) — advanced matrix/cross-tab: hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic number formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting. Successor project to `eclor-waterfall` (certified 2026-07) — same shop: workflows, agents, test harness, conventions.
 Target: **AppSource certification** (Stage C from day one — retrofit costs 10x).
 
-- **Current version:** 1.8.1.0 — see [CHANGELOG.md](CHANGELOG.md)
+- **Current version:** 1.8.2.0 — see [CHANGELOG.md](CHANGELOG.md)
 - **Stage status:** A ⏳ (skeleton) / B ⏳ / C ⏳
 - **API:** `powerbi-visuals-api ~5.11.0`
 

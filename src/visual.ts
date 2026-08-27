@@ -67,6 +67,7 @@ import {
   computeMaxAbs,
   flattenColumns,
   flattenRows,
+  pruneColumnTree,
   ColumnLeaf,
   HeaderCell,
   MatrixNodeLike,
@@ -298,23 +299,35 @@ export class Visual implements IVisual {
     const rowComments = extractRowComments(rows, leaves, commentIdxs);
     const hasComments = rowComments.some((c) => c.length > 0);
 
-    // Header rows come from the tree; when tooltip-only measures hide some
-    // leaves the tree spans no longer match, so fall back to a flat header.
+    // Header rows come from the tree. When tooltip-only / comment measures
+    // hide some leaves, prune those measure leaves from a COPY of the tree
+    // so the multi-level header survives; the flat fallback only remains
+    // for shapes pruning can't reconcile (e.g. no measure level at all).
     let headerRows: HeaderCell[][];
     if (renderLeafIdxs.length === leaves.length) {
       headerRows = buildHeaderRows(colRoot, measureNames, totalLabel);
     } else {
-      headerRows = [
-        renderLeafIdxs.map((i) => {
-          const leaf = leaves[i];
-          const parts = [...leaf.path, measureNames[leaf.measureIndex] ?? ""];
-          return {
-            label: parts.filter((p) => p.length > 0).join(" · "),
-            span: 1,
-            isSubtotal: leaf.isSubtotal
-          };
-        })
-      ];
+      const excluded = new Set<number>();
+      for (let mi = 0; mi < valueSources.length; mi++) {
+        if (isAuxOnly(mi)) excluded.add(mi);
+      }
+      headerRows = buildHeaderRows(pruneColumnTree(colRoot, excluded), measureNames, totalLabel);
+      const width = headerRows.length
+        ? headerRows[0].reduce((s, c) => s + c.span, 0)
+        : 0;
+      if (width !== renderLeafIdxs.length) {
+        headerRows = [
+          renderLeafIdxs.map((i) => {
+            const leaf = leaves[i];
+            const parts = [...leaf.path, measureNames[leaf.measureIndex] ?? ""];
+            return {
+              label: parts.filter((p) => p.length > 0).join(" · "),
+              span: 1,
+              isSubtotal: leaf.isSubtotal
+            };
+          })
+        ];
+      }
     }
 
     const calcDefs = this.readCalcDefs();
@@ -814,7 +827,9 @@ export class Visual implements IVisual {
     const g = fs.grid;
     const hWidth = clampW(g.horizontalWidth.value);
     root.classList.toggle("em-nohgrid", g.horizontal.value !== true);
-    setVar("--em-grid", hc ? "" : safeHexOrEmpty(g.horizontalColor.value?.value));
+    // Dedicated token: --em-grid also colours panel borders / bar axes,
+    // the option must only touch the table's horizontal rules.
+    setVar("--em-hgrid-c", hc ? "" : safeHexOrEmpty(g.horizontalColor.value?.value));
     setVar("--em-grid-w", hWidth !== 1 ? `${hWidth}px` : "");
     root.classList.toggle("em-vgrid", g.vertical.value === true);
     setVar("--em-vgrid-c", hc ? "" : safeHexOrEmpty(g.verticalColor.value?.value));
@@ -824,8 +839,8 @@ export class Visual implements IVisual {
     setVar("--em-outer-w", `${clampW(g.outerWidth.value)}px`);
     root.classList.toggle("em-noheadrule", g.headerRule.value !== true);
 
-    const padX = Number(fs.general.cellPaddingX.value);
-    setVar("--em-pad-x", Number.isFinite(padX) && padX !== 8 ? `${Math.max(0, padX)}px` : "");
+    const padX = this.cellPaddingX();
+    setVar("--em-pad-x", padX !== 8 ? `${padX}px` : "");
 
     const st = fs.subtotalsStyle;
     setVar("--em-total-bg", hc ? "" : safeHexOrEmpty(st.backColor.value?.value));
@@ -842,6 +857,12 @@ export class Visual implements IVisual {
     setVar("--em-cmark", hc ? "" : safeHexOrEmpty(fs.comments.markerColor.value?.value));
 
     return hWidth - 1;
+  }
+
+  /** Horizontal cell padding, clamped — persisted values arrive raw. */
+  private cellPaddingX(): number {
+    const raw = Number(this.formattingSettings.general.cellPaddingX.value);
+    return Number.isFinite(raw) ? Math.min(40, Math.max(0, raw)) : 8;
   }
 
   private commentOpts(): {
@@ -892,7 +913,11 @@ export class Visual implements IVisual {
     const toolbar = document.createElement("div");
     toolbar.className = "em-toolbar";
 
-    if (this.lastValidRenderInput?.parsed.hasComments && this.commentOpts().show) {
+    const commentsAvailable =
+      this.lastValidRenderInput?.parsed.hasComments === true && this.commentOpts().show;
+    if (!commentsAvailable) this.commentsPanelOpen = false;
+
+    if (commentsAvailable) {
       const cbtn = document.createElement("button");
       cbtn.type = "button";
       cbtn.className = "em-toolbtn";
@@ -936,9 +961,12 @@ export class Visual implements IVisual {
     const parsed = this.lastValidRenderInput?.parsed;
     if (!parsed) return panel;
     const copts = this.commentOpts();
-    const MAX_ITEMS = 200;
+    const MAX_ROWS = 200;
+    const MAX_LINES = 400;
+    const totalCommented = parsed.rowComments.reduce((n, c) => n + (c.length > 0 ? 1 : 0), 0);
     let shown = 0;
-    for (let r = 0; r < parsed.rows.length && shown < MAX_ITEMS; r++) {
+    let lines = 0;
+    for (let r = 0; r < parsed.rows.length && shown < MAX_ROWS && lines < MAX_LINES; r++) {
       const comments = parsed.rowComments[r] ?? [];
       if (comments.length === 0) continue;
       shown++;
@@ -949,6 +977,8 @@ export class Visual implements IVisual {
       rowLabel.textContent = parsed.rows[r].label || "·";
       item.appendChild(rowLabel);
       for (const c of comments) {
+        if (lines >= MAX_LINES) break;
+        lines++;
         const line = document.createElement("div");
         line.className = "em-ctext";
         this.renderCommentInto(line, c.text, copts);
@@ -967,6 +997,15 @@ export class Visual implements IVisual {
       empty.className = "em-panelhint";
       empty.textContent = this.localize("Visual_NoComments", "No comments in the current view.");
       panel.appendChild(empty);
+    } else if (shown < totalCommented) {
+      // Never truncate silently: say how many commented rows are not listed.
+      const more = document.createElement("div");
+      more.className = "em-panelhint";
+      more.textContent = `… +${totalCommented - shown} ${this.localize(
+        "Visual_MoreComments",
+        "more commented rows"
+      )}`;
+      panel.appendChild(more);
     }
     return panel;
   }
@@ -1270,7 +1309,9 @@ export class Visual implements IVisual {
         label.className = "em-hlabel";
         label.textContent = this.commentOpts().columnTitle;
         th.appendChild(label);
+        th.style.textAlign = alignment;
         th.style.fontWeight = chBold ? "700" : "400";
+        if (chItalic) th.style.fontStyle = "italic";
         if (chColor) th.style.color = chColor;
         if (chBg) {
           th.style.backgroundColor = chBg;
@@ -1356,7 +1397,15 @@ export class Visual implements IVisual {
         }
       }
     } else if (raw !== null) {
-      td.textContent = String(raw);
+      if (parsed.valueSources[leaf.measureIndex]?.roles?.comments === true) {
+        // Dual-role (values + comments) text measure: render the markup
+        // instead of showing raw asterisks in the grid.
+        td.classList.add("em-commentcell");
+        this.renderCommentInto(td, String(raw), this.commentOpts());
+        ariaParts.push(plainCommentText(String(raw)));
+      } else {
+        td.textContent = String(raw);
+      }
     }
     return td;
   }
@@ -1409,7 +1458,7 @@ export class Visual implements IVisual {
       const th = document.createElement("th");
       th.className = "em-rowheader";
       th.setAttribute("scope", "row");
-      th.style.paddingLeft = `${8 + row.level * indent}px`;
+      th.style.paddingLeft = `${this.cellPaddingX() + row.level * indent}px`;
       if (rhBold) th.style.fontWeight = "700";
       if (rhItalic) th.style.fontStyle = "italic";
       if (rhColor) th.style.color = rhColor;
@@ -1444,10 +1493,15 @@ export class Visual implements IVisual {
       if (commentCol) {
         const td = document.createElement("td");
         td.className = "em-commentcell";
+        // The width clamp lives on an inner block div — max-width on a
+        // table cell is undefined in auto layout (Firefox ignores it).
+        const clamp = document.createElement("div");
+        clamp.className = "em-commentclamp";
         comments.forEach((c, ci) => {
-          if (ci > 0) td.appendChild(document.createTextNode(" · "));
-          this.renderCommentInto(td, c.text, copts);
+          if (ci > 0) clamp.appendChild(document.createTextNode(" · "));
+          this.renderCommentInto(clamp, c.text, copts);
         });
+        td.appendChild(clamp);
         if (comments.length > 0) {
           td.setAttribute("title", comments.map((c) => plainCommentText(c.text)).join(" · "));
         }
@@ -1505,7 +1559,7 @@ export class Visual implements IVisual {
       e.stopPropagation();
       return;
     }
-    if ((e.target as Element)?.closest?.(".em-editpanel")) return;
+    if ((e.target as Element)?.closest?.(".em-editpanel, .em-commentspanel")) return;
 
     const toggle = (e.target as Element)?.closest?.("[data-toggle-idx]") as Element | null;
     if (toggle) {
@@ -1634,10 +1688,14 @@ export class Visual implements IVisual {
 
     pushMeasure(leaf.measureIndex, leafIdx);
 
-    // Tooltip-role measures sharing the same column-group path.
+    // Tooltip-role and comment measures sharing the same column-group path
+    // (comments only while the card shows them).
+    const showComments = this.commentOpts().show;
     for (let i = 0; i < parsed.leaves.length; i++) {
       if (parsed.renderLeafIdxs.includes(i)) continue;
       const other = parsed.leaves[i];
+      const roles = parsed.valueSources[other.measureIndex]?.roles;
+      if (roles?.comments === true && roles?.values !== true && !showComments) continue;
       if (other.path.join(" ") === leaf.path.join(" ")) {
         pushMeasure(other.measureIndex, i);
       }

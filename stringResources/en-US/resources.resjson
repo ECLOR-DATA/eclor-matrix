@@ -27,5 +27,6 @@
   "Visual_Grid": "Grid & borders",
   "Visual_SubtotalsStyle": "Subtotal style",
   "Visual_Comments": "Comments",
-  "Visual_NoComments": "No comments in the current view."
+  "Visual_NoComments": "No comments in the current view.",
+  "Visual_MoreComments": "more commented rows"
 }

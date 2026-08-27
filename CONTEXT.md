@@ -166,3 +166,21 @@ before selection handling so typing never clears the user's row selection.
 Known limits (documented): custom rows can't reference other custom rows,
 label-based anchors break if the source label changes, and custom rows
 don't cross-filter (no data identity).
+
+## 17. Simplified Excel calc engine (1.7.0.0)
+
+The expression grammar grew from "arithmetic + ABS/MIN/MAX" to the basic
+set an Excel user reaches for, WITHOUT becoming a spreadsheet: `^` and
+postfix `%`, comparisons returning 1/0, variadic SUM/AVERAGE/MIN/MAX,
+ROUND, IF — plus French aliases (SOMME/MOYENNE/ARRONDI/SI) and `;` as the
+argument separator, because the visual is fr-first and Excel-FR types `;`.
+Deliberate Excel-fidelity choices: `-2^2 = 4` (unary minus binds tighter),
+`^` left-associative (`2^3^2 = 64`), ROUND is half-away-from-zero with
+optional and negative digits, aggregates skip blanks (the ONE exception to
+strict null propagation — all-null still yields blank, so empty
+intersections stay empty). A leading `=` is stripped: users paste formulas
+straight from Excel. Still zero eval / new Function (cert-fatal), still one
+shared engine for calculated columns AND custom formula rows — one grammar
+to document, one to test. `,`-vs-`;` and EN-vs-FR names are tokenizer-level
+aliases, not locale switches: both spellings always work, so a report
+travels between locales without breaking formulas.

@@ -7,7 +7,7 @@
 Power BI custom visual (`.pbiviz`) — advanced matrix/cross-tab: hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic number formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting. Successor project to `eclor-waterfall` (certified 2026-07) — same shop: workflows, agents, test harness, conventions.
 Target: **AppSource certification** (Stage C from day one — retrofit costs 10x).
 
-- **Current version:** 1.0.0.0 — see [CHANGELOG.md](CHANGELOG.md)
+- **Current version:** 1.7.0.0 — see [CHANGELOG.md](CHANGELOG.md)
 - **Stage status:** A ⏳ (skeleton) / B ⏳ / C ⏳
 - **API:** `powerbi-visuals-api ~5.11.0`
 
@@ -40,7 +40,7 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 - [src/format.ts](src/format.ts) — pure number/format-string helpers, copied verbatim from eclor-waterfall (scale-then-format pipeline, ~15 bugs already paid for — don't fork lightly)
 - [src/virtualize.ts](src/virtualize.ts) — pure windowed-scroll math (computeWindow/estimateRowHeight)
 - [src/cellColor.ts](src/cellColor.ts) — pure rules/heat-map engine + WCAG auto text contrast
-- [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard)
+- [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard): + - * / ^ %, comparisons, SUM/AVERAGE/MIN/MAX/ABS/ROUND/IF with FR aliases (SOMME/MOYENNE/ARRONDI/SI) and `;` separator
 - [src/ibcs.ts](src/ibcs.ts) — IBCS scenario detection (EN/FR tokens) + bar math
 - Tests in [test/](test/) — Jest + jsdom + ts-jest, 101 tests / 13 suites; shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
 

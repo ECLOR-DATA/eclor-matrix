@@ -22,5 +22,6 @@
   "Visual_FormatInherit": "Format hérité",
   "Visual_SubtotalName": "Nom du sous-total",
   "Visual_FormatPercent": "Pourcentage",
-  "Visual_FormulaName": "Nom de la ligne"
+  "Visual_FormulaName": "Nom de la ligne",
+  "Visual_FormulaHint": "Opérateurs + - * / ^ %, comparaisons = <> < <= > >= — fonctions SOMME, MOYENNE, MIN, MAX, ABS, ARRONDI, SI (séparateur ; accepté)."
 }

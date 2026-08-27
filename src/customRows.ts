@@ -22,7 +22,7 @@ import { RowModel } from "./matrixModel";
 
 export interface CustomRowDef {
   id: string;
-  kind: "subtotal" | "formula";
+  kind: "subtotal" | "formula" | "spacer";
   label: string;
   /** Path key of the row this custom row is inserted AFTER ("" = append). */
   anchor: string;
@@ -65,7 +65,7 @@ export function parseCustomRowsState(raw: unknown): CustomRowDef[] {
   for (const d of data) {
     const o = d as Partial<CustomRowDef>;
     if (typeof o?.id !== "string" || typeof o?.label !== "string") continue;
-    if (o.kind !== "subtotal" && o.kind !== "formula") continue;
+    if (o.kind !== "subtotal" && o.kind !== "formula" && o.kind !== "spacer") continue;
     if (o.kind === "subtotal" && !Array.isArray(o.refs)) continue;
     if (o.kind === "formula" && typeof o.formula !== "string") continue;
     out.push({
@@ -169,7 +169,9 @@ export function weaveCustomRows(
     const cells =
       def.kind === "subtotal"
         ? computeSubtotalCells(def, rows, keys, cellCount)
-        : computeFormulaCells(def, rows, keys, cellCount, anchorIdx);
+        : def.kind === "formula"
+          ? computeFormulaCells(def, rows, keys, cellCount, anchorIdx)
+          : Array.from({ length: cellCount }, () => null); // spacer: blank row
     const level = def.level ?? (anchorIdx >= 0 ? rows[anchorIdx].level : 0);
     const woven: WovenRow = {
       label: def.label,

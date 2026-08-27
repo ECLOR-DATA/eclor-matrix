@@ -86,6 +86,11 @@ class GeneralCardSettings extends FormattingSettingsCard {
     displayName: "Band color",
     value: { value: "" }
   });
+  blankRowBeforeGroups = new formattingSettings.ToggleSwitch({
+    name: "blankRowBeforeGroups",
+    displayName: "Blank row before groups",
+    value: false
+  });
 
   name: string = "general";
   displayName: string = "General";
@@ -99,7 +104,8 @@ class GeneralCardSettings extends FormattingSettingsCard {
     this.backColor,
     this.accentColor,
     this.banded,
-    this.bandColor
+    this.bandColor,
+    this.blankRowBeforeGroups
   ];
 }
 
@@ -168,6 +174,20 @@ class GridCardSettings extends FormattingSettingsCard {
     displayName: "Header bottom rule",
     value: true
   });
+  gapColumns = new formattingSettings.ToggleSwitch({
+    name: "gapColumns",
+    displayName: "Blank column between groups",
+    value: false
+  });
+  gapWidth = new formattingSettings.NumUpDown({
+    name: "gapWidth",
+    displayName: "Blank column width (px)",
+    value: 14,
+    options: {
+      minValue: { type: 0, value: 2 },
+      maxValue: { type: 1, value: 80 }
+    }
+  });
 
   name: string = "grid";
   displayName: string = "Grid & borders";
@@ -182,7 +202,9 @@ class GridCardSettings extends FormattingSettingsCard {
     this.outerBorder,
     this.outerColor,
     this.outerWidth,
-    this.headerRule
+    this.headerRule,
+    this.gapColumns,
+    this.gapWidth
   ];
 }
 
@@ -223,6 +245,31 @@ class RowHeadersCardSettings extends FormattingSettingsCard {
     displayName: "Background color",
     value: { value: "" }
   });
+  wrapText = new formattingSettings.ToggleSwitch({
+    name: "wrapText",
+    displayName: "Wrap labels",
+    value: false
+  });
+  maxLines = new formattingSettings.NumUpDown({
+    name: "maxLines",
+    displayName: "Max lines (1-3)",
+    value: 2,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 3 }
+    }
+  });
+  expandIcon = new formattingSettings.ItemDropdown({
+    name: "expandIcon",
+    displayName: "Expand icon",
+    items: [
+      { value: "chevron", displayName: "Chevrons ▸ ▾" },
+      { value: "plusminus", displayName: "Plus / minus + −" },
+      { value: "boxed", displayName: "Boxed ⊞ ⊟" },
+      { value: "arrows", displayName: "Arrows ► ▼" }
+    ],
+    value: { value: "chevron", displayName: "Chevrons ▸ ▾" }
+  });
 
   name: string = "rowHeaders";
   displayName: string = "Row headers";
@@ -235,7 +282,10 @@ class RowHeadersCardSettings extends FormattingSettingsCard {
     this.indent,
     this.groupBold,
     this.groupBackColor,
-    this.showChevrons
+    this.showChevrons,
+    this.expandIcon,
+    this.wrapText,
+    this.maxLines
   ];
 }
 
@@ -272,6 +322,39 @@ class ColumnHeadersCardSettings extends FormattingSettingsCard {
     ],
     value: { value: "0", displayName: "0°" }
   });
+  separators = new formattingSettings.ToggleSwitch({
+    name: "separators",
+    displayName: "Vertical separators",
+    value: false
+  });
+  borderColor = new formattingSettings.ColorPicker({
+    name: "borderColor",
+    displayName: "Separator color",
+    value: { value: "" }
+  });
+  borderWidth = new formattingSettings.NumUpDown({
+    name: "borderWidth",
+    displayName: "Separator width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  wrapText = new formattingSettings.ToggleSwitch({
+    name: "wrapText",
+    displayName: "Wrap text",
+    value: false
+  });
+  textSize = new formattingSettings.NumUpDown({
+    name: "textSize",
+    displayName: "Header text size (0 = table)",
+    value: 0,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 32 }
+    }
+  });
 
   name: string = "columnHeaders";
   displayName: string = "Column headers";
@@ -282,8 +365,42 @@ class ColumnHeadersCardSettings extends FormattingSettingsCard {
     this.fontColor,
     this.backColor,
     this.alignment,
-    this.rotation
+    this.rotation,
+    this.separators,
+    this.borderColor,
+    this.borderWidth,
+    this.wrapText,
+    this.textSize
   ];
+}
+
+/** Column widths — Power BI matrix-style sizing: auto, uniform, or
+ *  per-column drag (persisted in objects.columnWidths.state). */
+class ColumnWidthsCardSettings extends FormattingSettingsCard {
+  mode = new formattingSettings.ItemDropdown({
+    name: "mode",
+    displayName: "Mode",
+    items: [
+      { value: "auto", displayName: "Auto (fit content)" },
+      { value: "uniform", displayName: "Uniform" },
+      { value: "custom", displayName: "Custom (drag to resize)" }
+    ],
+    value: { value: "auto", displayName: "Auto (fit content)" }
+  });
+  uniformWidth = new formattingSettings.NumUpDown({
+    name: "uniformWidth",
+    displayName: "Uniform width (px)",
+    value: 110,
+    options: {
+      minValue: { type: 0, value: 24 },
+      maxValue: { type: 1, value: 1200 }
+    }
+  });
+
+  name: string = "columnWidths";
+  displayName: string = "Column widths";
+  displayNameKey: string = "Visual_ColumnWidths";
+  slices: FormattingSettingsSlice[] = [this.mode, this.uniformWidth];
 }
 
 /** Mirrors the capabilities `subtotals` switch mappings 1:1 — all six
@@ -448,10 +565,22 @@ class ValuesCardSettings extends formattingSettings.CompositeCard {
     }
   });
 
+  alignment = new formattingSettings.ItemDropdown({
+    name: "alignment",
+    displayName: "Alignment",
+    items: [
+      { value: "auto", displayName: "Auto" },
+      { value: "left", displayName: "Left" },
+      { value: "center", displayName: "Center" },
+      { value: "right", displayName: "Right" }
+    ],
+    value: { value: "auto", displayName: "Auto" }
+  });
+
   globalGroup: formattingSettings.Group = new formattingSettings.Group({
     name: "valuesGlobal",
     displayName: "All measures",
-    slices: [this.displayUnits, this.decimals]
+    slices: [this.displayUnits, this.decimals, this.alignment]
   });
 
   name: string = "values";
@@ -467,7 +596,17 @@ export interface MeasureFormatOverride {
   decimals: number;
   /** IBCS scenario override: auto | AC | PY | BU | FC | none. */
   scenario: string;
+  /** Column alignment: auto (theme right) | left | center | right —
+   *  effective without the useCustom gate. */
+  alignment: string;
 }
+
+export const ALIGNMENT_ITEMS: powerbi.IEnumMember[] = [
+  { value: "auto", displayName: "Auto" },
+  { value: "left", displayName: "Left" },
+  { value: "center", displayName: "Center" },
+  { value: "right", displayName: "Right" }
+];
 
 const SCENARIO_ITEMS: powerbi.IEnumMember[] = [
   { value: "auto", displayName: "Auto (detect from name)" },
@@ -519,10 +658,19 @@ export function makePerMeasureValueGroup(
     value: scenarioItem
   });
   scenario.selector = selector;
+  const alignItem =
+    ALIGNMENT_ITEMS.find((i) => i.value === persisted.alignment) ?? ALIGNMENT_ITEMS[0];
+  const alignment = new formattingSettings.ItemDropdown({
+    name: "alignment",
+    displayName: "Alignment",
+    items: ALIGNMENT_ITEMS,
+    value: alignItem
+  });
+  alignment.selector = selector;
   return new formattingSettings.Group({
     name: `valuesM${index}`,
     displayName: displayName,
-    slices: [useCustom, units, decimals, scenario]
+    slices: [useCustom, units, decimals, scenario, alignment]
   });
 }
 
@@ -789,6 +937,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   subtotalsStyle = new SubtotalsStyleCardSettings();
   rowHeaders = new RowHeadersCardSettings();
   columnHeaders = new ColumnHeadersCardSettings();
+  columnWidths = new ColumnWidthsCardSettings();
   values = new ValuesCardSettings();
   cellColors = new CellColorsCardSettings();
   calculatedColumns = new CalculatedColumnsCardSettings();
@@ -802,6 +951,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     this.subtotalsStyle,
     this.rowHeaders,
     this.columnHeaders,
+    this.columnWidths,
     this.values,
     this.cellColors,
     this.calculatedColumns,

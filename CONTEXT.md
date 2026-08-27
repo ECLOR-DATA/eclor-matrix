@@ -231,3 +231,25 @@ with the general font/background/accent — everything still flows through
 the CSS custom properties born in 1.0.1.0, so high contrast keeps a single
 override point and `color-mix` derives hover/selection from the accent
 instead of hardcoding rgba tints.
+
+## 20. User-driven layout (1.10.0.0)
+
+Column widths follow the native matrix's 2025 behaviour: auto stays the
+`max-content` table we always had; uniform/custom switch to an
+authoritative `<colgroup>` + `table-layout: fixed` (widths are law, text
+ellipses). Custom widths are dragged on header grips and persisted like
+every other user-authored state (JSON via persistProperties), keyed by a
+stable column identity (group path + measure name, `calc:<name>` for
+calculated columns) — NOT by ordinal, so widths survive reordering and
+survive the IBCS template's scenario sort. Per-row overrides (alignment,
+absolute indent) reuse the custom-rows path keys — one identity scheme
+for every row-addressed feature — and live in their own `rowStyles.state`.
+Row-label wrap had to negotiate with virtualization (§12): the clamp is a
+fixed line count and every row gets a forced uniform height, so the
+row-height estimate stays exact by construction rather than by hope.
+Aeration is rows and columns, not padding: blank spacer rows (auto
+before groups, or user-inserted — a third custom-row kind) keep the
+uniform height; blank gap columns between groups are render columns of a
+new "gap" kind, so spacers, colgroup and flat headers all count them
+without special cases. The gap/calc interleave shares one rule: anything
+that widens groups forces the flat header.

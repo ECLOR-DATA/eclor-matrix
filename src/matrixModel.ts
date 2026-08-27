@@ -45,6 +45,8 @@ export interface HeaderCell {
   label: string;
   span: number;
   isSubtotal: boolean;
+  /** Blank aeration column (flat-header mode only). */
+  isGap?: boolean;
 }
 
 export interface RowModel {

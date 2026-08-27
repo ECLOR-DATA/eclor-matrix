@@ -27,5 +27,6 @@
   "Visual_Grid": "Grille et bordures",
   "Visual_SubtotalsStyle": "Style des sous-totaux",
   "Visual_Comments": "Commentaires",
-  "Visual_NoComments": "Aucun commentaire dans la vue actuelle."
+  "Visual_NoComments": "Aucun commentaire dans la vue actuelle.",
+  "Visual_MoreComments": "autres lignes commentées"
 }

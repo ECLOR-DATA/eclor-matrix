@@ -41,9 +41,14 @@ plainement au lieu de le promettre à tort.
 
 | Option | Latence | Effort |
 | --- | --- | --- |
-| Éditer la liste SharePoint (lien depuis le rapport) | au prochain refresh | nul |
-| Formulaire Power Apps posé à côté du visuel dans le rapport | au prochain refresh (bouton « Actualiser ») | faible |
+| Éditer la liste SharePoint (lien depuis le rapport) | au prochain refresh du dataset | nul |
+| Formulaire Power Apps posé à côté du visuel dans le rapport | au prochain refresh du dataset | faible |
 | Power Automate (bouton → création d'élément de liste) | idem | faible |
+
+> Attention : le bouton « Actualiser » d'un rapport ne re-requête que le
+> modèle déjà chargé — en mode import, un commentaire tout juste écrit dans
+> SharePoint n'apparaît qu'après un **refresh du dataset** (planifié, ou
+> déclenché par API comme ci-dessous).
 
 Le refresh peut être planifié (jusqu'à 48×/jour en Premium) ou déclenché
 via l'API REST par le flux qui écrit le commentaire — c'est l'architecture
@@ -76,8 +81,11 @@ modèle**, ce qui est précisément ce qu'on veut.
    la valeur EXACTE du membre de dimension commenté, p. ex. le nom de la
    ligne P&L), `Commentaire` (texte, balisage §5 autorisé), et
    optionnellement `Période`, `Scénario`, `Auteur`, `Audience`.
-2. **Power Query.** `SharePoint.Contents` / `OData.Feed` de la liste →
-   table `Commentaires`. Typage texte, trim, suppression des vides.
+2. **Power Query.** `SharePoint.Tables(url)` (le connecteur des LISTES —
+   `SharePoint.Contents` ne lit que les fichiers/bibliothèques) ou
+   `OData.Feed` de la liste → table `Commentaires` ; pour la variante
+   « fichier Excel sur SharePoint », `SharePoint.Files`/`Contents` +
+   `Excel.Workbook`. Typage texte, trim, suppression des vides.
 3. **Relation.** `Commentaires[CléLigne]` → `Dim[Membre]` (n:1, filtre de
    Dim vers Commentaires). Pour un commentaire par croisement
    ligne × période, une clé composée ou deux relations (dont une au besoin
@@ -129,15 +137,27 @@ minuscule et tolérant :
 | `**texte**` | **gras** |
 | `*texte*` | *italique* |
 | `__texte__` | souligné |
-| `[#FF4D6D]texte[/#]` | couleur (hex 6 ou 3 digits) |
+| `[#FF4D6D]texte[/#]` | couleur (hex 6 ou 3 digits, fermeture obligatoire) |
 
-Règles : imbrication libre ; balise **non fermée = style jusqu'à la fin**
-(tolérance assumée, les auteurs oublient) ; tag couleur mal formé = texte
-littéral ; jamais d'erreur. La carte de format donne le style de **base**,
-le balisage le surcharge localement. Le rendu est construit en
-`createElement`/`textContent` **exclusivement** — aucune chaîne HTML, donc
-aucune surface d'injection, quelle que soit la malveillance du texte source
-(exigence de certification, CONTEXT.md §2).
+Règles, pensées « fidélité aux données d'abord » :
+
+- `*italique*` et `__souligné__` ne s'ouvrent qu'en **début de mot**
+  (précédés du début du texte, d'un espace ou d'une autre balise) —
+  `2*3*4 = 24` et `MY__TABLE__NAME` restent donc littéraux, jamais
+  corrompus ;
+- `**gras**`, `*…*`, `__…__` non fermés = style jusqu'à la fin (tolérance
+  assumée, les auteurs oublient) ;
+- `[#hex]` ne devient une couleur que si son `[/#]` fermant existe — une
+  référence de ticket `[#123]` sans fermeture reste littérale ;
+- tag couleur mal formé = texte littéral ; jamais d'erreur ;
+- le texte d'un commentaire est plafonné à **2000 caractères** (ellipse) —
+  garde-fou contre les mesures DAX hostiles ou accidentelles.
+
+La carte de format donne le style de **base**, le balisage le surcharge
+localement. Le rendu est construit en `createElement`/`textContent`
+**exclusivement** — aucune chaîne HTML, donc aucune surface d'injection,
+quelle que soit la malveillance du texte source (certification,
+CONTEXT.md §2).
 
 ## 6. API du module portable (`src/comments.ts`)
 
@@ -177,7 +197,8 @@ en Node, portable dans n'importe quel visuel qui possède un modèle aplati
    marqueur, rendu inline via `parseCommentMarkup` → spans, panneau.
 6. `plainCommentText` partout où du texte nu est requis (aria, tooltips).
 7. Haut contraste : neutraliser les couleurs, garder gras/italique.
-8. Localisation : `Visual_Comments`, `Visual_NoComments` (fr + en).
+8. Localisation : `Visual_Comments`, `Visual_NoComments`,
+   `Visual_MoreComments` et `Visual_Close` (fr + en).
 9. Tests : reprendre les cas de `test/phase9.test.ts` (exclusion de
    colonnes, marqueurs, colonne inline, panneau, show=false, aucun binding).
 10. Documentation utilisateur : pointer vers CE document ; ne jamais
@@ -195,4 +216,8 @@ en Node, portable dans n'importe quel visuel qui possède un modèle aplati
   complet est dans le title, le tooltip et le panneau) — ne pas passer les
   cellules en multi-ligne sans revisiter la virtualisation (CONTEXT.md §12).
 - Les **lignes personnalisées** (customRows) n'ont pas de commentaires :
-  elles n'existent pas dans le modèle, donc aucune clé ne peut les cibler.
+  elles n'existent pas dans le modèle, donc aucune clé ne peut les cibler —
+  et l'extraction les ignore explicitement (leurs cellules formule aux
+  ordinaux commentaires sont du bruit numérique, jamais des commentaires).
+- Le **panneau** liste au plus 200 lignes commentées / 400 commentaires et
+  l'indique (« … +N autres lignes commentées ») au-delà.

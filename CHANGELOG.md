@@ -3,6 +3,25 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.8.2.0] — 2026-08-27
+
+### Fixed
+
+Hardening pass driven by the second adversarial review (38 findings on the comments/options diff, all triaged):
+
+- **Multi-level column headers survive a comments/tooltips binding**: aux measure leaves are pruned from a copy of the column tree (`pruneColumnTree`) instead of collapsing the whole header to the flat fallback — the flagship 1.8 feature no longer degrades cross-tab headers.
+- **Custom formula rows can no longer sprout phantom comments** (their formula cells at comment ordinals are numeric noise — extraction now skips woven rows, as docs/COMMENTS.md always claimed).
+- **Clicks inside the 💬 panel no longer clear the row selection / cross-filter** (same guard as the layout editor).
+- **`Show comments` off now also removes comments from hover tooltips**, and a panel left open no longer survives the toggle or the measure's removal.
+- **Markup data-fidelity**: `*italic*` and `__underline__` only open at a word start — `2*3*4 = 24` and `MY__TABLE__NAME` stay literal; a colour tag counts only when its `[/#]` closer exists — ticket references like `[#123]` stay literal; comment text capped at 2000 chars (ellipsis), which also bounds the parser's hostile-input cost.
+- **Comments panel truncation is announced** (« … +N autres lignes commentées ») and bounded per line count, not only per row count.
+- **High-contrast**: panels/toolbar follow the host palette (no more white-on-white in HC Black), grid/header-rule structure toggles keep working, marker forced to HC foreground.
+- **Grid colour token isolated** (`--em-hgrid-c`): the horizontal grid colour no longer repaints panel borders and variance-bar axes; custom group-row backgrounds hold on hover (no unreadable 14%-alpha swap).
+- **Inline comment column clamp moved to an inner div** (max-width on a table cell is undefined in auto layout — Firefox ignored it); comment column header now honours the alignment/italic options.
+- **`cellPaddingX` clamped (0-40) and applied to the row-header indent base** (was hardcoded 8px); persisted out-of-range grid widths clamped.
+- **Dual-role (values + comments) measures render their markup in the grid** instead of raw asterisks.
+- New guard tests: capabilities.json shape (single mapping, six subtotal switches, `privileges: []`), comments × column hierarchy, comments × calculated columns, comments × virtualization (window + spacer colSpan), high-contrast surfaces. 175 tests / 17 suites.
+
 ## [1.8.1.0] — 2026-08-27
 
 ### Fixed

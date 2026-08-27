@@ -5,6 +5,7 @@
 import {
   commentMeasureIndexes,
   extractRowComments,
+  MAX_COMMENT_LENGTH,
   parseCommentMarkup,
   plainCommentText
 } from "../src/comments";
@@ -81,6 +82,21 @@ describe("extractRowComments", () => {
     expect(extractRowComments(rows, leaves, new Set([1]))[0][0].text).toBe("42");
     expect(extractRowComments(rows, leaves, new Set())[0]).toEqual([]);
   });
+
+  test("custom (woven) rows never sprout comments", () => {
+    const leaves = [leaf(0, 0), leaf(1, 1)];
+    const woven = { ...row("Marge", [220, 100]), customDef: { id: "x", kind: "formula" } };
+    const out = extractRowComments([row("A", [1, "vrai"]), woven], leaves, new Set([1]));
+    expect(out[0]).toHaveLength(1);
+    expect(out[1]).toEqual([]); // the formula's numeric 100 is NOT a comment
+  });
+
+  test("same text across every group = row-level comment (no group badge)", () => {
+    const leaves = [leaf(1, 0, ["2025"]), leaf(1, 1, ["2026"])];
+    const out = extractRowComments([row("A", ["pareil", "pareil"])], leaves, new Set([1]));
+    expect(out[0]).toHaveLength(1);
+    expect(out[0][0].pathLabel).toBe("");
+  });
 });
 
 describe("parseCommentMarkup", () => {
@@ -116,6 +132,38 @@ describe("parseCommentMarkup", () => {
     // Malformed tag → literal text, no crash.
     expect(plainCommentText("[#GGGGGG]x[/#]")).toBe("[#GGGGGG]x[/#]");
     expect(plainCommentText("[#FF4D6D x")).toBe("[#FF4D6D x");
+  });
+
+  test("colour needs its closer — ticket references stay literal", () => {
+    expect(plainCommentText("voir ticket [#123] pour le détail")).toBe(
+      "voir ticket [#123] pour le détail"
+    );
+    expect(plainCommentText("[#404] introuvable")).toBe("[#404] introuvable");
+    // With a closer, 3-digit colours still work.
+    const segs = parseCommentMarkup("[#123]x[/#]");
+    expect(segs[0].color).toBe("#123");
+  });
+
+  test("data fidelity: multiplication and snake_case never corrupted", () => {
+    expect(plainCommentText("2*3*4 = 24")).toBe("2*3*4 = 24");
+    expect(plainCommentText("2 * 3 = 6")).toBe("2 * 3 = 6");
+    expect(plainCommentText("MY__TABLE__NAME")).toBe("MY__TABLE__NAME");
+    // Word-start markers still style.
+    const segs = parseCommentMarkup("vrai *italique* et __souligné__");
+    expect(segs[1]).toMatchObject({ text: "italique", italic: true });
+    expect(segs[3]).toMatchObject({ text: "souligné", underline: true });
+    // Bold+italic combo via *** still works (marker-adjacent opening).
+    const combo = parseCommentMarkup("***les deux***");
+    expect(combo[0]).toMatchObject({ text: "les deux", bold: true, italic: true });
+  });
+
+  test("comment text capped with an ellipsis", () => {
+    const long = "x".repeat(MAX_COMMENT_LENGTH + 500);
+    expect(plainCommentText(long)).toHaveLength(MAX_COMMENT_LENGTH + 1);
+    const leaves = [leaf(0, 0), leaf(1, 1)];
+    const out = extractRowComments([row("A", [1, long])], leaves, new Set([1]));
+    expect(out[0][0].text.endsWith("…")).toBe(true);
+    expect(out[0][0].text).toHaveLength(MAX_COMMENT_LENGTH + 1);
   });
 
   test("nesting and unclosed markers style to the end (forgiving)", () => {

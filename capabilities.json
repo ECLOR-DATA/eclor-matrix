@@ -23,6 +23,12 @@
       "name": "tooltips",
       "kind": "Measure",
       "description": "Optional. Additional measures displayed in the hover tooltip of each cell."
+    },
+    {
+      "displayName": "Comments",
+      "name": "comments",
+      "kind": "Measure",
+      "description": "Optional. Text measures carrying data comments (e.g. from a SharePoint list or Excel table related in the model). Shown as row markers, an inline column or the comments panel — never as grid values."
     }
   ],
   "dataViewMappings": [
@@ -53,6 +59,11 @@
             {
               "for": {
                 "in": "tooltips"
+              }
+            },
+            {
+              "for": {
+                "in": "comments"
               }
             }
           ]
@@ -97,6 +108,90 @@
           "type": {
             "numeric": true
           }
+        },
+        "cellPaddingX": {
+          "displayName": "Cell padding (px, horizontal)",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "grid": {
+      "displayName": "Grid & borders",
+      "displayNameKey": "Visual_Grid",
+      "properties": {
+        "horizontal": {
+          "displayName": "Horizontal grid",
+          "type": {
+            "bool": true
+          }
+        },
+        "horizontalColor": {
+          "displayName": "Horizontal color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "horizontalWidth": {
+          "displayName": "Horizontal width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "vertical": {
+          "displayName": "Vertical grid",
+          "type": {
+            "bool": true
+          }
+        },
+        "verticalColor": {
+          "displayName": "Vertical color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "verticalWidth": {
+          "displayName": "Vertical width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "outerBorder": {
+          "displayName": "Outer border",
+          "type": {
+            "bool": true
+          }
+        },
+        "outerColor": {
+          "displayName": "Outer border color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "outerWidth": {
+          "displayName": "Outer border width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "headerRule": {
+          "displayName": "Header bottom rule",
+          "type": {
+            "bool": true
+          }
         }
       }
     },
@@ -130,6 +225,28 @@
           "displayName": "Indent per level (px)",
           "type": {
             "numeric": true
+          }
+        },
+        "groupBold": {
+          "displayName": "Bold group rows",
+          "type": {
+            "bool": true
+          }
+        },
+        "groupBackColor": {
+          "displayName": "Group row background",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "showChevrons": {
+          "displayName": "Show expand icons",
+          "type": {
+            "bool": true
           }
         }
       }
@@ -257,6 +374,109 @@
                 "displayName": "Bottom"
               }
             ]
+          }
+        }
+      }
+    },
+    "subtotalsStyle": {
+      "displayName": "Subtotal style",
+      "displayNameKey": "Visual_SubtotalsStyle",
+      "properties": {
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "comments": {
+      "displayName": "Comments",
+      "displayNameKey": "Visual_Comments",
+      "properties": {
+        "show": {
+          "displayName": "Show comments",
+          "type": {
+            "bool": true
+          }
+        },
+        "display": {
+          "displayName": "Display",
+          "type": {
+            "enumeration": [
+              {
+                "value": "markers",
+                "displayName": "Markers only"
+              },
+              {
+                "value": "column",
+                "displayName": "Inline column"
+              }
+            ]
+          }
+        },
+        "markerColor": {
+          "displayName": "Marker color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "columnTitle": {
+          "displayName": "Inline column title",
+          "type": {
+            "text": true
           }
         }
       }

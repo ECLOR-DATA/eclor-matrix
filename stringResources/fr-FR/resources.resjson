@@ -23,5 +23,9 @@
   "Visual_SubtotalName": "Nom du sous-total",
   "Visual_FormatPercent": "Pourcentage",
   "Visual_FormulaName": "Nom de la ligne",
-  "Visual_FormulaHint": "Opérateurs + - * / ^ %, comparaisons = <> < <= > >= — fonctions SOMME, MOYENNE, MIN, MAX, ABS, ARRONDI, SI (séparateur ; accepté)."
+  "Visual_FormulaHint": "Opérateurs + - * / ^ %, comparaisons = <> < <= > >= — fonctions SOMME, MOYENNE, MIN, MAX, ABS, ARRONDI, SI (séparateur ; accepté).",
+  "Visual_Grid": "Grille et bordures",
+  "Visual_SubtotalsStyle": "Style des sous-totaux",
+  "Visual_Comments": "Commentaires",
+  "Visual_NoComments": "Aucun commentaire dans la vue actuelle."
 }

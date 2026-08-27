@@ -23,5 +23,9 @@
   "Visual_SubtotalName": "Subtotal name",
   "Visual_FormatPercent": "Percent",
   "Visual_FormulaName": "Row name",
-  "Visual_FormulaHint": "Operators + - * / ^ %, comparisons = <> < <= > >= — functions SUM, AVERAGE, MIN, MAX, ABS, ROUND, IF."
+  "Visual_FormulaHint": "Operators + - * / ^ %, comparisons = <> < <= > >= — functions SUM, AVERAGE, MIN, MAX, ABS, ROUND, IF.",
+  "Visual_Grid": "Grid & borders",
+  "Visual_SubtotalsStyle": "Subtotal style",
+  "Visual_Comments": "Comments",
+  "Visual_NoComments": "No comments in the current view."
 }

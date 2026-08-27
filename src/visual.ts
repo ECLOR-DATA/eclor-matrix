@@ -41,6 +41,13 @@ import {
   weaveCustomRows,
   WovenRow
 } from "./customRows";
+import {
+  commentMeasureIndexes,
+  extractRowComments,
+  parseCommentMarkup,
+  plainCommentText,
+  RowComment
+} from "./comments";
 
 interface CalcDef {
   name: string;
@@ -93,6 +100,9 @@ interface ParseResult {
   measureScenarios: (IbcsScenario | null)[];
   /** |max| per calc column over non-subtotal rows — variance-bar domain. */
   calcMaxAbs: number[];
+  /** Per-row data comments (comments-role measures) — aligned with rows. */
+  rowComments: RowComment[][];
+  hasComments: boolean;
 }
 
 interface RenderInput {
@@ -129,6 +139,7 @@ export class Visual implements IVisual {
   private customRowsDirty: boolean = false;
   private rowPathKeys: string[] = [];
   private editPanelOpen: boolean = false;
+  private commentsPanelOpen: boolean = false;
   private lastUpdateOptions: VisualUpdateOptions | null = null;
 
   constructor(options?: VisualConstructorOptions) {
@@ -269,14 +280,21 @@ export class Visual implements IVisual {
 
     rows = this.applyCustomRows(dv, rows, leaves.length);
 
-    const isTooltipOnly = (mi: number): boolean => {
+    // Tooltip-only and comments-role measures never render as grid columns
+    // (they surface in tooltips / markers / the comments layer instead) but
+    // keep their global DFS cellKey — cell keys are never re-indexed.
+    const isAuxOnly = (mi: number): boolean => {
       const roles = valueSources[mi]?.roles;
-      return roles?.tooltips === true && roles?.values !== true;
+      return (roles?.tooltips === true || roles?.comments === true) && roles?.values !== true;
     };
     const renderLeafIdxs: number[] = [];
     for (let i = 0; i < leaves.length; i++) {
-      if (!isTooltipOnly(leaves[i].measureIndex)) renderLeafIdxs.push(i);
+      if (!isAuxOnly(leaves[i].measureIndex)) renderLeafIdxs.push(i);
     }
+
+    const commentIdxs = commentMeasureIndexes(valueSources);
+    const rowComments = extractRowComments(rows, leaves, commentIdxs);
+    const hasComments = rowComments.some((c) => c.length > 0);
 
     // Header rows come from the tree; when tooltip-only measures hide some
     // leaves the tree spans no longer match, so fall back to a flat header.
@@ -315,6 +333,35 @@ export class Visual implements IVisual {
       rows
     );
 
+    const measureStats = this.computeMeasureStats(valueSources, leaves, rows);
+
+    return {
+      rows,
+      leaves,
+      headerRows,
+      renderLeafIdxs,
+      valueSources,
+      rowLevels,
+      measureOverrides,
+      measureStats,
+      measureColorOverrides,
+      renderCols,
+      calcDefs,
+      calcLookups,
+      measureScenarios,
+      calcMaxAbs,
+      rowComments,
+      hasComments
+    };
+  }
+
+  /** Per-measure min/max over detail rows — the heat-map domain (subtotal
+   *  and custom rows excluded). */
+  private computeMeasureStats(
+    valueSources: DataViewMetadataColumn[],
+    leaves: ColumnLeaf[],
+    rows: RowModel[]
+  ): MeasureStats[] {
     const measureStats: MeasureStats[] = valueSources.map(() => ({ min: Infinity, max: -Infinity }));
     for (const r of rows) {
       if (r.isSubtotal || (r as WovenRow).customDef) continue;
@@ -335,23 +382,7 @@ export class Visual implements IVisual {
         s.max = 0;
       }
     }
-
-    return {
-      rows,
-      leaves,
-      headerRows,
-      renderLeafIdxs,
-      valueSources,
-      rowLevels,
-      measureOverrides,
-      measureStats,
-      measureColorOverrides,
-      renderCols,
-      calcDefs,
-      calcLookups,
-      measureScenarios,
-      calcMaxAbs
-    };
+    return measureStats;
   }
 
   /** Interleave calc columns after each column-group's measure leaves.
@@ -682,7 +713,9 @@ export class Visual implements IVisual {
       calcDefs: [],
       calcLookups: new Map(),
       measureScenarios: [],
-      calcMaxAbs: []
+      calcMaxAbs: [],
+      rowComments: [],
+      hasComments: false
     };
   }
 
@@ -744,6 +777,10 @@ export class Visual implements IVisual {
       this.target.style.removeProperty("--em-pad-y");
       this.rowHeightPx = estimateRowHeight(textSize, density);
     }
+    // The estimate bakes in a 1px rule; a thicker horizontal grid adds the
+    // difference (the rule stays transparent-but-present when disabled, so
+    // row geometry — and the virtualization math — never shifts).
+    this.rowHeightPx += this.applyGridOptions();
     const tbody = document.createElement("tbody");
     this.scrollEl = scroll;
     this.tbodyEl = tbody;
@@ -758,12 +795,111 @@ export class Visual implements IVisual {
     this.applySelectionVisuals();
   }
 
+  /** Push the Grid & borders / spacing / hierarchy / subtotal-style options
+   *  onto the root as CSS custom properties + toggle classes. Returns the
+   *  extra px the horizontal rule adds to the uniform row height. */
+  private applyGridOptions(): number {
+    const fs = this.formattingSettings;
+    const root = this.target;
+    const hc = this.isHighContrast;
+    const setVar = (name: string, value: string): void => {
+      if (value) root.style.setProperty(name, value);
+      else root.style.removeProperty(name);
+    };
+    const clampW = (v: unknown): number => Math.min(4, Math.max(1, Number(v) || 1));
+
+    const g = fs.grid;
+    const hWidth = clampW(g.horizontalWidth.value);
+    root.classList.toggle("em-nohgrid", g.horizontal.value !== true);
+    setVar("--em-grid", hc ? "" : safeHexOrEmpty(g.horizontalColor.value?.value));
+    setVar("--em-grid-w", hWidth !== 1 ? `${hWidth}px` : "");
+    root.classList.toggle("em-vgrid", g.vertical.value === true);
+    setVar("--em-vgrid-c", hc ? "" : safeHexOrEmpty(g.verticalColor.value?.value));
+    setVar("--em-vgrid-w", `${clampW(g.verticalWidth.value)}px`);
+    root.classList.toggle("em-outer", g.outerBorder.value === true);
+    setVar("--em-outer-c", hc ? "" : safeHexOrEmpty(g.outerColor.value?.value));
+    setVar("--em-outer-w", `${clampW(g.outerWidth.value)}px`);
+    root.classList.toggle("em-noheadrule", g.headerRule.value !== true);
+
+    const padX = Number(fs.general.cellPaddingX.value);
+    setVar("--em-pad-x", Number.isFinite(padX) && padX !== 8 ? `${Math.max(0, padX)}px` : "");
+
+    const st = fs.subtotalsStyle;
+    setVar("--em-total-bg", hc ? "" : safeHexOrEmpty(st.backColor.value?.value));
+    setVar("--em-total-fg", hc ? "" : safeHexOrEmpty(st.fontColor.value?.value));
+    root.classList.toggle("em-stnobold", st.bold.value !== true);
+
+    const rh = fs.rowHeaders;
+    root.classList.toggle("em-nochev", rh.showChevrons.value !== true);
+    root.classList.toggle("em-groupbold", rh.groupBold.value === true);
+    const groupBg = hc ? "" : safeHexOrEmpty(rh.groupBackColor.value?.value);
+    root.classList.toggle("em-groupbg", groupBg !== "");
+    setVar("--em-group-bg", groupBg);
+
+    setVar("--em-cmark", hc ? "" : safeHexOrEmpty(fs.comments.markerColor.value?.value));
+
+    return hWidth - 1;
+  }
+
+  private commentOpts(): {
+    show: boolean;
+    column: boolean;
+    fontColor: string;
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    columnTitle: string;
+  } {
+    const c = this.formattingSettings.comments;
+    return {
+      show: c.show.value === true,
+      column: String(c.display.value?.value ?? "markers") === "column",
+      fontColor: this.isHighContrast ? "" : safeHexOrEmpty(c.fontColor.value?.value),
+      bold: c.bold.value === true,
+      italic: c.italic.value === true,
+      underline: c.underline.value === true,
+      columnTitle:
+        String(c.columnTitle.value ?? "").trim() || this.localize("Visual_Comments", "Comments")
+    };
+  }
+
+  /** Render one comment's rich text into `el` — DOM spans only, never HTML
+   *  strings. Card styling is the base; inline markup overrides per segment. */
+  private renderCommentInto(
+    el: HTMLElement,
+    text: string,
+    base: { fontColor: string; bold: boolean; italic: boolean; underline: boolean }
+  ): void {
+    for (const seg of parseCommentMarkup(text)) {
+      const span = document.createElement("span");
+      span.textContent = seg.text;
+      if (base.bold || seg.bold) span.style.fontWeight = "700";
+      if (base.italic || seg.italic) span.style.fontStyle = "italic";
+      if (base.underline || seg.underline) span.style.textDecoration = "underline";
+      const color = this.isHighContrast ? "" : seg.color || base.fontColor;
+      if (color) span.style.color = color;
+      el.appendChild(span);
+    }
+  }
+
   // ---------- In-visual layout editor (custom rows) ----------
 
   private renderChrome(): void {
     if (!this.allowInteractions) return;
     const toolbar = document.createElement("div");
     toolbar.className = "em-toolbar";
+
+    if (this.lastValidRenderInput?.parsed.hasComments && this.commentOpts().show) {
+      const cbtn = document.createElement("button");
+      cbtn.type = "button";
+      cbtn.className = "em-toolbtn";
+      cbtn.setAttribute("data-em-action", "toggle-comments");
+      cbtn.setAttribute("aria-label", this.localize("Visual_Comments", "Comments"));
+      cbtn.setAttribute("title", this.localize("Visual_Comments", "Comments"));
+      cbtn.textContent = "💬";
+      toolbar.appendChild(cbtn);
+    }
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "em-toolbtn";
@@ -774,6 +910,62 @@ export class Visual implements IVisual {
     toolbar.appendChild(btn);
     this.target.appendChild(toolbar);
     if (this.editPanelOpen) this.target.appendChild(this.buildEditPanel());
+    if (this.commentsPanelOpen) this.target.appendChild(this.buildCommentsPanel());
+  }
+
+  /** Side panel listing every commented row of the current DataView. */
+  private buildCommentsPanel(): HTMLDivElement {
+    const panel = document.createElement("div");
+    panel.className = "em-commentspanel";
+
+    const title = document.createElement("div");
+    title.className = "em-paneltitle";
+    title.textContent = this.localize("Visual_Comments", "Comments");
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "em-panelclose";
+    close.setAttribute("data-em-action", "close-comments");
+    close.setAttribute("aria-label", this.localize("Visual_Close", "Close"));
+    close.textContent = "✕";
+    title.appendChild(close);
+    panel.appendChild(title);
+
+    const parsed = this.lastValidRenderInput?.parsed;
+    if (!parsed) return panel;
+    const copts = this.commentOpts();
+    const MAX_ITEMS = 200;
+    let shown = 0;
+    for (let r = 0; r < parsed.rows.length && shown < MAX_ITEMS; r++) {
+      const comments = parsed.rowComments[r] ?? [];
+      if (comments.length === 0) continue;
+      shown++;
+      const item = document.createElement("div");
+      item.className = "em-citem";
+      const rowLabel = document.createElement("div");
+      rowLabel.className = "em-crow";
+      rowLabel.textContent = parsed.rows[r].label || "·";
+      item.appendChild(rowLabel);
+      for (const c of comments) {
+        const line = document.createElement("div");
+        line.className = "em-ctext";
+        this.renderCommentInto(line, c.text, copts);
+        if (c.pathLabel) {
+          const path = document.createElement("span");
+          path.className = "em-cpath";
+          path.textContent = c.pathLabel;
+          line.appendChild(path);
+        }
+        item.appendChild(line);
+      }
+      panel.appendChild(item);
+    }
+    if (shown === 0) {
+      const empty = document.createElement("div");
+      empty.className = "em-panelhint";
+      empty.textContent = this.localize("Visual_NoComments", "No comments in the current view.");
+      panel.appendChild(empty);
+    }
+    return panel;
   }
 
   private panelRow(label: string, input: HTMLElement): HTMLDivElement {
@@ -913,10 +1105,20 @@ export class Visual implements IVisual {
     switch (action) {
       case "toggle-panel":
         this.editPanelOpen = !this.editPanelOpen;
+        if (this.editPanelOpen) this.commentsPanelOpen = false;
         this.refreshChrome();
         break;
       case "close-panel":
         this.editPanelOpen = false;
+        this.refreshChrome();
+        break;
+      case "toggle-comments":
+        this.commentsPanelOpen = !this.commentsPanelOpen;
+        if (this.commentsPanelOpen) this.editPanelOpen = false;
+        this.refreshChrome();
+        break;
+      case "close-comments":
+        this.commentsPanelOpen = false;
         this.refreshChrome();
         break;
       case "del-custom": {
@@ -972,7 +1174,9 @@ export class Visual implements IVisual {
   }
 
   private refreshChrome(): void {
-    this.target.querySelectorAll(".em-toolbar, .em-editpanel").forEach((n) => n.remove());
+    this.target
+      .querySelectorAll(".em-toolbar, .em-editpanel, .em-commentspanel")
+      .forEach((n) => n.remove());
     this.renderChrome();
   }
 
@@ -1048,6 +1252,20 @@ export class Visual implements IVisual {
         if (chBg) th.style.backgroundColor = chBg;
         tr.appendChild(th);
       }
+      if (levelIdx === 0 && this.commentColumnOn(parsed)) {
+        const th = document.createElement("th");
+        th.className = "em-commentth";
+        th.rowSpan = headerRowCount;
+        th.setAttribute("scope", "col");
+        const label = document.createElement("span");
+        label.className = "em-hlabel";
+        label.textContent = this.commentOpts().columnTitle;
+        th.appendChild(label);
+        th.style.fontWeight = chBold ? "700" : "400";
+        if (chColor) th.style.color = chColor;
+        if (chBg) th.style.backgroundColor = chBg;
+        tr.appendChild(th);
+      }
       thead.appendChild(tr);
     });
 
@@ -1055,7 +1273,9 @@ export class Visual implements IVisual {
     // its cells map 1:1 onto the grid columns).
     if (this.formattingSettings.ibcs.enabled.value === true && !this.isHighContrast) {
       const lastRow = thead.lastElementChild;
-      const cells = lastRow ? Array.from(lastRow.querySelectorAll("th:not(.em-corner)")) : [];
+      const cells = lastRow
+        ? Array.from(lastRow.querySelectorAll("th:not(.em-corner):not(.em-commentth)"))
+        : [];
       if (cells.length === parsed.renderCols.length) {
         cells.forEach((cell, idx) => {
           const col = parsed.renderCols[idx];
@@ -1141,9 +1361,17 @@ export class Visual implements IVisual {
     return tr;
   }
 
+  /** Comments render as a dedicated grid column when the card says so. */
+  private commentColumnOn(parsed: ParseResult): boolean {
+    const c = this.commentOpts();
+    return parsed.hasComments && c.show && c.column;
+  }
+
   private fillTbody(tbody: HTMLTableSectionElement, parsed: ParseResult, spec: WindowSpec): void {
     const dataMaxAbs = computeMaxAbs(parsed.rows);
-    const colCount = parsed.renderCols.length + 1;
+    const copts = this.commentOpts();
+    const commentCol = this.commentColumnOn(parsed);
+    const colCount = parsed.renderCols.length + 1 + (commentCol ? 1 : 0);
     const rh = this.formattingSettings.rowHeaders;
     const indentRaw = Number(rh.indent.value);
     const indent = Number.isFinite(indentRaw) ? Math.max(0, indentRaw) : 16;
@@ -1162,6 +1390,7 @@ export class Visual implements IVisual {
       if (row.isSubtotal) tr.classList.add("em-subtotal");
       if ((row as WovenRow).customDef) tr.classList.add("em-customrow");
       if (row.isExpandable) {
+        tr.classList.add("em-grouprow");
         tr.setAttribute("aria-expanded", row.isCollapsed ? "false" : "true");
       }
 
@@ -1182,6 +1411,14 @@ export class Visual implements IVisual {
         th.appendChild(chevron);
       }
       th.appendChild(document.createTextNode(row.label));
+
+      const comments = copts.show ? parsed.rowComments[rIdx] ?? [] : [];
+      if (comments.length > 0 && !commentCol) {
+        const mark = document.createElement("span");
+        mark.className = "em-cmark";
+        mark.setAttribute("title", comments.map((c) => plainCommentText(c.text)).join(" · "));
+        th.appendChild(mark);
+      }
       tr.appendChild(th);
 
       const ariaParts: string[] = [row.label];
@@ -1191,6 +1428,21 @@ export class Visual implements IVisual {
           continue;
         }
         tr.appendChild(this.buildLeafCell(parsed, row, col.leafIdx, dataMaxAbs, ibcsOn, ariaParts));
+      }
+      if (commentCol) {
+        const td = document.createElement("td");
+        td.className = "em-commentcell";
+        comments.forEach((c, ci) => {
+          if (ci > 0) td.appendChild(document.createTextNode(" · "));
+          this.renderCommentInto(td, c.text, copts);
+        });
+        if (comments.length > 0) {
+          td.setAttribute("title", comments.map((c) => plainCommentText(c.text)).join(" · "));
+        }
+        tr.appendChild(td);
+      }
+      if (comments.length > 0) {
+        ariaParts.push(...comments.map((c) => plainCommentText(c.text)));
       }
       tr.setAttribute("aria-label", ariaParts.join(", "));
       tbody.appendChild(tr);
@@ -1350,6 +1602,7 @@ export class Visual implements IVisual {
       if (raw === null) return;
       const name = parsed.valueSources[mi]?.displayName ?? "";
       const fmt = this.measureFormat(parsed, mi);
+      const isComment = parsed.valueSources[mi]?.roles?.comments === true;
       const value =
         typeof raw === "number"
           ? formatActualLabel({
@@ -1361,7 +1614,9 @@ export class Visual implements IVisual {
               locale: this.locale,
               dataMaxAbs
             })
-          : String(raw);
+          : isComment
+            ? plainCommentText(String(raw))
+            : String(raw);
       items.push({ displayName: name, value });
     };
 

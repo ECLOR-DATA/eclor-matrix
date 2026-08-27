@@ -51,10 +51,103 @@ class GeneralCardSettings extends FormattingSettingsCard {
     }
   });
 
+  cellPaddingX = new formattingSettings.NumUpDown({
+    name: "cellPaddingX",
+    displayName: "Cell padding (px, horizontal)",
+    value: 8,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 40 }
+    }
+  });
+
   name: string = "general";
   displayName: string = "General";
   displayNameKey: string = "Visual_General";
-  slices: FormattingSettingsSlice[] = [this.textSize, this.density, this.rowPadding];
+  slices: FormattingSettingsSlice[] = [this.textSize, this.density, this.rowPadding, this.cellPaddingX];
+}
+
+/** Grid & borders — every rule of the table chrome is now an option (the
+ *  theme defaults stay: horizontal-only #E5E7E6, header bottom rule). */
+class GridCardSettings extends FormattingSettingsCard {
+  horizontal = new formattingSettings.ToggleSwitch({
+    name: "horizontal",
+    displayName: "Horizontal grid",
+    value: true
+  });
+  horizontalColor = new formattingSettings.ColorPicker({
+    name: "horizontalColor",
+    displayName: "Horizontal color",
+    value: { value: "" }
+  });
+  horizontalWidth = new formattingSettings.NumUpDown({
+    name: "horizontalWidth",
+    displayName: "Horizontal width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  vertical = new formattingSettings.ToggleSwitch({
+    name: "vertical",
+    displayName: "Vertical grid",
+    value: false
+  });
+  verticalColor = new formattingSettings.ColorPicker({
+    name: "verticalColor",
+    displayName: "Vertical color",
+    value: { value: "" }
+  });
+  verticalWidth = new formattingSettings.NumUpDown({
+    name: "verticalWidth",
+    displayName: "Vertical width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  outerBorder = new formattingSettings.ToggleSwitch({
+    name: "outerBorder",
+    displayName: "Outer border",
+    value: false
+  });
+  outerColor = new formattingSettings.ColorPicker({
+    name: "outerColor",
+    displayName: "Outer border color",
+    value: { value: "" }
+  });
+  outerWidth = new formattingSettings.NumUpDown({
+    name: "outerWidth",
+    displayName: "Outer border width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  headerRule = new formattingSettings.ToggleSwitch({
+    name: "headerRule",
+    displayName: "Header bottom rule",
+    value: true
+  });
+
+  name: string = "grid";
+  displayName: string = "Grid & borders";
+  displayNameKey: string = "Visual_Grid";
+  slices: FormattingSettingsSlice[] = [
+    this.horizontal,
+    this.horizontalColor,
+    this.horizontalWidth,
+    this.vertical,
+    this.verticalColor,
+    this.verticalWidth,
+    this.outerBorder,
+    this.outerColor,
+    this.outerWidth,
+    this.headerRule
+  ];
 }
 
 class RowHeadersCardSettings extends FormattingSettingsCard {
@@ -74,11 +167,34 @@ class RowHeadersCardSettings extends FormattingSettingsCard {
       maxValue: { type: 1, value: 60 }
     }
   });
+  groupBold = new formattingSettings.ToggleSwitch({
+    name: "groupBold",
+    displayName: "Bold group rows",
+    value: false
+  });
+  groupBackColor = new formattingSettings.ColorPicker({
+    name: "groupBackColor",
+    displayName: "Group row background",
+    value: { value: "" }
+  });
+  showChevrons = new formattingSettings.ToggleSwitch({
+    name: "showChevrons",
+    displayName: "Show expand icons",
+    value: true
+  });
 
   name: string = "rowHeaders";
   displayName: string = "Row headers";
   displayNameKey: string = "Visual_RowHeaders";
-  slices: FormattingSettingsSlice[] = [this.bold, this.italic, this.fontColor, this.indent];
+  slices: FormattingSettingsSlice[] = [
+    this.bold,
+    this.italic,
+    this.fontColor,
+    this.indent,
+    this.groupBold,
+    this.groupBackColor,
+    this.showChevrons
+  ];
 }
 
 class ColumnHeadersCardSettings extends FormattingSettingsCard {
@@ -182,6 +298,89 @@ class SubTotalsCardSettings extends FormattingSettingsCard {
     this.columnSubtotals,
     this.perColumnLevel,
     this.rowSubtotalsType
+  ];
+}
+
+/** Subtotal STYLING lives in its own object — the `subTotals` card above is
+ *  the load-bearing mirror of the capabilities switch mappings and must not
+ *  grow unrelated properties (playbook §4.3.6). */
+class SubtotalsStyleCardSettings extends FormattingSettingsCard {
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  bold = new formattingSettings.ToggleSwitch({
+    name: "bold",
+    displayName: "Bold",
+    value: true
+  });
+
+  name: string = "subtotalsStyle";
+  displayName: string = "Subtotal style";
+  displayNameKey: string = "Visual_SubtotalsStyle";
+  slices: FormattingSettingsSlice[] = [this.backColor, this.fontColor, this.bold];
+}
+
+/** Data comments (Zebra-style): text measures on the `comments` role,
+ *  fed from the model (SharePoint list / Excel via Power Query). See
+ *  docs/COMMENTS.md for the full portable architecture. */
+class CommentsCardSettings extends FormattingSettingsCard {
+  show = new formattingSettings.ToggleSwitch({
+    name: "show",
+    displayName: "Show comments",
+    value: true
+  });
+  display = new formattingSettings.ItemDropdown({
+    name: "display",
+    displayName: "Display",
+    items: [
+      { value: "markers", displayName: "Markers only" },
+      { value: "column", displayName: "Inline column" }
+    ],
+    value: { value: "markers", displayName: "Markers only" }
+  });
+  markerColor = new formattingSettings.ColorPicker({
+    name: "markerColor",
+    displayName: "Marker color",
+    value: { value: "#1EF5B1" }
+  });
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: false });
+  italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
+  underline = new formattingSettings.ToggleSwitch({
+    name: "underline",
+    displayName: "Underline",
+    value: false
+  });
+  columnTitle = new formattingSettings.TextInput({
+    name: "columnTitle",
+    displayName: "Inline column title",
+    value: "",
+    placeholder: "Comments"
+  });
+
+  name: string = "comments";
+  displayName: string = "Comments";
+  displayNameKey: string = "Visual_Comments";
+  slices: FormattingSettingsSlice[] = [
+    this.show,
+    this.display,
+    this.markerColor,
+    this.fontColor,
+    this.bold,
+    this.italic,
+    this.underline,
+    this.columnTitle
   ];
 }
 
@@ -504,22 +703,28 @@ class IbcsCardSettings extends FormattingSettingsCard {
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   general = new GeneralCardSettings();
+  grid = new GridCardSettings();
   subTotals = new SubTotalsCardSettings();
+  subtotalsStyle = new SubtotalsStyleCardSettings();
   rowHeaders = new RowHeadersCardSettings();
   columnHeaders = new ColumnHeadersCardSettings();
   values = new ValuesCardSettings();
   cellColors = new CellColorsCardSettings();
   calculatedColumns = new CalculatedColumnsCardSettings();
   ibcs = new IbcsCardSettings();
+  comments = new CommentsCardSettings();
 
   cards = [
     this.general,
+    this.grid,
     this.subTotals,
+    this.subtotalsStyle,
     this.rowHeaders,
     this.columnHeaders,
     this.values,
     this.cellColors,
     this.calculatedColumns,
-    this.ibcs
+    this.ibcs,
+    this.comments
   ];
 }

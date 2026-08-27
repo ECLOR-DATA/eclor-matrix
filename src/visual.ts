@@ -33,7 +33,18 @@ import {
   resolveCellColor
 } from "./cellColor";
 import { compileExpression } from "./expressions";
-import { barWidthPct, detectScenario, IbcsScenario } from "./ibcs";
+import {
+  barWidthPct,
+  detectScenario,
+  IbcsScenario,
+  IbcsTemplate,
+  pinPosPct,
+  scenarioRank,
+  segmentGeometry,
+  templateVarianceSpecs,
+  waterfallMaxAbs,
+  waterfallStarts
+} from "./ibcs";
 import {
   CustomRowDef,
   parseCustomRowsState,
@@ -103,6 +114,8 @@ interface ParseResult {
   measureScenarios: (IbcsScenario | null)[];
   /** |max| per calc column over non-subtotal rows — variance-bar domain. */
   calcMaxAbs: number[];
+  /** T04 waterfall runs: start offset per row, keyed `${calcIdx}|${pathKey}`. */
+  calcWaterfall: Map<string, (number | null)[]>;
   /** Per-row data comments (comments-role measures) — aligned with rows. */
   rowComments: RowComment[][];
   hasComments: boolean;
@@ -299,49 +312,34 @@ export class Visual implements IVisual {
     const rowComments = extractRowComments(rows, leaves, commentIdxs);
     const hasComments = rowComments.some((c) => c.length > 0);
 
-    // Header rows come from the tree. When tooltip-only / comment measures
-    // hide some leaves, prune those measure leaves from a COPY of the tree
-    // so the multi-level header survives; the flat fallback only remains
-    // for shapes pruning can't reconcile (e.g. no measure level at all).
-    let headerRows: HeaderCell[][];
-    if (renderLeafIdxs.length === leaves.length) {
-      headerRows = buildHeaderRows(colRoot, measureNames, totalLabel);
-    } else {
-      const excluded = new Set<number>();
-      for (let mi = 0; mi < valueSources.length; mi++) {
-        if (isAuxOnly(mi)) excluded.add(mi);
-      }
-      headerRows = buildHeaderRows(pruneColumnTree(colRoot, excluded), measureNames, totalLabel);
-      const width = headerRows.length
-        ? headerRows[0].reduce((s, c) => s + c.span, 0)
-        : 0;
-      if (width !== renderLeafIdxs.length) {
-        headerRows = [
-          renderLeafIdxs.map((i) => {
-            const leaf = leaves[i];
-            const parts = [...leaf.path, measureNames[leaf.measureIndex] ?? ""];
-            return {
-              label: parts.filter((p) => p.length > 0).join(" · "),
-              span: 1,
-              isSubtotal: leaf.isSubtotal
-            };
-          })
-        ];
-      }
-    }
+    let headerRows = this.buildHeaderRowsFor(
+      colRoot,
+      leaves,
+      renderLeafIdxs,
+      valueSources,
+      measureNames,
+      totalLabel,
+      isAuxOnly
+    );
 
-    const calcDefs = this.readCalcDefs();
-    const rc = this.buildRenderColumns(leaves, renderLeafIdxs, measureNames, calcDefs);
+    const measureOverrides = valueSources.map((vs) => this.readMeasureOverride(vs));
+    const measureColorOverrides = valueSources.map((vs) => this.readMeasureColorOverride(vs));
+    const { measureScenarios, templateDefs, orderedLeafIdxs } = this.resolveTemplatePlan(
+      valueSources,
+      measureOverrides,
+      leaves,
+      renderLeafIdxs,
+      measureNames,
+      isAuxOnly
+    );
+
+    const calcDefs = [...templateDefs, ...this.readCalcDefs()];
+    const rc = this.buildRenderColumns(leaves, orderedLeafIdxs, measureNames, calcDefs);
     const renderCols = rc.renderCols;
     const calcLookups = rc.calcLookups;
     if (rc.flatHeader) headerRows = [rc.flatHeader];
 
-    const measureOverrides = valueSources.map((vs) => this.readMeasureOverride(vs));
-    const measureColorOverrides = valueSources.map((vs) => this.readMeasureColorOverride(vs));
-
-    const { measureScenarios, calcMaxAbs } = this.resolveIbcsDomains(
-      valueSources,
-      measureOverrides,
+    const { calcMaxAbs, calcWaterfall } = this.computeCalcDomains(
       calcDefs,
       renderCols,
       calcLookups,
@@ -354,7 +352,7 @@ export class Visual implements IVisual {
       rows,
       leaves,
       headerRows,
-      renderLeafIdxs,
+      renderLeafIdxs: orderedLeafIdxs,
       valueSources,
       rowLevels,
       measureOverrides,
@@ -365,6 +363,7 @@ export class Visual implements IVisual {
       calcLookups,
       measureScenarios,
       calcMaxAbs,
+      calcWaterfall,
       rowComments,
       hasComments
     };
@@ -497,14 +496,58 @@ export class Visual implements IVisual {
     return out;
   }
 
-  private resolveIbcsDomains(
+  /** Header rows come from the tree. When tooltip-only / comment measures
+   *  hide some leaves, prune those measure leaves from a COPY of the tree
+   *  so the multi-level header survives; the flat fallback only remains
+   *  for shapes pruning can't reconcile (e.g. no measure level at all). */
+  private buildHeaderRowsFor(
+    colRoot: MatrixNodeLike | undefined,
+    leaves: ColumnLeaf[],
+    renderLeafIdxs: number[],
+    valueSources: DataViewMetadataColumn[],
+    measureNames: string[],
+    totalLabel: string,
+    isAuxOnly: (mi: number) => boolean
+  ): HeaderCell[][] {
+    if (renderLeafIdxs.length === leaves.length) {
+      return buildHeaderRows(colRoot, measureNames, totalLabel);
+    }
+    const excluded = new Set<number>();
+    for (let mi = 0; mi < valueSources.length; mi++) {
+      if (isAuxOnly(mi)) excluded.add(mi);
+    }
+    const pruned = buildHeaderRows(pruneColumnTree(colRoot, excluded), measureNames, totalLabel);
+    const width = pruned.length ? pruned[0].reduce((s, c) => s + c.span, 0) : 0;
+    if (width === renderLeafIdxs.length) return pruned;
+    return [
+      renderLeafIdxs.map((i) => {
+        const leaf = leaves[i];
+        const parts = [...leaf.path, measureNames[leaf.measureIndex] ?? ""];
+        return {
+          label: parts.filter((p) => p.length > 0).join(" · "),
+          span: 1,
+          isSubtotal: leaf.isSubtotal
+        };
+      })
+    ];
+  }
+
+  /** Scenario resolution + IBCS-template column plan: synthesized variance
+   *  defs (T01-T04) and the AC·PY·PL leaf order per column group. Needs a
+   *  detected AC and at least one PY/PL base among the values-role
+   *  measures; otherwise the template is silently inert. */
+  private resolveTemplatePlan(
     valueSources: DataViewMetadataColumn[],
     measureOverrides: MeasureFormatOverride[],
-    calcDefs: CalcDef[],
-    renderCols: RenderCol[],
-    calcLookups: Map<string, Map<string, number>>,
-    rows: RowModel[]
-  ): { measureScenarios: (IbcsScenario | null)[]; calcMaxAbs: number[] } {
+    leaves: ColumnLeaf[],
+    renderLeafIdxs: number[],
+    measureNames: string[],
+    isAuxOnly: (mi: number) => boolean
+  ): {
+    measureScenarios: (IbcsScenario | null)[];
+    templateDefs: CalcDef[];
+    orderedLeafIdxs: number[];
+  } {
     const measureScenarios: (IbcsScenario | null)[] = valueSources.map((vs, i) => {
       const ov = measureOverrides[i].scenario;
       if (ov === "none") return null;
@@ -512,21 +555,122 @@ export class Visual implements IVisual {
       return detectScenario(vs.displayName);
     });
 
+    const templateDefs = this.buildTemplateDefs(
+      this.ibcsTemplate(),
+      measureScenarios,
+      measureNames,
+      (mi) => !isAuxOnly(mi)
+    );
+    if (templateDefs.length === 0) {
+      return { measureScenarios, templateDefs, orderedLeafIdxs: renderLeafIdxs };
+    }
+
+    const byGroup = new Map<string, number[]>();
+    for (const li of renderLeafIdxs) {
+      const k = leaves[li].path.join(" ");
+      const bucket = byGroup.get(k);
+      if (bucket) bucket.push(li);
+      else byGroup.set(k, [li]);
+    }
+    const orderedLeafIdxs: number[] = [];
+    for (const idxs of byGroup.values()) {
+      orderedLeafIdxs.push(
+        ...idxs.sort(
+          (a, b) =>
+            scenarioRank(measureScenarios[leaves[a].measureIndex]) -
+              scenarioRank(measureScenarios[leaves[b].measureIndex]) || a - b
+        )
+      );
+    }
+    return { measureScenarios, templateDefs, orderedLeafIdxs };
+  }
+
+  /** The IBCS table template chosen on the Format pane. */
+  private ibcsTemplate(): IbcsTemplate {
+    const t = String(this.formattingSettings.ibcs.template.value?.value ?? "none");
+    return t === "t01" || t === "t02" || t === "t03" || t === "t04" ? t : "none";
+  }
+
+  /** IBCS decorations (header semantics, PY/FC cell styling) are on when
+   *  explicitly enabled OR implied by an active table template. */
+  private ibcsActive(): boolean {
+    return (
+      (this.formattingSettings.ibcs.enabled.value === true || this.ibcsTemplate() !== "none") &&
+      !this.isHighContrast
+    );
+  }
+
+  /** Compile the variance columns a template synthesizes (ΔPY, ΔPY %, ΔPL,
+   *  ΔPL %) from the FIRST values-role measure detected per scenario. */
+  private buildTemplateDefs(
+    template: IbcsTemplate,
+    scenarios: (IbcsScenario | null)[],
+    measureNames: string[],
+    eligible: (mi: number) => boolean
+  ): CalcDef[] {
+    if (template === "none") return [];
+    const nameOf = (s: IbcsScenario): string | undefined => {
+      for (let i = 0; i < scenarios.length; i++) {
+        if (scenarios[i] === s && eligible(i)) return measureNames[i];
+      }
+      return undefined;
+    };
+    const specs = templateVarianceSpecs(template, nameOf("AC"), nameOf("PY"), nameOf("BU"));
+    const out: CalcDef[] = [];
+    for (const spec of specs) {
+      const compiled = compileExpression(spec.formula);
+      if (!compiled.ok) continue;
+      out.push({
+        name: spec.name,
+        format: spec.format,
+        display: spec.display,
+        signed: true,
+        refs: compiled.refs,
+        evaluate: compiled.evaluate
+      });
+    }
+    return out;
+  }
+
+  /** Domains of the graphical calc displays: |max| per column for bars and
+   *  pins, cumulative run + edge domain for T04 waterfalls. */
+  private computeCalcDomains(
+    calcDefs: CalcDef[],
+    renderCols: RenderCol[],
+    calcLookups: Map<string, Map<string, number>>,
+    rows: RowModel[]
+  ): { calcMaxAbs: number[]; calcWaterfall: Map<string, (number | null)[]> } {
     const calcMaxAbs = calcDefs.map(() => 0);
-    if (calcDefs.some((d) => d.display === "bar")) {
-      for (const row of rows) {
-        if (row.isSubtotal || (row as WovenRow).customDef) continue;
-        for (const col of renderCols) {
-          if (col.kind !== "calc") continue;
-          const v = this.evalCalc(calcDefs[col.calcIdx], calcLookups.get(col.pathKey), row);
+    const calcWaterfall = new Map<string, (number | null)[]>();
+    if (!calcDefs.some((d) => d.display !== "number")) {
+      return { calcMaxAbs, calcWaterfall };
+    }
+    for (const col of renderCols) {
+      if (col.kind !== "calc") continue;
+      const def = calcDefs[col.calcIdx];
+      if (def.display === "bar" || def.display === "pin") {
+        for (const row of rows) {
+          if (row.isSubtotal || (row as WovenRow).customDef) continue;
+          const v = this.evalCalc(def, calcLookups.get(col.pathKey), row);
           if (v !== null) {
             const a = Math.abs(v);
             if (a > calcMaxAbs[col.calcIdx]) calcMaxAbs[col.calcIdx] = a;
           }
         }
+      } else if (def.display === "waterfall") {
+        const values = rows.map((row) =>
+          (row as WovenRow).customDef ? null : this.evalCalc(def, calcLookups.get(col.pathKey), row)
+        );
+        const starts = waterfallStarts(
+          values,
+          rows.map((r) => r.isSubtotal)
+        );
+        calcWaterfall.set(`${col.calcIdx}|${col.pathKey}`, starts);
+        const m = waterfallMaxAbs(values, starts);
+        if (m > calcMaxAbs[col.calcIdx]) calcMaxAbs[col.calcIdx] = m;
       }
     }
-    return { measureScenarios, calcMaxAbs };
+    return { calcMaxAbs, calcWaterfall };
   }
 
   private evalCalc(
@@ -586,6 +730,7 @@ export class Visual implements IVisual {
   private buildCalcCell(
     parsed: ParseResult,
     row: RowModel,
+    rIdx: number,
     col: { calcIdx: number; path: string[]; pathKey: string },
     ariaParts: string[]
   ): HTMLTableCellElement {
@@ -598,22 +743,57 @@ export class Visual implements IVisual {
     const formatted = this.formatCalcValue(parsed, col, v);
     ariaParts.push(`${def.name} ${formatted}`);
 
-    if (def.display !== "bar") {
+    const maxAbs = parsed.calcMaxAbs[col.calcIdx];
+    const wfStart =
+      def.display === "waterfall"
+        ? parsed.calcWaterfall.get(`${col.calcIdx}|${col.pathKey}`)?.[rIdx] ?? null
+        : null;
+    if (def.display === "number" || (def.display === "waterfall" && wfStart === null)) {
       td.textContent = formatted;
       return td;
     }
 
-    // IBCS variance bar: shared zero axis, good/bad semantic colours.
+    // Graphical variance (IBCS): bar / pin / waterfall on a shared zero
+    // axis, good/bad semantic colours (Format → IBCS).
     td.classList.add("em-barcell");
     const flex = document.createElement("div");
     flex.className = "em-barflex";
     const wrap = document.createElement("div");
     wrap.className = "em-barwrap";
-    const bar = document.createElement("div");
-    bar.className = v >= 0 ? "em-bar em-bar-pos" : "em-bar em-bar-neg";
-    bar.style.width = `${barWidthPct(v, parsed.calcMaxAbs[col.calcIdx]) / 2}%`;
-    if (this.isHighContrast) bar.style.backgroundColor = this.hcForeground;
-    wrap.appendChild(bar);
+
+    if (def.display === "bar") {
+      const bar = document.createElement("div");
+      bar.className = v >= 0 ? "em-bar em-bar-pos" : "em-bar em-bar-neg";
+      bar.style.width = `${barWidthPct(v, maxAbs) / 2}%`;
+      if (this.isHighContrast) bar.style.backgroundColor = this.hcForeground;
+      wrap.appendChild(bar);
+    } else if (def.display === "pin") {
+      const pos = pinPosPct(v, maxAbs);
+      wrap.classList.add(v >= 0 ? "em-pin-pos" : "em-pin-neg");
+      const line = document.createElement("div");
+      line.className = "em-pinline";
+      line.style.left = `${Math.min(50, pos)}%`;
+      line.style.width = `${Math.abs(pos - 50)}%`;
+      const dot = document.createElement("div");
+      dot.className = "em-pindot";
+      dot.style.left = `${pos}%`;
+      if (this.isHighContrast) {
+        line.style.backgroundColor = this.hcForeground;
+        dot.style.backgroundColor = this.hcForeground;
+      }
+      wrap.appendChild(line);
+      wrap.appendChild(dot);
+    } else {
+      // T04 waterfall: detail bars cascade, subtotal bars re-anchor at zero.
+      const geo = segmentGeometry(wfStart as number, v, maxAbs);
+      const bar = document.createElement("div");
+      bar.className = v >= 0 ? "em-bar em-bar-wf em-bar-wf-pos" : "em-bar em-bar-wf em-bar-wf-neg";
+      bar.style.left = `${geo.leftPct}%`;
+      bar.style.width = `${geo.widthPct}%`;
+      if (this.isHighContrast) bar.style.backgroundColor = this.hcForeground;
+      wrap.appendChild(bar);
+    }
+
     const label = document.createElement("span");
     label.className = "em-barlabel";
     label.textContent = formatted;
@@ -730,6 +910,7 @@ export class Visual implements IVisual {
       calcLookups: new Map(),
       measureScenarios: [],
       calcMaxAbs: [],
+      calcWaterfall: new Map(),
       rowComments: [],
       hasComments: false
     };
@@ -855,6 +1036,17 @@ export class Visual implements IVisual {
     setVar("--em-group-bg", groupBg);
 
     setVar("--em-cmark", hc ? "" : safeHexOrEmpty(fs.comments.markerColor.value?.value));
+
+    // IBCS semantic colours — variance bars, pins, waterfalls, PY styling.
+    const ib = fs.ibcs;
+    setVar("--em-good", hc ? "" : safeHexOrEmpty(ib.goodColor.value?.value));
+    setVar("--em-bad", hc ? "" : safeHexOrEmpty(ib.badColor.value?.value));
+    setVar("--em-py", hc ? "" : safeHexOrEmpty(ib.pyColor.value?.value));
+
+    // Banding + sticky row-header column background.
+    root.classList.toggle("em-nobands", fs.general.banded.value !== true);
+    setVar("--em-band-bg", hc ? "" : safeHexOrEmpty(fs.general.bandColor.value?.value));
+    setVar("--em-rowh-bg", hc ? "" : safeHexOrEmpty(rh.backColor.value?.value));
 
     return hWidth - 1;
   }
@@ -1324,7 +1516,7 @@ export class Visual implements IVisual {
 
     // IBCS scenario decorations on the measure-level header row (only when
     // its cells map 1:1 onto the grid columns).
-    if (this.formattingSettings.ibcs.enabled.value === true && !this.isHighContrast) {
+    if (this.ibcsActive()) {
       const lastRow = thead.lastElementChild;
       const cells = lastRow
         ? Array.from(lastRow.querySelectorAll("th:not(.em-corner):not(.em-commentth)"))
@@ -1439,7 +1631,7 @@ export class Visual implements IVisual {
     const rhColor = this.isHighContrast ? "" : safeHexOrEmpty(rh.fontColor.value?.value);
     const rhBold = rh.bold.value === true;
     const rhItalic = rh.italic.value === true;
-    const ibcsOn = this.formattingSettings.ibcs.enabled.value === true && !this.isHighContrast;
+    const ibcsOn = this.ibcsActive();
     tbody.replaceChildren();
     if (spec.topPad > 0) tbody.appendChild(this.makeSpacerRow(spec.topPad, colCount));
 
@@ -1485,7 +1677,7 @@ export class Visual implements IVisual {
       const ariaParts: string[] = [row.label];
       for (const col of parsed.renderCols) {
         if (col.kind === "calc") {
-          tr.appendChild(this.buildCalcCell(parsed, row, col, ariaParts));
+          tr.appendChild(this.buildCalcCell(parsed, row, rIdx, col, ariaParts));
           continue;
         }
         tr.appendChild(this.buildLeafCell(parsed, row, col.leafIdx, dataMaxAbs, ibcsOn, ariaParts));
@@ -1522,11 +1714,18 @@ export class Visual implements IVisual {
       this.target.style.setProperty("--em-fg", this.hcForeground);
       this.target.style.setProperty("--em-bg", this.hcBackground);
       this.target.style.setProperty("--em-accent", this.hcHyperlink);
-    } else {
-      this.target.style.removeProperty("--em-fg");
-      this.target.style.removeProperty("--em-bg");
-      this.target.style.removeProperty("--em-accent");
+      return;
     }
+    // Normal theme: the General card can recolour the global font,
+    // background and accent (hover/selection); empty = theme defaults.
+    const g = this.formattingSettings.general;
+    const setOrRemove = (name: string, value: string): void => {
+      if (value) this.target.style.setProperty(name, value);
+      else this.target.style.removeProperty(name);
+    };
+    setOrRemove("--em-fg", safeHexOrEmpty(g.fontColor.value?.value));
+    setOrRemove("--em-bg", safeHexOrEmpty(g.backColor.value?.value));
+    setOrRemove("--em-accent", safeHexOrEmpty(g.accentColor.value?.value));
   }
 
   private applySelectionVisuals(): void {

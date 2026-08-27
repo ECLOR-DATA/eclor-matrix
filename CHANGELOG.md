@@ -3,6 +3,22 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.9.0.0] — 2026-08-27
+
+### Added
+
+- **IBCS table templates T01-T04** (Format → IBCS → Table template), the four official ibcs.com table templates as one-click presets over the detected AC/PY/PL(BU) measures:
+  - **T01** — AC · PY · PL column order per group + synthesized variance columns ΔPY, ΔPY %, ΔPL, ΔPL % as figures;
+  - **T02** — same data, Δ as IBCS bars and Δ % as **pins** (new display);
+  - **T03** — T01 columns for calculation-scheme rows (P&L in the Rows bucket);
+  - **T04** — same data as T03, Δ as **waterfall bars** (new display: detail rows cascade, subtotal rows re-anchor at zero) and Δ % as pins.
+  Variance formulas run on the shared expression engine (`Δ% = Δ / ABS(base)` so cost lines keep a meaningful sign); an active template implies the IBCS header semantics; no AC or no base detected → silently inert; user calculated columns keep working after the template columns.
+- **Colour options for every visible element**:
+  - IBCS card: **good / bad** semantic colours (variance bars, pins, waterfalls) and the **PY grey**;
+  - General card: global **font colour**, **background**, **accent** (drives hover *and* selection via `color-mix`), **banded rows** toggle + band colour;
+  - Row headers card: **background of the sticky row-header column**.
+  All flow through the existing CSS custom properties, are clamped/validated, and yield to the high-contrast palette.
+
 ## [1.8.2.0] — 2026-08-27
 
 ### Fixed

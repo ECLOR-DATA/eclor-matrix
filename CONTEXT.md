@@ -208,3 +208,26 @@ portable architecture + porting checklist lives in docs/COMMENTS.md.
 Grid/border options ship the same release with one geometry rule: a
 disabled grid line goes transparent but keeps its width, so the uniform
 row-height estimate the virtualization depends on (§12) never lies.
+
+## 19. IBCS table templates T01-T04 (1.9.0.0)
+
+The four ibcs.com table templates map cleanly onto machinery we already
+had: scenario detection (§15) names the AC/PY/PL measures, the expression
+engine (§17) computes the variances, and the calc-column interleave (§14)
+places them per column group. A template is therefore a PLAN, not a mode:
+synthesized CalcDefs (ΔPY, ΔPY %, ΔPL, ΔPL %) prepended to the user's
+slots + a scenario sort of the measure leaves per group (AC · PY · PL ·
+FC). Two display primitives were genuinely new — the IBCS **pin**
+(relative variances in T02/T04) and the **T04 waterfall** (detail bars
+cascade via a per-column cumulative run; subtotal rows re-anchor at zero
+and show the running total) — both pure math in ibcs.ts, both on the
+shared zero-axis track the 1.5.0.0 bars introduced. Δ% divides by
+ABS(base) so cost rows keep a meaningful sign (the usual IBCS practice).
+Deliberate degradations: no detected AC or no PY/PL base → the template is
+silently inert (nothing to compute); template active → flat header path
+(the calc interleave already forces it), which the scenario sort relies
+on. Colour policy: the semantic good/bad/PY tokens joined the Format pane
+with the general font/background/accent — everything still flows through
+the CSS custom properties born in 1.0.1.0, so high contrast keeps a single
+override point and `color-mix` derives hover/selection from the accent
+instead of hardcoding rgba tints.

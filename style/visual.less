@@ -14,8 +14,10 @@
   --em-header-bg: rgba(9, 22, 18, 0.1);
   --em-total-bg: #efefef;
   --em-band-bg: #f5f6f5;
-  --em-hover-bg: rgba(30, 245, 177, 0.14);
-  --em-selected-bg: rgba(30, 245, 177, 0.28);
+  // Derived from the accent so General → Accent recolours hover/selection
+  // too (color-mix: all Power BI service browsers since 2023).
+  --em-hover-bg: color-mix(in srgb, var(--em-accent) 14%, transparent);
+  --em-selected-bg: color-mix(in srgb, var(--em-accent) 28%, transparent);
   --em-focus: #091612;
   --em-good: #1ef5b1;
   --em-bad: #ff4d6d;
@@ -70,7 +72,7 @@
     position: sticky;
     left: 0;
     z-index: 1;
-    background-color: #ffffff;
+    background-color: var(--em-rowh-bg, #ffffff);
     text-align: left;
     font-weight: 400;
   }
@@ -174,6 +176,16 @@
 
 .em-groupbold .em-table tbody tr.em-grouprow th.em-rowheader {
   font-weight: 700;
+}
+
+// Banded rows off (General → Banded rows).
+.em-nobands .em-table tbody tr:nth-child(even):not(.em-subtotal) td,
+.em-nobands .em-table tbody tr:nth-child(even):not(.em-subtotal) th.em-rowheader {
+  background-color: transparent;
+}
+
+.em-nobands .em-table tbody tr:nth-child(even):not(.em-subtotal) th.em-rowheader {
+  background-color: var(--em-rowh-bg, #ffffff);
 }
 
 // The custom group background also holds on hover: swapping an opaque
@@ -289,6 +301,49 @@
 
 .em-bar-neg {
   right: 50%;
+  background: var(--em-bad);
+}
+
+// T04 waterfall bars: positioned by inline left/width (cumulative run),
+// no zero-axis anchor — only the sign colour comes from CSS.
+.em-bar-wf {
+  left: auto;
+  right: auto;
+}
+
+.em-bar-wf-pos {
+  background: var(--em-good);
+}
+
+.em-bar-wf-neg {
+  background: var(--em-bad);
+}
+
+// IBCS pins (relative variances in templates T02/T04): needle from the
+// zero axis + head, positioned by inline left/width.
+.em-pinline {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+}
+
+.em-pindot {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.em-pin-pos .em-pinline,
+.em-pin-pos .em-pindot {
+  background: var(--em-good);
+}
+
+.em-pin-neg .em-pinline,
+.em-pin-neg .em-pindot {
   background: var(--em-bad);
 }
 

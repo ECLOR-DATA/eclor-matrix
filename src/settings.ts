@@ -61,10 +61,46 @@ class GeneralCardSettings extends FormattingSettingsCard {
     }
   });
 
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
+  accentColor = new formattingSettings.ColorPicker({
+    name: "accentColor",
+    displayName: "Accent (hover/selection)",
+    value: { value: "" }
+  });
+  banded = new formattingSettings.ToggleSwitch({
+    name: "banded",
+    displayName: "Banded rows",
+    value: true
+  });
+  bandColor = new formattingSettings.ColorPicker({
+    name: "bandColor",
+    displayName: "Band color",
+    value: { value: "" }
+  });
+
   name: string = "general";
   displayName: string = "General";
   displayNameKey: string = "Visual_General";
-  slices: FormattingSettingsSlice[] = [this.textSize, this.density, this.rowPadding, this.cellPaddingX];
+  slices: FormattingSettingsSlice[] = [
+    this.textSize,
+    this.density,
+    this.rowPadding,
+    this.cellPaddingX,
+    this.fontColor,
+    this.backColor,
+    this.accentColor,
+    this.banded,
+    this.bandColor
+  ];
 }
 
 /** Grid & borders — every rule of the table chrome is now an option (the
@@ -182,6 +218,11 @@ class RowHeadersCardSettings extends FormattingSettingsCard {
     displayName: "Show expand icons",
     value: true
   });
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
 
   name: string = "rowHeaders";
   displayName: string = "Row headers";
@@ -190,6 +231,7 @@ class RowHeadersCardSettings extends FormattingSettingsCard {
     this.bold,
     this.italic,
     this.fontColor,
+    this.backColor,
     this.indent,
     this.groupBold,
     this.groupBackColor,
@@ -700,11 +742,44 @@ class IbcsCardSettings extends FormattingSettingsCard {
     displayName: "Enable IBCS styling",
     value: false
   });
+  template = new formattingSettings.ItemDropdown({
+    name: "template",
+    displayName: "Table template",
+    items: [
+      { value: "none", displayName: "None" },
+      { value: "t01", displayName: "T01 — AC·PY·PL, variances as figures" },
+      { value: "t02", displayName: "T02 — variances as bars & pins" },
+      { value: "t03", displayName: "T03 — calculation scheme, figures" },
+      { value: "t04", displayName: "T04 — waterfall bars & pins" }
+    ],
+    value: { value: "none", displayName: "None" }
+  });
+  goodColor = new formattingSettings.ColorPicker({
+    name: "goodColor",
+    displayName: "Good color (positive)",
+    value: { value: "" }
+  });
+  badColor = new formattingSettings.ColorPicker({
+    name: "badColor",
+    displayName: "Bad color (negative)",
+    value: { value: "" }
+  });
+  pyColor = new formattingSettings.ColorPicker({
+    name: "pyColor",
+    displayName: "PY grey",
+    value: { value: "" }
+  });
 
   name: string = "ibcs";
   displayName: string = "IBCS";
   displayNameKey: string = "Visual_IBCS";
-  slices: FormattingSettingsSlice[] = [this.enabled];
+  slices: FormattingSettingsSlice[] = [
+    this.enabled,
+    this.template,
+    this.goodColor,
+    this.badColor,
+    this.pyColor
+  ];
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {

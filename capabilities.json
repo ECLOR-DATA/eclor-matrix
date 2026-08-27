@@ -114,6 +114,52 @@
           "type": {
             "numeric": true
           }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "accentColor": {
+          "displayName": "Accent (hover/selection)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "banded": {
+          "displayName": "Banded rows",
+          "type": {
+            "bool": true
+          }
+        },
+        "bandColor": {
+          "displayName": "Band color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
         }
       }
     },
@@ -247,6 +293,16 @@
           "displayName": "Show expand icons",
           "type": {
             "bool": true
+          }
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
           }
         }
       }
@@ -818,6 +874,63 @@
           "displayName": "Enable IBCS styling",
           "type": {
             "bool": true
+          }
+        },
+        "template": {
+          "displayName": "Table template",
+          "type": {
+            "enumeration": [
+              {
+                "value": "none",
+                "displayName": "None"
+              },
+              {
+                "value": "t01",
+                "displayName": "T01 — AC·PY·PL, variances as figures"
+              },
+              {
+                "value": "t02",
+                "displayName": "T02 — variances as bars & pins"
+              },
+              {
+                "value": "t03",
+                "displayName": "T03 — calculation scheme, figures"
+              },
+              {
+                "value": "t04",
+                "displayName": "T04 — waterfall bars & pins"
+              }
+            ]
+          }
+        },
+        "goodColor": {
+          "displayName": "Good color (positive)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "badColor": {
+          "displayName": "Bad color (negative)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "pyColor": {
+          "displayName": "PY grey",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
           }
         }
       }

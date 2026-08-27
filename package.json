@@ -1,6 +1,6 @@
 {
   "name": "eclor-matrix",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "description": "Eclor Matrix — Power BI custom visual. Advanced matrix/cross-tab with hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting.",
   "license": "MIT",
   "scripts": {

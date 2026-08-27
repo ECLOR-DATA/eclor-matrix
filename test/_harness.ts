@@ -87,7 +87,7 @@ export interface MeasureSpec {
   name: string;
   values: (number | string | null)[];
   format?: string;
-  role?: "values" | "tooltips";
+  role?: "values" | "tooltips" | "comments";
   /** Persisted per-measure objects (e.g. { values: { useCustom: true } }). */
   objects?: Record<string, unknown>;
 }

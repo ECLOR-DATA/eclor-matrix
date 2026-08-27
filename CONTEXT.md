@@ -184,3 +184,27 @@ shared engine for calculated columns AND custom formula rows — one grammar
 to document, one to test. `,`-vs-`;` and EN-vs-FR names are tokenizer-level
 aliases, not locale switches: both spellings always work, so a report
 travels between locales without breaking formulas.
+
+## 18. Data comments through the model (1.8.0.0)
+
+The Zebra-style ask ("comments from a SharePoint list / Excel, same access
+management") has exactly one certifiable shape: comments are MODEL data.
+A certified visual has `privileges: []` — no fetch, no Graph, no SharePoint
+API — so the list is loaded by Power Query, related to the dimensions,
+exposed as a text measure on a new `comments` measure role (3rd entry in
+the SAME matrix mapping's values.select, the proven tooltips pattern; never
+a second mapping object, §4.3.5). Access management follows for free:
+readers are constrained by RLS on the comments table, writers by the
+SharePoint list permissions, the visual only ever sees post-RLS text.
+Writeback from the visual is impossible (documented plainly, like no-DAX,
+§6) — writing happens in the source, a refresh brings it in.
+`src/comments.ts` is pure and portable (extraction keyed on the global DFS
+cellKeys — comment leaves are excluded from renderLeafIdxs but never
+re-indexed, same invariant as tooltip-only measures) and the inline markup
+(`**b**`, `*i*`, `__u__`, `[#hex]…[/#]`) renders as DOM spans only — no
+HTML strings, hostile text stays inert. Unclosed markers style to the end
+on purpose: authors type in Excel, forgiveness beats strictness. The full
+portable architecture + porting checklist lives in docs/COMMENTS.md.
+Grid/border options ship the same release with one geometry rule: a
+disabled grid line goes transparent but keeps its width, so the uniform
+row-height estimate the virtualization depends on (§12) never lies.

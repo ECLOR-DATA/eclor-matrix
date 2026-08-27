@@ -3,6 +3,16 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.8.0.0] — 2026-08-27
+
+### Added
+
+- **Data comments, Zebra-style** (`comments` data role + `src/comments.ts`): text measures fed from the MODEL (SharePoint list / Excel via Power Query, related to the dimensions) surface as row markers (●, configurable colour), an optional inline column, or the 💬 side panel. Inline rich markup — `**bold**`, `*italic*`, `__underline__`, `[#RRGGBB]colour[/#]` — parsed without any HTML string (DOM spans only), forgiving by design (unclosed markers style to the end, malformed tags stay literal). Card styling (bold/italic/underline/colour/column title) as the base, markup overrides locally. Comment text also lands in tooltips and aria-labels (markup stripped). Access management is the model's own (RLS + source permissions at refresh) — no network from the visual, certification-safe. **Full portable architecture documented in [docs/COMMENTS.md](docs/COMMENTS.md)** for reuse on other ECLOR visuals.
+- **Grid & borders card**: horizontal grid (toggle/colour/width 1-4px), vertical grid (toggle/colour/width), outer border (toggle/colour/width), header bottom rule toggle. Disabled rules go transparent but keep their width, so row geometry — and the virtualization row-height math — never shifts.
+- **Spacing**: horizontal cell padding (px) on the General card.
+- **Hierarchy options** (Row headers card): bold group rows, group-row background (hover still wins), show/hide expand chevrons.
+- **Subtotal style card** (`subtotalsStyle`, deliberately separate from the load-bearing `subTotals` switch mirror): background colour, font colour, bold toggle.
+
 ## [1.7.0.0] — 2026-08-27
 
 ### Added

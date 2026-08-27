@@ -41,12 +41,13 @@
   width: max-content;
   min-width: 100%;
 
-  // Theme grid: horizontal rules only (gridHorizontal #E5E7E6, no vertical).
+  // Theme grid: horizontal rules only by default (gridHorizontal #E5E7E6);
+  // width, colour, vertical grid and outer border are Format-pane options.
   th,
   td {
     border: none;
-    border-bottom: 1px solid var(--em-grid);
-    padding: var(--em-pad-y, 4px) 8px;
+    border-bottom: var(--em-grid-w, 1px) solid var(--em-grid);
+    padding: var(--em-pad-y, 4px) var(--em-pad-x, 8px);
     text-align: right;
     white-space: nowrap;
   }
@@ -75,13 +76,15 @@
     left: 0;
   }
 
-  // Theme total/subtotal: #EFEFEF band, bold, applyToHeaders.
+  // Theme total/subtotal: #EFEFEF band, bold, applyToHeaders — colours and
+  // weight overridable through the Subtotal style card (vars + root class).
   tr.em-subtotal {
     font-weight: 700;
 
     td,
     th.em-rowheader {
       background-color: var(--em-total-bg);
+      color: var(--em-total-fg, inherit);
     }
   }
 
@@ -127,6 +130,80 @@
 
 .em-density-comfortable {
   --em-pad-y: 8px;
+}
+
+// ---- Grid & borders / hierarchy / subtotal-style toggles (root classes,
+// set from the Format pane by visual.ts::applyGridOptions) ----
+
+// Horizontal grid off: the rule goes transparent but keeps its width so row
+// geometry (and the virtualization row-height estimate) never shifts.
+.em-nohgrid .em-table tbody td,
+.em-nohgrid .em-table tbody th.em-rowheader {
+  border-bottom-color: transparent;
+}
+
+.em-vgrid .em-table th,
+.em-vgrid .em-table td {
+  border-left: var(--em-vgrid-w, 1px) solid var(--em-vgrid-c, var(--em-grid));
+}
+
+.em-vgrid .em-table th.em-rowheader,
+.em-vgrid .em-table th.em-corner {
+  border-left: none;
+}
+
+.em-outer .em-table {
+  border: var(--em-outer-w, 1px) solid var(--em-outer-c, var(--em-fg));
+}
+
+.em-noheadrule .em-table thead th {
+  border-bottom-color: transparent;
+}
+
+.em-nochev .em-chevron {
+  display: none;
+}
+
+.em-stnobold .em-table tr.em-subtotal {
+  font-weight: 400;
+}
+
+.em-groupbold .em-table tbody tr.em-grouprow th.em-rowheader {
+  font-weight: 700;
+}
+
+.em-groupbg .em-table tbody tr.em-grouprow td,
+.em-groupbg .em-table tbody tr.em-grouprow th.em-rowheader {
+  background-color: var(--em-group-bg);
+}
+
+// Hover feedback must still win over the group background.
+.em-groupbg .em-table tbody tr.em-grouprow:hover:not(.em-subtotal) td,
+.em-groupbg .em-table tbody tr.em-grouprow:hover:not(.em-subtotal) th.em-rowheader {
+  background-color: var(--em-hover-bg);
+}
+
+// ---- Data comments (comments role) ----
+
+.em-cmark {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--em-cmark, var(--em-accent));
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.em-table td.em-commentcell {
+  text-align: left;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.em-table thead th.em-commentth {
+  vertical-align: middle;
 }
 
 // IBCS scenario semantics (Format → IBCS → Enable): AC solid underline,
@@ -246,12 +323,14 @@
   }
 }
 
-// In-visual layout editor.
+// In-visual layout editor + comments panel.
 .em-toolbar {
   position: absolute;
   top: 4px;
   right: 4px;
   z-index: 6;
+  display: flex;
+  gap: 4px;
 }
 
 .em-toolbtn {
@@ -270,7 +349,8 @@
   }
 }
 
-.em-editpanel {
+.em-editpanel,
+.em-commentspanel {
   position: absolute;
   top: 32px;
   right: 4px;
@@ -385,6 +465,26 @@
     color: var(--em-py);
     font-size: 10px;
   }
+
+  .em-citem {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--em-grid);
+  }
+
+  .em-crow {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .em-cpath {
+    color: var(--em-py);
+    font-size: 10px;
+    margin-left: 6px;
+  }
+
+  .em-ctext {
+    line-height: 1.4;
+  }
 }
 
 .em-empty {
@@ -427,5 +527,9 @@
 
   .em-empty {
     color: var(--em-fg);
+  }
+
+  .em-cmark {
+    background: var(--em-fg) !important;
   }
 }

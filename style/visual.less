@@ -195,6 +195,85 @@
   background-color: var(--em-group-bg);
 }
 
+// ---- Header options / column widths / row wrap / aeration (1.10.0.0) ----
+
+// Vertical separators between header cells (Column headers card).
+.em-hsep .em-table thead th {
+  border-left: var(--em-hsep-w, 1px) solid var(--em-hsep-c, var(--em-grid));
+}
+
+.em-hsep .em-table thead th.em-corner {
+  border-left: none;
+}
+
+// Wrapped header labels.
+.em-hwrap .em-table thead th {
+  white-space: normal;
+}
+
+// Wrapped row labels: clamped to a fixed line count on an inner block so
+// every row keeps the same height (virtualization contract).
+.em-rwrap .em-table tbody th.em-rowheader {
+  white-space: normal;
+}
+
+.em-rlabelclamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--em-rwrap-lines, 2);
+  overflow: hidden;
+}
+
+// Fixed column widths (uniform/custom modes): the colgroup is authoritative.
+.em-table.em-fixed {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.em-table.em-fixed th,
+.em-table.em-fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Resize grips (custom mode) — the sticky th is the positioning context.
+.em-colgrip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+.em-colgrip:hover {
+  background: var(--em-selected-bg);
+}
+
+// Aeration: blank columns between groups and blank rows before groups.
+.eclor-matrix-root .em-table thead th.em-gapcol {
+  background-color: transparent;
+  background-image: none;
+  border-bottom-color: transparent;
+  border-left: none;
+}
+
+.eclor-matrix-root .em-table tbody td.em-gapcol {
+  background-color: transparent !important;
+  border-bottom-color: transparent;
+  border-left: none;
+}
+
+.eclor-matrix-root .em-table tbody tr.em-blankrow td {
+  background-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.eclor-matrix-root .em-table tbody tr.em-blankrow th.em-rowheader {
+  border-bottom-color: transparent;
+}
+
 // ---- Data comments (comments role) ----
 
 .em-cmark {

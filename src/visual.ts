@@ -59,6 +59,20 @@ import {
   plainCommentText,
   RowComment
 } from "./comments";
+import {
+  columnKeyForCalc,
+  columnKeyForLeaf,
+  COMMENTS_COL_KEY,
+  MAX_COL_WIDTH,
+  MIN_COL_WIDTH,
+  parseColumnWidthsState,
+  parseRowStylesState,
+  ROW_HEADER_COL_KEY,
+  RowAlign,
+  RowStyleDef,
+  serializeColumnWidthsState,
+  serializeRowStylesState
+} from "./layout";
 
 interface CalcDef {
   name: string;
@@ -72,7 +86,16 @@ interface CalcDef {
 
 type RenderCol =
   | { kind: "leaf"; leafIdx: number }
-  | { kind: "calc"; calcIdx: number; path: string[]; pathKey: string };
+  | { kind: "calc"; calcIdx: number; path: string[]; pathKey: string }
+  | { kind: "gap" };
+
+/** Expand/collapse icon pairs (collapsed, expanded) — Format → Row headers. */
+const EXPAND_ICONS: Record<string, [string, string]> = {
+  chevron: ["▸", "▾"],
+  plusminus: ["+", "−"],
+  boxed: ["⊞", "⊟"],
+  arrows: ["►", "▼"]
+};
 import {
   buildHeaderRows,
   computeMaxAbs,
@@ -158,6 +181,21 @@ export class Visual implements IVisual {
   private commentsPanelOpen: boolean = false;
   private lastUpdateOptions: VisualUpdateOptions | null = null;
 
+  private rowStyles: RowStyleDef[] = [];
+  private rowStylesDirty: boolean = false;
+  private colWidths: Record<string, number> = {};
+  private colWidthsDirty: boolean = false;
+  /** colgroup cols of the current render, keyed by column identity. */
+  private colEls: Map<string, HTMLTableColElement> = new Map();
+  private tableEl: HTMLTableElement | null = null;
+  private drag: {
+    key: string;
+    startX: number;
+    startWidth: number;
+    startTableWidth: number;
+    colEl: HTMLTableColElement;
+  } | null = null;
+
   constructor(options?: VisualConstructorOptions) {
     if (!options) {
       throw new Error("Visual constructor: options were not provided by the host.");
@@ -183,6 +221,8 @@ export class Visual implements IVisual {
     this.target.addEventListener("mousemove", this.handleMouseMove);
     this.target.addEventListener("mouseleave", this.handleMouseLeave);
     this.target.addEventListener("keydown", this.handleKeydown);
+    this.target.addEventListener("mousedown", this.handleGripDown);
+    this.target.addEventListener("dblclick", this.handleDblClick);
 
     // Never visually blank before the first update().
     this.renderEmpty(this.localize("Visual_Empty", "Select or drag fields to populate this visual"));
@@ -261,6 +301,11 @@ export class Visual implements IVisual {
   }
 
   public destroy(): void {
+    document.removeEventListener("mousemove", this.handleGripMove);
+    document.removeEventListener("mouseup", this.handleGripUp);
+    this.drag = null;
+    this.colEls.clear();
+    this.tableEl = null;
     this.lastValidRenderInput = null;
     this.rowSelectionIds = [];
     this.selectedRowKeys.clear();
@@ -269,6 +314,11 @@ export class Visual implements IVisual {
     this.currentWindow = null;
     this.target.replaceChildren();
   }
+
+  private handleDblClick = (e: MouseEvent): void => {
+    const grip = (e.target as Element)?.closest?.(".em-colgrip") as HTMLElement | null;
+    if (grip) this.handleGripReset(grip);
+  };
 
   // ---------- Parsing ----------
 
@@ -414,7 +464,10 @@ export class Visual implements IVisual {
   } {
     const renderCols: RenderCol[] = [];
     const calcLookups = new Map<string, Map<string, number>>();
-    if (calcDefs.length === 0) {
+    const groupCount = new Set(renderLeafIdxs.map((li) => leaves[li].path.join(" "))).size;
+    const gapsOn =
+      this.formattingSettings.grid.gapColumns.value === true && groupCount > 1;
+    if (calcDefs.length === 0 && !gapsOn) {
       for (const li of renderLeafIdxs) renderCols.push({ kind: "leaf", leafIdx: li });
       return { renderCols, calcLookups, flatHeader: null };
     }
@@ -437,8 +490,13 @@ export class Visual implements IVisual {
         i++;
       }
       calcDefs.forEach((_c, ci) => renderCols.push({ kind: "calc", calcIdx: ci, path, pathKey: key }));
+      // Aeration: a blank column between column groups (never after the last).
+      if (gapsOn && i < renderLeafIdxs.length) renderCols.push({ kind: "gap" });
     }
     const flatHeader: HeaderCell[] = renderCols.map((col) => {
+      if (col.kind === "gap") {
+        return { label: "", span: 1, isSubtotal: false, isGap: true };
+      }
       if (col.kind === "leaf") {
         const leaf = leaves[col.leafIdx];
         const parts = [...leaf.path, measureNames[leaf.measureIndex] ?? ""];
@@ -457,9 +515,12 @@ export class Visual implements IVisual {
   /** Custom rows (Excel-style ad-hoc subtotals / formula rows) — persisted
    *  as JSON in the report definition, woven after their anchor rows. */
   private applyCustomRows(dv: DataView, rows: RowModel[], cellCount: number): RowModel[] {
-    const persistedState = (dv.metadata?.objects as unknown as {
+    const objects = dv.metadata?.objects as unknown as {
       customRows?: { state?: unknown };
-    })?.customRows?.state;
+      rowStyles?: { state?: unknown };
+      columnWidths?: { state?: unknown };
+    };
+    const persistedState = objects?.customRows?.state;
     if (this.customRowsDirty) {
       if (
         typeof persistedState === "string" &&
@@ -470,9 +531,74 @@ export class Visual implements IVisual {
     } else {
       this.customRows = parseCustomRowsState(persistedState);
     }
+
+    // Per-row style overrides + column widths follow the same
+    // persist/echo/dirty pattern as the custom rows.
+    const rsRaw = objects?.rowStyles?.state;
+    if (this.rowStylesDirty) {
+      if (typeof rsRaw === "string" && rsRaw === serializeRowStylesState(this.rowStyles)) {
+        this.rowStylesDirty = false;
+      }
+    } else {
+      this.rowStyles = parseRowStylesState(rsRaw);
+    }
+    const cwRaw = objects?.columnWidths?.state;
+    if (this.colWidthsDirty) {
+      if (typeof cwRaw === "string" && cwRaw === serializeColumnWidthsState(this.colWidths)) {
+        this.colWidthsDirty = false;
+      }
+    } else {
+      this.colWidths = parseColumnWidthsState(cwRaw);
+    }
+
     const woven = weaveCustomRows(rows, this.customRows, cellCount);
-    this.rowPathKeys = woven.keys;
-    return woven.rows;
+    let outRows: RowModel[] = woven.rows;
+    let outKeys = woven.keys;
+
+    // Aeration: a blank spacer row before every top-level group.
+    if (this.formattingSettings.general.blankRowBeforeGroups.value === true) {
+      const rowsOut: RowModel[] = [];
+      const keysOut: string[] = [];
+      let n = 0;
+      outRows.forEach((row, i) => {
+        const isBlank = (row as { blankRow?: boolean }).blankRow === true;
+        if (i > 0 && row.level === 0 && !row.isSubtotal && !isBlank && row.isExpandable) {
+          rowsOut.push(this.makeBlankRow(cellCount, ++n));
+          keysOut.push(`blank:${n}`);
+        }
+        rowsOut.push(row);
+        keysOut.push(outKeys[i]);
+      });
+      outRows = rowsOut;
+      outKeys = keysOut;
+    }
+
+    this.rowPathKeys = outKeys;
+    return outRows;
+  }
+
+  private makeBlankRow(cellCount: number, n: number): RowModel {
+    const row: RowModel & { blankRow?: boolean } = {
+      label: "",
+      level: 0,
+      isSubtotal: false,
+      isCollapsed: false,
+      isExpandable: false,
+      node: {},
+      cells: Array.from({ length: cellCount }, () => null)
+    };
+    row.blankRow = true;
+    void n;
+    return row;
+  }
+
+  /** Blank rows: the automatic before-group spacers and the user-inserted
+   *  "spacer" custom rows render the same airy way. */
+  private isBlankRow(row: RowModel): boolean {
+    return (
+      (row as { blankRow?: boolean }).blankRow === true ||
+      (row as WovenRow).customDef?.kind === "spacer"
+    );
   }
 
   private readCalcDefs(): CalcDef[] {
@@ -858,12 +984,25 @@ export class Visual implements IVisual {
     const scenario = String(
       (persisted as { scenario?: unknown } | undefined)?.scenario ?? "auto"
     );
+    const alignment = String(
+      (persisted as { alignment?: unknown } | undefined)?.alignment ?? "auto"
+    );
     return {
       useCustom: persisted?.useCustom === true,
       units: (DISPLAY_UNIT_VALUES as readonly string[]).includes(units) ? units : "auto",
       decimals: Number.isFinite(decimals) ? Math.min(6, Math.max(0, decimals)) : 0,
-      scenario: ["auto", "AC", "PY", "BU", "FC", "none"].includes(scenario) ? scenario : "auto"
+      scenario: ["auto", "AC", "PY", "BU", "FC", "none"].includes(scenario) ? scenario : "auto",
+      alignment: ["auto", "left", "center", "right"].includes(alignment) ? alignment : "auto"
     };
+  }
+
+  /** Column text alignment: per-measure override, else the global Values
+   *  choice, else "" (theme default — right for numbers). */
+  private measureAlignment(parsed: ParseResult, mi: number): string {
+    const per = parsed.measureOverrides[mi]?.alignment ?? "auto";
+    if (per !== "auto") return per;
+    const global = String(this.formattingSettings.values.alignment.value?.value ?? "auto");
+    return global !== "auto" ? global : "";
   }
 
   /** Resolve the (units, decimals) pair for a measure: its override when
@@ -978,10 +1117,18 @@ export class Visual implements IVisual {
     // difference (the rule stays transparent-but-present when disabled, so
     // row geometry — and the virtualization math — never shifts).
     this.rowHeightPx += this.applyGridOptions();
+    // Wrapped row labels: N clamped lines, every row forced to the same
+    // height so the virtualization math stays exact.
+    const wrapLines = this.rowWrapLines();
+    if (wrapLines > 1) this.rowHeightPx += Math.round(textSize * 1.45) * (wrapLines - 1);
     const tbody = document.createElement("tbody");
     this.scrollEl = scroll;
     this.tbodyEl = tbody;
+    this.tableEl = table;
     this.currentWindow = this.windowFor(input, 0);
+
+    const colgroup = this.buildColgroup(parsed, table);
+    if (colgroup) table.appendChild(colgroup);
     this.fillTbody(tbody, parsed, this.currentWindow);
 
     table.appendChild(this.buildThead(parsed));
@@ -1037,6 +1184,16 @@ export class Visual implements IVisual {
 
     setVar("--em-cmark", hc ? "" : safeHexOrEmpty(fs.comments.markerColor.value?.value));
 
+    // Header separators / wrapped headers / wrapped row labels.
+    const ch = fs.columnHeaders;
+    root.classList.toggle("em-hsep", ch.separators.value === true);
+    setVar("--em-hsep-c", hc ? "" : safeHexOrEmpty(ch.borderColor.value?.value));
+    setVar("--em-hsep-w", `${clampW(ch.borderWidth.value)}px`);
+    root.classList.toggle("em-hwrap", ch.wrapText.value === true);
+    const wrapLines = this.rowWrapLines();
+    root.classList.toggle("em-rwrap", wrapLines > 1);
+    setVar("--em-rwrap-lines", wrapLines > 1 ? String(wrapLines) : "");
+
     // IBCS semantic colours — variance bars, pins, waterfalls, PY styling.
     const ib = fs.ibcs;
     setVar("--em-good", hc ? "" : safeHexOrEmpty(ib.goodColor.value?.value));
@@ -1051,10 +1208,135 @@ export class Visual implements IVisual {
     return hWidth - 1;
   }
 
+  /** Wrapped row labels: 1 (off) to 3 clamped lines. */
+  private rowWrapLines(): number {
+    const rh = this.formattingSettings.rowHeaders;
+    if (rh.wrapText.value !== true) return 1;
+    const n = Number(rh.maxLines.value);
+    return Number.isFinite(n) ? Math.min(3, Math.max(1, Math.round(n))) : 2;
+  }
+
   /** Horizontal cell padding, clamped — persisted values arrive raw. */
   private cellPaddingX(): number {
     const raw = Number(this.formattingSettings.general.cellPaddingX.value);
     return Number.isFinite(raw) ? Math.min(40, Math.max(0, raw)) : 8;
+  }
+
+  // ---------- Column widths (auto / uniform / custom drag) ----------
+
+  private columnWidthMode(): "auto" | "uniform" | "custom" {
+    const m = String(this.formattingSettings.columnWidths.mode.value?.value ?? "auto");
+    return m === "uniform" || m === "custom" ? m : "auto";
+  }
+
+  private uniformWidth(): number {
+    const w = Number(this.formattingSettings.columnWidths.uniformWidth.value);
+    return Number.isFinite(w) ? Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, w)) : 110;
+  }
+
+  /** Stable identity of a render column (drag persistence key). */
+  private columnKeyFor(parsed: ParseResult, col: RenderCol): string | null {
+    if (col.kind === "gap") return null;
+    if (col.kind === "calc") return columnKeyForCalc(parsed.calcDefs[col.calcIdx].name);
+    const leaf = parsed.leaves[col.leafIdx];
+    return columnKeyForLeaf(leaf.path, parsed.valueSources[leaf.measureIndex]?.displayName ?? "");
+  }
+
+  /** Fixed-layout colgroup for the uniform/custom modes; null in auto. */
+  private buildColgroup(parsed: ParseResult, table: HTMLTableElement): HTMLTableColElement | null {
+    this.colEls.clear();
+    const mode = this.columnWidthMode();
+    if (mode === "auto") return null;
+    table.classList.add("em-fixed");
+    const gapWidth = Number(this.formattingSettings.grid.gapWidth.value) || 14;
+    const colgroup = document.createElement("colgroup");
+    let total = 0;
+    const addCol = (key: string | null, width: number): void => {
+      const col = document.createElement("col");
+      col.style.width = `${width}px`;
+      colgroup.appendChild(col);
+      total += width;
+      if (key) this.colEls.set(key, col);
+    };
+    addCol(ROW_HEADER_COL_KEY, this.colWidths[ROW_HEADER_COL_KEY] ?? 220);
+    for (const col of parsed.renderCols) {
+      if (col.kind === "gap") {
+        addCol(null, Math.min(80, Math.max(2, gapWidth)));
+        continue;
+      }
+      const key = this.columnKeyFor(parsed, col) as string;
+      const width =
+        mode === "uniform" ? this.uniformWidth() : this.colWidths[key] ?? this.uniformWidth();
+      addCol(key, width);
+    }
+    if (this.commentColumnOn(parsed)) {
+      addCol(COMMENTS_COL_KEY, this.colWidths[COMMENTS_COL_KEY] ?? 240);
+    }
+    table.style.width = `${total}px`;
+    return colgroup;
+  }
+
+  private handleGripDown = (e: MouseEvent): void => {
+    const grip = (e.target as Element)?.closest?.(".em-colgrip") as HTMLElement | null;
+    if (!grip || !this.tableEl) return;
+    const key = grip.getAttribute("data-col-key");
+    const colEl = key ? this.colEls.get(key) : undefined;
+    if (!key || !colEl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.drag = {
+      key,
+      startX: e.clientX,
+      startWidth: parseFloat(colEl.style.width) || MIN_COL_WIDTH,
+      startTableWidth: parseFloat(this.tableEl.style.width) || 0,
+      colEl
+    };
+    document.addEventListener("mousemove", this.handleGripMove);
+    document.addEventListener("mouseup", this.handleGripUp);
+  };
+
+  private handleGripMove = (e: MouseEvent): void => {
+    if (!this.drag || !this.tableEl) return;
+    const w = Math.min(
+      MAX_COL_WIDTH,
+      Math.max(MIN_COL_WIDTH, Math.round(this.drag.startWidth + e.clientX - this.drag.startX))
+    );
+    this.drag.colEl.style.width = `${w}px`;
+    this.tableEl.style.width = `${this.drag.startTableWidth + (w - this.drag.startWidth)}px`;
+  };
+
+  private handleGripUp = (): void => {
+    document.removeEventListener("mousemove", this.handleGripMove);
+    document.removeEventListener("mouseup", this.handleGripUp);
+    if (!this.drag) return;
+    const w = parseFloat(this.drag.colEl.style.width);
+    if (Number.isFinite(w)) {
+      this.colWidths[this.drag.key] = Math.round(w);
+      this.persistColumnWidths();
+    }
+    this.drag = null;
+  };
+
+  /** Double-click a grip: forget that column's custom width. */
+  private handleGripReset(el: HTMLElement): void {
+    const key = el.getAttribute("data-col-key");
+    if (!key || this.colWidths[key] === undefined) return;
+    delete this.colWidths[key];
+    this.persistColumnWidths();
+    if (this.lastUpdateOptions) this.update(this.lastUpdateOptions);
+  }
+
+  private persistColumnWidths(): void {
+    this.colWidthsDirty = true;
+    (this.host as unknown as { persistProperties?: (changes: unknown) => void }).persistProperties?.({
+      merge: [
+        {
+          objectName: "columnWidths",
+          selector: null,
+          properties: { state: serializeColumnWidthsState(this.colWidths) }
+        }
+      ]
+    });
   }
 
   private commentOpts(): {
@@ -1229,27 +1511,7 @@ export class Visual implements IVisual {
     panel.appendChild(title);
 
     // Existing definitions.
-    for (const def of this.customRows) {
-      const item = document.createElement("div");
-      item.className = "em-defitem";
-      const kind = document.createElement("span");
-      kind.className = "em-defkind";
-      kind.textContent = def.kind === "subtotal" ? "Σ" : "ƒ";
-      const name = document.createElement("span");
-      name.className = "em-defname";
-      name.textContent = def.label;
-      name.setAttribute("title", def.kind === "formula" ? def.formula ?? "" : (def.refs ?? []).join(", "));
-      const del = document.createElement("button");
-      del.type = "button";
-      del.setAttribute("data-em-action", "del-custom");
-      del.setAttribute("data-def-id", def.id);
-      del.setAttribute("aria-label", this.localize("Visual_Delete", "Delete"));
-      del.textContent = "🗑";
-      item.appendChild(kind);
-      item.appendChild(name);
-      item.appendChild(del);
-      panel.appendChild(item);
-    }
+    for (const def of this.customRows) panel.appendChild(this.buildCustomDefItem(def));
 
     // Add: subtotal of current selection.
     const stSection = document.createElement("div");
@@ -1306,6 +1568,9 @@ export class Visual implements IVisual {
     fSection.appendChild(fBtn);
     panel.appendChild(fSection);
 
+    panel.appendChild(this.buildRowStyleSection());
+    for (const st of this.rowStyles) panel.appendChild(this.buildRowStyleItem(st));
+
     const hint = document.createElement("div");
     hint.className = "em-panelhint";
     hint.textContent = this.localize(
@@ -1314,6 +1579,101 @@ export class Visual implements IVisual {
     );
     panel.appendChild(hint);
     return panel;
+  }
+
+  private buildCustomDefItem(def: CustomRowDef): HTMLDivElement {
+    const item = document.createElement("div");
+    item.className = "em-defitem";
+    const kind = document.createElement("span");
+    kind.className = "em-defkind";
+    kind.textContent = def.kind === "subtotal" ? "Σ" : def.kind === "spacer" ? "␣" : "ƒ";
+    const name = document.createElement("span");
+    name.className = "em-defname";
+    name.textContent =
+      def.kind === "spacer" ? this.localize("Visual_BlankRow", "Blank row") : def.label;
+    name.setAttribute("title", def.kind === "formula" ? def.formula ?? "" : (def.refs ?? []).join(", "));
+    const del = document.createElement("button");
+    del.type = "button";
+    del.setAttribute("data-em-action", "del-custom");
+    del.setAttribute("data-def-id", def.id);
+    del.setAttribute("aria-label", this.localize("Visual_Delete", "Delete"));
+    del.textContent = "🗑";
+    item.appendChild(kind);
+    item.appendChild(name);
+    item.appendChild(del);
+    return item;
+  }
+
+  /** Per-row styles panel section: alignment + indent for the SELECTED
+   *  rows, plus the blank-row insertion. */
+  private buildRowStyleSection(): HTMLDivElement {
+    const rsSection = document.createElement("div");
+    rsSection.className = "em-panelsection";
+    const rsTitle = document.createElement("div");
+    rsTitle.className = "em-panelhint";
+    rsTitle.textContent = this.localize(
+      "Visual_RowStyleTitle",
+      "Selected rows — alignment and indent:"
+    );
+    rsSection.appendChild(rsTitle);
+    const rsAlign = document.createElement("select");
+    rsAlign.id = "em-rs-align";
+    for (const [v, t] of [
+      ["inherit", this.localize("Visual_AlignInherit", "Inherited alignment")],
+      ["left", this.localize("Visual_AlignLeft", "Left")],
+      ["center", this.localize("Visual_AlignCenter", "Center")],
+      ["right", this.localize("Visual_AlignRight", "Right")]
+    ]) {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = t;
+      rsAlign.appendChild(opt);
+    }
+    const rsIndent = document.createElement("input");
+    rsIndent.type = "number";
+    rsIndent.id = "em-rs-indent";
+    rsIndent.min = "0";
+    rsIndent.max = "400";
+    rsIndent.placeholder = this.localize("Visual_IndentPlaceholder", "Indent px (blank = inherited)");
+    rsSection.appendChild(this.panelRow("¶", rsAlign));
+    rsSection.appendChild(this.panelRow("⇤", rsIndent));
+    for (const [action, key, fallback] of [
+      ["apply-rowstyle", "Visual_ApplyRowStyle", "Apply to selected rows"],
+      ["clear-rowstyle", "Visual_ClearRowStyle", "Reset selected rows"],
+      ["add-spacer", "Visual_AddSpacer", "Insert blank row after selection"]
+    ]) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("data-em-action", action);
+      btn.textContent = this.localize(key, fallback);
+      rsSection.appendChild(btn);
+    }
+    return rsSection;
+  }
+
+  private buildRowStyleItem(st: RowStyleDef): HTMLDivElement {
+    const item = document.createElement("div");
+    item.className = "em-defitem";
+    const kind = document.createElement("span");
+    kind.className = "em-defkind";
+    kind.textContent = "¶";
+    const name = document.createElement("span");
+    name.className = "em-defname";
+    const bits: string[] = [];
+    if (st.align) bits.push(st.align);
+    if (st.indent !== undefined) bits.push(`${st.indent}px`);
+    name.textContent = `${st.key.split("▸").pop() ?? st.key} · ${bits.join(" · ")}`;
+    name.setAttribute("title", st.key);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.setAttribute("data-em-action", "del-rowstyle");
+    del.setAttribute("data-def-id", st.key);
+    del.setAttribute("aria-label", this.localize("Visual_Delete", "Delete"));
+    del.textContent = "🗑";
+    item.appendChild(kind);
+    item.appendChild(name);
+    item.appendChild(del);
+    return item;
   }
 
   /** Path keys of the currently selected data rows — read from the internal
@@ -1378,6 +1738,25 @@ export class Visual implements IVisual {
         this.mutateCustomRows();
         break;
       }
+      case "add-spacer": {
+        const sel = this.selectedDataRowKeys();
+        this.customRows = [
+          ...this.customRows,
+          {
+            id: this.nextCustomId(),
+            kind: "spacer",
+            label: "",
+            anchor: sel.length > 0 ? sel[sel.length - 1] : ""
+          }
+        ];
+        this.mutateCustomRows();
+        break;
+      }
+      case "apply-rowstyle":
+      case "clear-rowstyle":
+      case "del-rowstyle":
+        this.handleRowStyleAction(action, el);
+        break;
       case "add-formula": {
         const name = (this.target.querySelector("#em-f-label") as HTMLInputElement | null)?.value.trim();
         const formulaEl = this.target.querySelector("#em-f-formula") as HTMLInputElement | null;
@@ -1412,6 +1791,51 @@ export class Visual implements IVisual {
       .querySelectorAll(".em-toolbar, .em-editpanel, .em-commentspanel")
       .forEach((n) => n.remove());
     this.renderChrome();
+  }
+
+  private handleRowStyleAction(action: string, el: HTMLElement): void {
+    if (action === "del-rowstyle") {
+      const key = el.getAttribute("data-def-id");
+      this.rowStyles = this.rowStyles.filter((s) => s.key !== key);
+      this.mutateRowStyles();
+      return;
+    }
+    const keys = this.selectedDataRowKeys();
+    if (keys.length === 0) return;
+    if (action === "clear-rowstyle") {
+      this.rowStyles = this.rowStyles.filter((s) => !keys.includes(s.key));
+      this.mutateRowStyles();
+      return;
+    }
+    const alignRaw =
+      (this.target.querySelector("#em-rs-align") as HTMLSelectElement | null)?.value ?? "inherit";
+    const align: RowAlign | undefined =
+      alignRaw === "left" || alignRaw === "center" || alignRaw === "right" ? alignRaw : undefined;
+    const indentRaw =
+      (this.target.querySelector("#em-rs-indent") as HTMLInputElement | null)?.value ?? "";
+    const indentN = Number(indentRaw);
+    const indent =
+      indentRaw.trim() !== "" && Number.isFinite(indentN)
+        ? Math.min(400, Math.max(0, Math.round(indentN)))
+        : undefined;
+    if (align === undefined && indent === undefined) return;
+    const rest = this.rowStyles.filter((s) => !keys.includes(s.key));
+    this.rowStyles = [...rest, ...keys.map((key) => ({ key, align, indent }))];
+    this.mutateRowStyles();
+  }
+
+  private mutateRowStyles(): void {
+    this.rowStylesDirty = true;
+    (this.host as unknown as { persistProperties?: (changes: unknown) => void }).persistProperties?.({
+      merge: [
+        {
+          objectName: "rowStyles",
+          selector: null,
+          properties: { state: serializeRowStylesState(this.rowStyles) }
+        }
+      ]
+    });
+    if (this.lastUpdateOptions) this.update(this.lastUpdateOptions);
   }
 
   private mutateCustomRows(): void {
@@ -1461,6 +1885,8 @@ export class Visual implements IVisual {
     const alignment = String(ch.alignment.value?.value ?? "center");
 
     const thead = document.createElement("thead");
+    const headerTextSize = Number(ch.textSize.value) || 0;
+    if (headerTextSize > 0) thead.style.fontSize = `${Math.min(32, headerTextSize)}px`;
     const headerRowCount = Math.max(parsed.headerRows.length, 1);
     parsed.headerRows.forEach((cells, levelIdx) => {
       const tr = document.createElement("tr");
@@ -1476,6 +1902,7 @@ export class Visual implements IVisual {
       }
       for (const cell of cells) {
         const th = document.createElement("th");
+        if (cell.isGap) th.classList.add("em-gapcol");
         const label = document.createElement("span");
         label.className = "em-hlabel";
         label.textContent = cell.label;
@@ -1531,7 +1958,39 @@ export class Visual implements IVisual {
         });
       }
     }
+
+    this.attachColumnGrips(thead, parsed);
     return thead;
+  }
+
+  /** Custom column widths: resize grips on the corner, the leaf-level
+   *  header cells (when they map 1:1 onto the grid columns) and the
+   *  comment column. */
+  private attachColumnGrips(thead: HTMLTableSectionElement, parsed: ParseResult): void {
+    if (this.columnWidthMode() !== "custom") return;
+    const corner = thead.querySelector("th.em-corner");
+    if (corner) corner.appendChild(this.makeGrip(ROW_HEADER_COL_KEY));
+    const lastRow = thead.lastElementChild;
+    const cells = lastRow
+      ? Array.from(lastRow.querySelectorAll("th:not(.em-corner):not(.em-commentth)"))
+      : [];
+    if (cells.length === parsed.renderCols.length) {
+      cells.forEach((cell, idx) => {
+        const key = this.columnKeyFor(parsed, parsed.renderCols[idx]);
+        if (key) cell.appendChild(this.makeGrip(key));
+      });
+    }
+    const cth = thead.querySelector("th.em-commentth");
+    if (cth) cth.appendChild(this.makeGrip(COMMENTS_COL_KEY));
+  }
+
+  private makeGrip(key: string): HTMLSpanElement {
+    const grip = document.createElement("span");
+    grip.className = "em-colgrip";
+    grip.setAttribute("data-col-key", key);
+    grip.setAttribute("title", "Drag to resize · double-click to reset");
+    grip.setAttribute("aria-hidden", "true");
+    return grip;
   }
 
   private buildLeafCell(
@@ -1546,6 +2005,8 @@ export class Visual implements IVisual {
     const td = document.createElement("td");
     td.setAttribute("data-cell", "1");
     td.setAttribute("data-leaf-idx", String(leafIdx));
+    const align = this.measureAlignment(parsed, leaf.measureIndex);
+    if (align) td.style.textAlign = align;
     if (ibcsOn) {
       const sc = parsed.measureScenarios[leaf.measureIndex];
       if (sc === "PY" || sc === "FC") td.classList.add(`ibcs-${sc.toLowerCase()}`);
@@ -1602,6 +2063,58 @@ export class Visual implements IVisual {
     return td;
   }
 
+  private buildRowHeaderTh(
+    row: RowModel,
+    rIdx: number,
+    opts: {
+      rowStyle: RowStyleDef | undefined;
+      wrapLines: number;
+      icons: [string, string];
+      indent: number;
+      rhBold: boolean;
+      rhItalic: boolean;
+      rhColor: string;
+      markerComments: RowComment[];
+    }
+  ): HTMLTableCellElement {
+    const th = document.createElement("th");
+    th.className = "em-rowheader";
+    th.setAttribute("scope", "row");
+    th.style.paddingLeft =
+      opts.rowStyle?.indent !== undefined
+        ? `${opts.rowStyle.indent}px`
+        : `${this.cellPaddingX() + row.level * opts.indent}px`;
+    if (opts.rhBold) th.style.fontWeight = "700";
+    if (opts.rhItalic) th.style.fontStyle = "italic";
+    if (opts.rhColor) th.style.color = opts.rhColor;
+    if (opts.rowStyle?.align) th.style.textAlign = opts.rowStyle.align;
+    const labelHost = opts.wrapLines > 1 ? document.createElement("div") : th;
+    if (opts.wrapLines > 1) {
+      labelHost.className = "em-rlabelclamp";
+      th.appendChild(labelHost);
+    }
+    if (row.isExpandable) {
+      const chevron = document.createElement("span");
+      chevron.className = "em-chevron";
+      chevron.setAttribute("data-toggle-idx", String(rIdx));
+      chevron.setAttribute("role", "button");
+      chevron.setAttribute("tabindex", "-1");
+      chevron.textContent = row.isCollapsed ? opts.icons[0] : opts.icons[1];
+      labelHost.appendChild(chevron);
+    }
+    labelHost.appendChild(document.createTextNode(row.label));
+    if (opts.markerComments.length > 0) {
+      const mark = document.createElement("span");
+      mark.className = "em-cmark";
+      mark.setAttribute(
+        "title",
+        opts.markerComments.map((c) => plainCommentText(c.text)).join(" · ")
+      );
+      th.appendChild(mark);
+    }
+    return th;
+  }
+
   private makeSpacerRow(height: number, colCount: number): HTMLTableRowElement {
     const tr = document.createElement("tr");
     tr.className = "em-spacer";
@@ -1632,50 +2145,55 @@ export class Visual implements IVisual {
     const rhBold = rh.bold.value === true;
     const rhItalic = rh.italic.value === true;
     const ibcsOn = this.ibcsActive();
+    const wrapLines = this.rowWrapLines();
+    const icons =
+      EXPAND_ICONS[String(rh.expandIcon.value?.value ?? "chevron")] ?? EXPAND_ICONS.chevron;
+    const styleByKey = new Map(this.rowStyles.map((s) => [s.key, s]));
     tbody.replaceChildren();
     if (spec.topPad > 0) tbody.appendChild(this.makeSpacerRow(spec.topPad, colCount));
 
     for (let rIdx = spec.start; rIdx < spec.end; rIdx++) {
       const row = parsed.rows[rIdx];
+      const blank = this.isBlankRow(row);
+      const rowStyle = blank ? undefined : styleByKey.get(this.rowPathKeys[rIdx]);
       const tr = document.createElement("tr");
       tr.setAttribute("data-row-idx", String(rIdx));
-      tr.setAttribute("tabindex", "0");
+      if (wrapLines > 1) tr.style.height = `${this.rowHeightPx}px`;
+      if (blank) {
+        tr.classList.add("em-blankrow");
+        tr.setAttribute("aria-hidden", "true");
+      } else {
+        tr.setAttribute("tabindex", "0");
+      }
       if (row.isSubtotal) tr.classList.add("em-subtotal");
-      if ((row as WovenRow).customDef) tr.classList.add("em-customrow");
+      if ((row as WovenRow).customDef && !blank) tr.classList.add("em-customrow");
       if (row.isExpandable) {
         tr.classList.add("em-grouprow");
         tr.setAttribute("aria-expanded", row.isCollapsed ? "false" : "true");
       }
 
-      const th = document.createElement("th");
-      th.className = "em-rowheader";
-      th.setAttribute("scope", "row");
-      th.style.paddingLeft = `${this.cellPaddingX() + row.level * indent}px`;
-      if (rhBold) th.style.fontWeight = "700";
-      if (rhItalic) th.style.fontStyle = "italic";
-      if (rhColor) th.style.color = rhColor;
-      if (row.isExpandable) {
-        const chevron = document.createElement("span");
-        chevron.className = "em-chevron";
-        chevron.setAttribute("data-toggle-idx", String(rIdx));
-        chevron.setAttribute("role", "button");
-        chevron.setAttribute("tabindex", "-1");
-        chevron.textContent = row.isCollapsed ? "▸" : "▾";
-        th.appendChild(chevron);
-      }
-      th.appendChild(document.createTextNode(row.label));
-
-      const comments = copts.show ? parsed.rowComments[rIdx] ?? [] : [];
-      if (comments.length > 0 && !commentCol) {
-        const mark = document.createElement("span");
-        mark.className = "em-cmark";
-        mark.setAttribute("title", comments.map((c) => plainCommentText(c.text)).join(" · "));
-        th.appendChild(mark);
-      }
-      tr.appendChild(th);
+      const comments = copts.show && !blank ? parsed.rowComments[rIdx] ?? [] : [];
+      tr.appendChild(
+        this.buildRowHeaderTh(row, rIdx, {
+          rowStyle,
+          wrapLines,
+          icons,
+          indent,
+          rhBold,
+          rhItalic,
+          rhColor,
+          markerComments: commentCol ? [] : comments
+        })
+      );
 
       const ariaParts: string[] = [row.label];
       for (const col of parsed.renderCols) {
+        if (col.kind === "gap") {
+          const gap = document.createElement("td");
+          gap.className = "em-gapcol";
+          tr.appendChild(gap);
+          continue;
+        }
         if (col.kind === "calc") {
           tr.appendChild(this.buildCalcCell(parsed, row, rIdx, col, ariaParts));
           continue;
@@ -1702,7 +2220,13 @@ export class Visual implements IVisual {
       if (comments.length > 0) {
         ariaParts.push(...comments.map((c) => plainCommentText(c.text)));
       }
-      tr.setAttribute("aria-label", ariaParts.join(", "));
+      if (rowStyle?.align) {
+        const align = rowStyle.align;
+        tr.querySelectorAll("td").forEach((td) => {
+          (td as HTMLElement).style.textAlign = align;
+        });
+      }
+      tr.setAttribute("aria-label", blank ? "" : ariaParts.join(", "));
       tbody.appendChild(tr);
     }
     if (spec.bottomPad > 0) tbody.appendChild(this.makeSpacerRow(spec.bottomPad, colCount));
@@ -1749,6 +2273,9 @@ export class Visual implements IVisual {
 
   private handleClick = (e: MouseEvent): void => {
     if (!this.allowInteractions) return;
+
+    // Resize grips never touch the selection.
+    if ((e.target as Element)?.closest?.(".em-colgrip")) return;
 
     // Layout-editor chrome first: actions, then inert panel clicks (typing
     // in the panel must never clear the row selection).

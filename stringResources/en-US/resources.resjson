@@ -28,5 +28,16 @@
   "Visual_SubtotalsStyle": "Subtotal style",
   "Visual_Comments": "Comments",
   "Visual_NoComments": "No comments in the current view.",
-  "Visual_MoreComments": "more commented rows"
+  "Visual_MoreComments": "more commented rows",
+  "Visual_ColumnWidths": "Column widths",
+  "Visual_BlankRow": "Blank row",
+  "Visual_AddSpacer": "Insert blank row after selection",
+  "Visual_RowStyleTitle": "Selected rows — alignment and indent:",
+  "Visual_AlignInherit": "Inherited alignment",
+  "Visual_AlignLeft": "Left",
+  "Visual_AlignCenter": "Center",
+  "Visual_AlignRight": "Right",
+  "Visual_IndentPlaceholder": "Indent px (blank = inherited)",
+  "Visual_ApplyRowStyle": "Apply to selected rows",
+  "Visual_ClearRowStyle": "Reset selected rows"
 }

@@ -3,6 +3,18 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.10.0.0] — 2026-08-27
+
+### Added
+
+- **Column widths, Power BI matrix-style** (new Column widths card): **Auto** (fit content, as before), **Uniform** (one width for every value column) or **Custom** — drag the resize grips on the header edges (row-header and comment columns included), double-click a grip to reset; widths persist in the report (`columnWidths.state`) keyed by a stable column identity, so they survive save/publish and follow renamed groups' measures. Uniform/custom render through an authoritative `<colgroup>` + fixed table layout with ellipsis overflow.
+- **Column header options**: vertical separators between header cells (colour + width), text wrap, and a dedicated header text size.
+- **Per-row layout overrides** (✎ panel, persisted in `rowStyles.state`): select any rows in the grid and set their **text alignment** (left/center/right) and/or an **absolute indent** — the hierarchy indent becomes overridable row by row; existing overrides are listed and deletable.
+- **Alignment per column**: a global Values alignment plus a per-measure alignment on each measure's group (effective without the Override-format gate).
+- **Expand icon choice** (Row headers): chevrons ▸ ▾, plus/minus + −, boxed ⊞ ⊟, or arrows ► ▼.
+- **Row label wrap** with a clamped line count (1-3): every row keeps the same forced height, so the virtualization contract holds by construction.
+- **Aeration**: automatic **blank row before every top-level group**, user-inserted **blank rows** anywhere (✎ panel, a third custom-row kind `spacer`), and **blank columns between column groups** (width configurable) — all inert: no borders, no background, no focus, no aria noise.
+
 ## [1.9.0.0] — 2026-08-27
 
 ### Added

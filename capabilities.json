@@ -160,6 +160,12 @@
               }
             }
           }
+        },
+        "blankRowBeforeGroups": {
+          "displayName": "Blank row before groups",
+          "type": {
+            "bool": true
+          }
         }
       }
     },
@@ -238,6 +244,18 @@
           "type": {
             "bool": true
           }
+        },
+        "gapColumns": {
+          "displayName": "Blank column between groups",
+          "type": {
+            "bool": true
+          }
+        },
+        "gapWidth": {
+          "displayName": "Blank column width (px)",
+          "type": {
+            "numeric": true
+          }
         }
       }
     },
@@ -303,6 +321,41 @@
                 "color": true
               }
             }
+          }
+        },
+        "wrapText": {
+          "displayName": "Wrap labels",
+          "type": {
+            "bool": true
+          }
+        },
+        "maxLines": {
+          "displayName": "Max lines (1-3)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "expandIcon": {
+          "displayName": "Expand icon",
+          "type": {
+            "enumeration": [
+              {
+                "value": "chevron",
+                "displayName": "Chevrons ▸ ▾"
+              },
+              {
+                "value": "plusminus",
+                "displayName": "Plus / minus + −"
+              },
+              {
+                "value": "boxed",
+                "displayName": "Boxed ⊞ ⊟"
+              },
+              {
+                "value": "arrows",
+                "displayName": "Arrows ► ▼"
+              }
+            ]
           }
         }
       }
@@ -379,6 +432,40 @@
                 "displayName": "90°"
               }
             ]
+          }
+        },
+        "separators": {
+          "displayName": "Vertical separators",
+          "type": {
+            "bool": true
+          }
+        },
+        "borderColor": {
+          "displayName": "Separator color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "borderWidth": {
+          "displayName": "Separator width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "wrapText": {
+          "displayName": "Wrap text",
+          "type": {
+            "bool": true
+          }
+        },
+        "textSize": {
+          "displayName": "Header text size (0 = table)",
+          "type": {
+            "numeric": true
           }
         }
       }
@@ -607,6 +694,29 @@
               {
                 "displayName": "None",
                 "value": "none"
+              }
+            ]
+          }
+        },
+        "alignment": {
+          "displayName": "Alignment",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "left",
+                "displayName": "Left"
+              },
+              {
+                "value": "center",
+                "displayName": "Center"
+              },
+              {
+                "value": "right",
+                "displayName": "Right"
               }
             ]
           }
@@ -943,6 +1053,54 @@
             "text": true
           },
           "displayName": "State"
+        }
+      }
+    },
+    "columnWidths": {
+      "displayName": "Column widths",
+      "displayNameKey": "Visual_ColumnWidths",
+      "properties": {
+        "mode": {
+          "displayName": "Mode",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto (fit content)"
+              },
+              {
+                "value": "uniform",
+                "displayName": "Uniform"
+              },
+              {
+                "value": "custom",
+                "displayName": "Custom (drag to resize)"
+              }
+            ]
+          }
+        },
+        "uniformWidth": {
+          "displayName": "Uniform width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "state": {
+          "displayName": "State",
+          "type": {
+            "text": true
+          }
+        }
+      }
+    },
+    "rowStyles": {
+      "displayName": "Row styles (internal state)",
+      "properties": {
+        "state": {
+          "displayName": "State",
+          "type": {
+            "text": true
+          }
         }
       }
     }

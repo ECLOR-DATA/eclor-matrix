@@ -28,5 +28,16 @@
   "Visual_SubtotalsStyle": "Style des sous-totaux",
   "Visual_Comments": "Commentaires",
   "Visual_NoComments": "Aucun commentaire dans la vue actuelle.",
-  "Visual_MoreComments": "autres lignes commentées"
+  "Visual_MoreComments": "autres lignes commentées",
+  "Visual_ColumnWidths": "Largeur des colonnes",
+  "Visual_BlankRow": "Ligne blanche",
+  "Visual_AddSpacer": "Insérer une ligne blanche après la sélection",
+  "Visual_RowStyleTitle": "Lignes sélectionnées — alignement et retrait :",
+  "Visual_AlignInherit": "Alignement hérité",
+  "Visual_AlignLeft": "Gauche",
+  "Visual_AlignCenter": "Centré",
+  "Visual_AlignRight": "Droite",
+  "Visual_IndentPlaceholder": "Retrait px (vide = hérité)",
+  "Visual_ApplyRowStyle": "Appliquer aux lignes sélectionnées",
+  "Visual_ClearRowStyle": "Réinitialiser les lignes sélectionnées"
 }

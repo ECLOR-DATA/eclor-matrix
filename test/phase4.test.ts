@@ -91,6 +91,7 @@ describe("settings model", () => {
       "subtotalsStyle",
       "rowHeaders",
       "columnHeaders",
+      "columnWidths",
       "values",
       "cellColors",
       "calculatedColumns",

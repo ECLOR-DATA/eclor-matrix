@@ -39,5 +39,15 @@
   "Visual_AlignRight": "Droite",
   "Visual_IndentPlaceholder": "Retrait px (vide = hérité)",
   "Visual_ApplyRowStyle": "Appliquer aux lignes sélectionnées",
-  "Visual_ClearRowStyle": "Réinitialiser les lignes sélectionnées"
+  "Visual_ClearRowStyle": "Réinitialiser les lignes sélectionnées",
+  "Visual_BorderNone": "Sans cadre",
+  "Visual_BorderBox": "Cadre complet",
+  "Visual_BorderTop": "Filet haut",
+  "Visual_BorderBottom": "Filet bas",
+  "Visual_BorderTopBottom": "Filets haut + bas",
+  "Visual_TargetRow": "Toute la ligne",
+  "Visual_TargetLabel": "Cellule de libellé",
+  "Visual_LineSolid": "Plein",
+  "Visual_LineDashed": "Tirets",
+  "Visual_LineDotted": "Pointillés"
 }

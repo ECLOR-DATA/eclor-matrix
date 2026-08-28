@@ -253,3 +253,25 @@ uniform height; blank gap columns between groups are render columns of a
 new "gap" kind, so spacers, colgroup and flat headers all count them
 without special cases. The gap/calc interleave shares one rule: anything
 that widens groups forces the flat header.
+
+## 21. Financial-communication frames (1.11.0.0)
+
+The ask was "reproduce an investor slide's table exactly" (Orange S1
+deck): a rule above the header, key lines bolded between rules, ONE
+chosen cell fully boxed, the current-period column in brand colour.
+Frames extend the per-row styles (§20) rather than a new object: a
+`RowBorderDef {mode, style, width, color, target}` rides on the same
+`rowStyles.state` entries, so frames use the row path keys and travel
+with the report. The interesting field is `target` — "all" draws ONE
+continuous frame around the row (top/bottom on every cell, left on the
+first, right on the last), "label" boxes the label cell, and a column
+identity (§20's stable keys) boxes exactly that cell. Painting is inline
+border-* on the cells: it wins over the theme grid without touching the
+CSS custom properties, and high contrast just swaps the colour for the
+HC foreground while keeping the structure. Widths are clamped 1-4 px and
+borders sit inside the forced uniform row height, so virtualization
+(§12) is untouched. The header top rule is deliberately a separate
+option from the bottom header rule (both coexist, as investor tables
+do), and the per-measure font colour reuses the 1:1 header-mapping guard
+the grips introduced — when a column tree makes headers span, only the
+cells keep the colour.

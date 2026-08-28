@@ -7,7 +7,7 @@
 Power BI custom visual (`.pbiviz`) — advanced matrix/cross-tab: hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic number formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting. Successor project to `eclor-waterfall` (certified 2026-07) — same shop: workflows, agents, test harness, conventions.
 Target: **AppSource certification** (Stage C from day one — retrofit costs 10x).
 
-- **Current version:** 1.10.0.0 — see [CHANGELOG.md](CHANGELOG.md)
+- **Current version:** 1.11.0.0 — see [CHANGELOG.md](CHANGELOG.md)
 - **Stage status:** A ⏳ (skeleton) / B ⏳ / C ⏳
 - **API:** `powerbi-visuals-api ~5.11.0`
 
@@ -44,7 +44,7 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 - [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard): + - * / ^ %, comparisons, SUM/AVERAGE/MIN/MAX/ABS/ROUND/IF with FR aliases (SOMME/MOYENNE/ARRONDI/SI) and `;` separator
 - [src/ibcs.ts](src/ibcs.ts) — IBCS scenario detection (EN/FR tokens), bar/pin/waterfall math, table templates T01-T04 (variance-column specs)
 - [src/comments.ts](src/comments.ts) — PURE data-comments layer (comments role): extraction + inline markup parser (**bold**/*italic*/__underline__/[#hex]) — architecture & porting guide in [docs/COMMENTS.md](docs/COMMENTS.md)
-- Tests in [test/](test/) — Jest + jsdom + ts-jest (19 suites, count via `npm test`); shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
+- Tests in [test/](test/) — Jest + jsdom + ts-jest (20 suites, count via `npm test`); shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
 
 ## Agent workflow (see docs/WORKFLOW.md for detail)
 

@@ -206,6 +206,12 @@
   border-left: none;
 }
 
+// Header TOP rule (with the bottom rule + separators, headers can be
+// fully framed — financial-communication style).
+.em-htop .em-table thead th {
+  border-top: var(--em-htop-w, 1px) solid var(--em-htop-c, var(--em-fg));
+}
+
 // Wrapped header labels.
 .em-hwrap .em-table thead th {
   white-space: normal;

@@ -3,6 +3,17 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.0.0] — 2026-08-28
+
+### Added
+
+Financial-communication styling (replicating investor-deck tables à la Orange S1):
+
+- **Frames on any row or any single cell** (✎ panel, persisted with the per-row styles in `rowStyles.state`): select rows and apply a frame **mode** (full box, top rule, bottom rule, top + bottom rules), **line style** (solid / dashed / dotted), **width** (1-4 px) and **colour** — on a **target** of your choice: the whole row (one continuous frame around it), the label cell only, or **one precise column → that exact cell gets its own closed box**. High contrast repaints frames with the HC foreground; widths are part of the uniform row height, so virtualization holds.
+- **Bold toggle per selected row** (same panel) — subtotal-grade emphasis on any line without touching the data.
+- **Header top rule** (Column headers card): a rule ABOVE the header band (colour + width 1-4 px), the classic investor-table opener, independent from the existing bottom header rule and separators.
+- **Font colour per measure** (each measure's Values group): colours that measure's data cells *and* its header cell when headers map 1:1 onto the grid columns — e.g. the current-period column in brand orange. Conditional cell colours and high contrast still win.
+
 ## [1.10.0.0] — 2026-08-27
 
 ### Added

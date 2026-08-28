@@ -467,6 +467,28 @@
           "type": {
             "numeric": true
           }
+        },
+        "topRule": {
+          "displayName": "Top rule",
+          "type": {
+            "bool": true
+          }
+        },
+        "topColor": {
+          "displayName": "Top rule color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "topWidth": {
+          "displayName": "Top rule width (px)",
+          "type": {
+            "numeric": true
+          }
         }
       }
     },
@@ -719,6 +741,16 @@
                 "displayName": "Right"
               }
             ]
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
           }
         }
       }

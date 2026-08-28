@@ -355,6 +355,25 @@ class ColumnHeadersCardSettings extends FormattingSettingsCard {
       maxValue: { type: 1, value: 32 }
     }
   });
+  topRule = new formattingSettings.ToggleSwitch({
+    name: "topRule",
+    displayName: "Top rule",
+    value: false
+  });
+  topColor = new formattingSettings.ColorPicker({
+    name: "topColor",
+    displayName: "Top rule color",
+    value: { value: "" }
+  });
+  topWidth = new formattingSettings.NumUpDown({
+    name: "topWidth",
+    displayName: "Top rule width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
 
   name: string = "columnHeaders";
   displayName: string = "Column headers";
@@ -370,7 +389,10 @@ class ColumnHeadersCardSettings extends FormattingSettingsCard {
     this.borderColor,
     this.borderWidth,
     this.wrapText,
-    this.textSize
+    this.textSize,
+    this.topRule,
+    this.topColor,
+    this.topWidth
   ];
 }
 
@@ -599,6 +621,9 @@ export interface MeasureFormatOverride {
   /** Column alignment: auto (theme right) | left | center | right —
    *  effective without the useCustom gate. */
   alignment: string;
+  /** Column font colour ("" = theme) — cells + measure-level header,
+   *  effective without the useCustom gate. */
+  fontColor: string;
 }
 
 export const ALIGNMENT_ITEMS: powerbi.IEnumMember[] = [
@@ -667,10 +692,16 @@ export function makePerMeasureValueGroup(
     value: alignItem
   });
   alignment.selector = selector;
+  const fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: persisted.fontColor }
+  });
+  fontColor.selector = selector;
   return new formattingSettings.Group({
     name: `valuesM${index}`,
     displayName: displayName,
-    slices: [useCustom, units, decimals, scenario, alignment]
+    slices: [useCustom, units, decimals, scenario, alignment, fontColor]
   });
 }
 

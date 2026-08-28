@@ -69,6 +69,7 @@ import {
   parseRowStylesState,
   ROW_HEADER_COL_KEY,
   RowAlign,
+  RowBorderDef,
   RowStyleDef,
   serializeColumnWidthsState,
   serializeRowStylesState
@@ -987,12 +988,19 @@ export class Visual implements IVisual {
     const alignment = String(
       (persisted as { alignment?: unknown } | undefined)?.alignment ?? "auto"
     );
+    const fcRaw = (persisted as { fontColor?: unknown } | undefined)?.fontColor;
+    const fontColor = safeHexOrEmpty(
+      typeof (fcRaw as { solid?: { color?: unknown } })?.solid?.color === "string"
+        ? String((fcRaw as { solid: { color: string } }).solid.color)
+        : ""
+    );
     return {
       useCustom: persisted?.useCustom === true,
       units: (DISPLAY_UNIT_VALUES as readonly string[]).includes(units) ? units : "auto",
       decimals: Number.isFinite(decimals) ? Math.min(6, Math.max(0, decimals)) : 0,
       scenario: ["auto", "AC", "PY", "BU", "FC", "none"].includes(scenario) ? scenario : "auto",
-      alignment: ["auto", "left", "center", "right"].includes(alignment) ? alignment : "auto"
+      alignment: ["auto", "left", "center", "right"].includes(alignment) ? alignment : "auto",
+      fontColor
     };
   }
 
@@ -1184,11 +1192,14 @@ export class Visual implements IVisual {
 
     setVar("--em-cmark", hc ? "" : safeHexOrEmpty(fs.comments.markerColor.value?.value));
 
-    // Header separators / wrapped headers / wrapped row labels.
+    // Header separators / top rule / wrapped headers / wrapped row labels.
     const ch = fs.columnHeaders;
     root.classList.toggle("em-hsep", ch.separators.value === true);
     setVar("--em-hsep-c", hc ? "" : safeHexOrEmpty(ch.borderColor.value?.value));
     setVar("--em-hsep-w", `${clampW(ch.borderWidth.value)}px`);
+    root.classList.toggle("em-htop", ch.topRule.value === true);
+    setVar("--em-htop-c", hc ? "" : safeHexOrEmpty(ch.topColor.value?.value));
+    setVar("--em-htop-w", `${clampW(ch.topWidth.value)}px`);
     root.classList.toggle("em-hwrap", ch.wrapText.value === true);
     const wrapLines = this.rowWrapLines();
     root.classList.toggle("em-rwrap", wrapLines > 1);
@@ -1637,6 +1648,9 @@ export class Visual implements IVisual {
     rsIndent.placeholder = this.localize("Visual_IndentPlaceholder", "Indent px (blank = inherited)");
     rsSection.appendChild(this.panelRow("¶", rsAlign));
     rsSection.appendChild(this.panelRow("⇤", rsIndent));
+
+    this.appendBorderControls(rsSection);
+
     for (const [action, key, fallback] of [
       ["apply-rowstyle", "Visual_ApplyRowStyle", "Apply to selected rows"],
       ["clear-rowstyle", "Visual_ClearRowStyle", "Reset selected rows"],
@@ -1651,6 +1665,69 @@ export class Visual implements IVisual {
     return rsSection;
   }
 
+  /** Financial-communication frame controls: mode, line style, width,
+   *  colour, TARGET (whole row / label cell / one precise column = the
+   *  exact cell) and a bold toggle. */
+  private appendBorderControls(rsSection: HTMLDivElement): void {
+    const select = (id: string, items: [string, string][]): HTMLSelectElement => {
+      const sel = document.createElement("select");
+      sel.id = id;
+      for (const [v, t] of items) {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      }
+      return sel;
+    };
+    const rsBorder = select("em-rs-border", [
+      ["none", this.localize("Visual_BorderNone", "No frame")],
+      ["box", this.localize("Visual_BorderBox", "Full frame")],
+      ["top", this.localize("Visual_BorderTop", "Top rule")],
+      ["bottom", this.localize("Visual_BorderBottom", "Bottom rule")],
+      ["topbottom", this.localize("Visual_BorderTopBottom", "Top + bottom rules")]
+    ]);
+    const targets: [string, string][] = [
+      ["all", this.localize("Visual_TargetRow", "Whole row")],
+      ["label", this.localize("Visual_TargetLabel", "Label cell")]
+    ];
+    const parsedNow = this.lastValidRenderInput?.parsed;
+    if (parsedNow) {
+      const seen = new Set<string>();
+      for (const col of parsedNow.renderCols) {
+        const key = this.columnKeyFor(parsedNow, col);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        targets.push([key, key.replace("calc:", "ƒ ").replace("·", " · ").replace(/\|/g, " ▸ ")]);
+      }
+    }
+    const rsTarget = select("em-rs-btarget", targets);
+    const rsBStyle = select("em-rs-bstyle", [
+      ["solid", this.localize("Visual_LineSolid", "Solid")],
+      ["dashed", this.localize("Visual_LineDashed", "Dashed")],
+      ["dotted", this.localize("Visual_LineDotted", "Dotted")]
+    ]);
+    const rsBWidth = document.createElement("input");
+    rsBWidth.type = "number";
+    rsBWidth.id = "em-rs-bwidth";
+    rsBWidth.min = "1";
+    rsBWidth.max = "4";
+    rsBWidth.value = "1";
+    const rsBColor = document.createElement("input");
+    rsBColor.type = "color";
+    rsBColor.id = "em-rs-bcolor";
+    rsBColor.value = "#091612";
+    const rsBold = document.createElement("input");
+    rsBold.type = "checkbox";
+    rsBold.id = "em-rs-bold";
+    rsSection.appendChild(this.panelRow("▣", rsBorder));
+    rsSection.appendChild(this.panelRow("◎", rsTarget));
+    rsSection.appendChild(this.panelRow("─", rsBStyle));
+    rsSection.appendChild(this.panelRow("↔", rsBWidth));
+    rsSection.appendChild(this.panelRow("🎨", rsBColor));
+    rsSection.appendChild(this.panelRow("𝐁", rsBold));
+  }
+
   private buildRowStyleItem(st: RowStyleDef): HTMLDivElement {
     const item = document.createElement("div");
     item.className = "em-defitem";
@@ -1662,6 +1739,12 @@ export class Visual implements IVisual {
     const bits: string[] = [];
     if (st.align) bits.push(st.align);
     if (st.indent !== undefined) bits.push(`${st.indent}px`);
+    if (st.bold) bits.push("B");
+    if (st.border) {
+      bits.push(
+        `${st.border.mode}${st.border.target !== "all" ? `@${st.border.target.split("·").pop()}` : ""}`
+      );
+    }
     name.textContent = `${st.key.split("▸").pop() ?? st.key} · ${bits.join(" · ")}`;
     name.setAttribute("title", st.key);
     const del = document.createElement("button");
@@ -1818,10 +1901,37 @@ export class Visual implements IVisual {
       indentRaw.trim() !== "" && Number.isFinite(indentN)
         ? Math.min(400, Math.max(0, Math.round(indentN)))
         : undefined;
-    if (align === undefined && indent === undefined) return;
+    const bold =
+      (this.target.querySelector("#em-rs-bold") as HTMLInputElement | null)?.checked === true
+        ? true
+        : undefined;
+    const border = this.readPanelBorder();
+    if (align === undefined && indent === undefined && bold === undefined && border === undefined) {
+      return;
+    }
     const rest = this.rowStyles.filter((s) => !keys.includes(s.key));
-    this.rowStyles = [...rest, ...keys.map((key) => ({ key, align, indent }))];
+    this.rowStyles = [...rest, ...keys.map((key) => ({ key, align, indent, bold, border }))];
     this.mutateRowStyles();
+  }
+
+  private readPanelBorder(): RowBorderDef | undefined {
+    const q = (id: string): string =>
+      (this.target.querySelector(`#${id}`) as HTMLInputElement | HTMLSelectElement | null)?.value ??
+      "";
+    const mode = q("em-rs-border");
+    if (mode !== "box" && mode !== "top" && mode !== "bottom" && mode !== "topbottom") {
+      return undefined;
+    }
+    const styleRaw = q("em-rs-bstyle");
+    const widthN = Number(q("em-rs-bwidth"));
+    const color = safeHex(q("em-rs-bcolor"), "#091612");
+    return {
+      mode,
+      style: styleRaw === "dashed" || styleRaw === "dotted" ? styleRaw : "solid",
+      width: Number.isFinite(widthN) ? Math.min(4, Math.max(1, Math.round(widthN))) : 1,
+      color,
+      target: q("em-rs-btarget") || "all"
+    };
   }
 
   private mutateRowStyles(): void {
@@ -1941,9 +2051,10 @@ export class Visual implements IVisual {
       thead.appendChild(tr);
     });
 
-    // IBCS scenario decorations on the measure-level header row (only when
-    // its cells map 1:1 onto the grid columns).
-    if (this.ibcsActive()) {
+    // Measure-level header decorations — IBCS scenario semantics and
+    // per-measure font colours (only when cells map 1:1 onto the columns).
+    {
+      const ibcsOn = this.ibcsActive();
       const lastRow = thead.lastElementChild;
       const cells = lastRow
         ? Array.from(lastRow.querySelectorAll("th:not(.em-corner):not(.em-commentth)"))
@@ -1951,10 +2062,14 @@ export class Visual implements IVisual {
       if (cells.length === parsed.renderCols.length) {
         cells.forEach((cell, idx) => {
           const col = parsed.renderCols[idx];
-          if (col.kind === "leaf") {
-            const sc = parsed.measureScenarios[parsed.leaves[col.leafIdx].measureIndex];
+          if (col.kind !== "leaf") return;
+          const mi = parsed.leaves[col.leafIdx].measureIndex;
+          if (ibcsOn) {
+            const sc = parsed.measureScenarios[mi];
             if (sc) cell.classList.add(`ibcs-${sc.toLowerCase()}`);
           }
+          const fc = this.isHighContrast ? "" : parsed.measureOverrides[mi]?.fontColor ?? "";
+          if (fc) (cell as HTMLElement).style.color = fc;
         });
       }
     }
@@ -2007,6 +2122,8 @@ export class Visual implements IVisual {
     td.setAttribute("data-leaf-idx", String(leafIdx));
     const align = this.measureAlignment(parsed, leaf.measureIndex);
     if (align) td.style.textAlign = align;
+    const mfc = this.isHighContrast ? "" : parsed.measureOverrides[leaf.measureIndex]?.fontColor ?? "";
+    if (mfc) td.style.color = mfc;
     if (ibcsOn) {
       const sc = parsed.measureScenarios[leaf.measureIndex];
       if (sc === "PY" || sc === "FC") td.classList.add(`ibcs-${sc.toLowerCase()}`);
@@ -2061,6 +2178,46 @@ export class Visual implements IVisual {
       }
     }
     return td;
+  }
+
+  /** Financial-communication frames: apply a RowBorderDef to the row —
+   *  the whole row as ONE frame ("all"), the label cell, or every cell of
+   *  one column identity (each framed individually). Inline styles win
+   *  over the theme grid; high contrast repaints with the HC foreground. */
+  private applyRowBorder(
+    tr: HTMLTableRowElement,
+    border: RowBorderDef,
+    parsed: ParseResult
+  ): void {
+    const color = this.isHighContrast ? this.hcForeground : border.color;
+    const line = `${border.width}px ${border.style} ${color}`;
+    const cells = Array.from(tr.cells) as HTMLElement[];
+    let targets: HTMLElement[];
+    if (border.target === "all") {
+      targets = cells;
+    } else if (border.target === "label") {
+      targets = cells.slice(0, 1);
+    } else {
+      targets = [];
+      parsed.renderCols.forEach((col, i) => {
+        if (this.columnKeyFor(parsed, col) === border.target && cells[i + 1]) {
+          targets.push(cells[i + 1]);
+        }
+      });
+    }
+    if (targets.length === 0) return;
+    const top = border.mode !== "bottom";
+    const bottom = border.mode !== "top";
+    const box = border.mode === "box";
+    const rowFrame = border.target === "all";
+    targets.forEach((el, i) => {
+      if (top) el.style.borderTop = line;
+      if (bottom) el.style.borderBottom = line;
+      if (box) {
+        if (!rowFrame || i === 0) el.style.borderLeft = line;
+        if (!rowFrame || i === targets.length - 1) el.style.borderRight = line;
+      }
+    });
   }
 
   private buildRowHeaderTh(
@@ -2226,6 +2383,8 @@ export class Visual implements IVisual {
           (td as HTMLElement).style.textAlign = align;
         });
       }
+      if (rowStyle?.bold) tr.style.fontWeight = "700";
+      if (rowStyle?.border) this.applyRowBorder(tr, rowStyle.border, parsed);
       tr.setAttribute("aria-label", blank ? "" : ariaParts.join(", "));
       tbody.appendChild(tr);
     }

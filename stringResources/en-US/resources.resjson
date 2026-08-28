@@ -39,5 +39,15 @@
   "Visual_AlignRight": "Right",
   "Visual_IndentPlaceholder": "Indent px (blank = inherited)",
   "Visual_ApplyRowStyle": "Apply to selected rows",
-  "Visual_ClearRowStyle": "Reset selected rows"
+  "Visual_ClearRowStyle": "Reset selected rows",
+  "Visual_BorderNone": "No frame",
+  "Visual_BorderBox": "Full frame",
+  "Visual_BorderTop": "Top rule",
+  "Visual_BorderBottom": "Bottom rule",
+  "Visual_BorderTopBottom": "Top + bottom rules",
+  "Visual_TargetRow": "Whole row",
+  "Visual_TargetLabel": "Label cell",
+  "Visual_LineSolid": "Solid",
+  "Visual_LineDashed": "Dashed",
+  "Visual_LineDotted": "Dotted"
 }

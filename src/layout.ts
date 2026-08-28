@@ -54,12 +54,47 @@ export function serializeColumnWidthsState(state: Record<string, number>): strin
 
 export type RowAlign = "left" | "center" | "right";
 
+export type BorderMode = "box" | "top" | "bottom" | "topbottom";
+export type BorderLineStyle = "solid" | "dashed" | "dotted";
+
+/** A financial-communication style frame: which edges, which line, and on
+ *  which cells of the row ("all" = the whole row as one frame, "label" =
+ *  the row-header cell, otherwise a column identity → that ONE cell). */
+export interface RowBorderDef {
+  mode: BorderMode;
+  style: BorderLineStyle;
+  width: number;
+  color: string;
+  target: string;
+}
+
 export interface RowStyleDef {
   /** Row path key (customRows.computeRowPathKeys) or custom:<id>. */
   key: string;
   align?: RowAlign;
   /** Absolute label indent in px (overrides level × indent). */
   indent?: number;
+  bold?: boolean;
+  border?: RowBorderDef;
+}
+
+const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+function parseBorder(raw: unknown): RowBorderDef | undefined {
+  const o = raw as Partial<RowBorderDef> | undefined;
+  if (!o || typeof o !== "object") return undefined;
+  const mode =
+    o.mode === "box" || o.mode === "top" || o.mode === "bottom" || o.mode === "topbottom"
+      ? o.mode
+      : undefined;
+  if (!mode) return undefined;
+  const style =
+    o.style === "dashed" || o.style === "dotted" ? o.style : "solid";
+  const widthN = Number(o.width);
+  const width = Number.isFinite(widthN) ? Math.min(4, Math.max(1, Math.round(widthN))) : 1;
+  const color = typeof o.color === "string" && HEX_COLOR.test(o.color) ? o.color : "#091612";
+  const target = typeof o.target === "string" && o.target.length > 0 ? o.target : "all";
+  return { mode, style, width, color, target };
 }
 
 export function parseRowStylesState(raw: unknown): RowStyleDef[] {
@@ -81,8 +116,12 @@ export function parseRowStylesState(raw: unknown): RowStyleDef[] {
     const indent = Number.isFinite(indentN)
       ? Math.min(400, Math.max(0, Math.round(indentN)))
       : undefined;
-    if (align === undefined && indent === undefined) continue;
-    out.push({ key: o.key, align, indent });
+    const bold = o.bold === true ? true : undefined;
+    const border = parseBorder(o.border);
+    if (align === undefined && indent === undefined && bold === undefined && border === undefined) {
+      continue;
+    }
+    out.push({ key: o.key, align, indent, bold, border });
   }
   return out;
 }

@@ -166,3 +166,135 @@ before selection handling so typing never clears the user's row selection.
 Known limits (documented): custom rows can't reference other custom rows,
 label-based anchors break if the source label changes, and custom rows
 don't cross-filter (no data identity).
+
+## 17. Simplified Excel calc engine (1.7.0.0)
+
+The expression grammar grew from "arithmetic + ABS/MIN/MAX" to the basic
+set an Excel user reaches for, WITHOUT becoming a spreadsheet: `^` and
+postfix `%`, comparisons returning 1/0, variadic SUM/AVERAGE/MIN/MAX,
+ROUND, IF — plus French aliases (SOMME/MOYENNE/ARRONDI/SI) and `;` as the
+argument separator, because the visual is fr-first and Excel-FR types `;`.
+Deliberate Excel-fidelity choices: `-2^2 = 4` (unary minus binds tighter),
+`^` left-associative (`2^3^2 = 64`), ROUND is half-away-from-zero with
+optional and negative digits, aggregates skip blanks (the ONE exception to
+strict null propagation — all-null still yields blank, so empty
+intersections stay empty). A leading `=` is stripped: users paste formulas
+straight from Excel. Still zero eval / new Function (cert-fatal), still one
+shared engine for calculated columns AND custom formula rows — one grammar
+to document, one to test. `,`-vs-`;` and EN-vs-FR names are tokenizer-level
+aliases, not locale switches: both spellings always work, so a report
+travels between locales without breaking formulas.
+
+## 18. Data comments through the model (1.8.0.0)
+
+The Zebra-style ask ("comments from a SharePoint list / Excel, same access
+management") has exactly one certifiable shape: comments are MODEL data.
+A certified visual has `privileges: []` — no fetch, no Graph, no SharePoint
+API — so the list is loaded by Power Query, related to the dimensions,
+exposed as a text measure on a new `comments` measure role (3rd entry in
+the SAME matrix mapping's values.select, the proven tooltips pattern; never
+a second mapping object, §4.3.5). Access management follows for free:
+readers are constrained by RLS on the comments table, writers by the
+SharePoint list permissions, the visual only ever sees post-RLS text.
+Writeback from the visual is impossible (documented plainly, like no-DAX,
+§6) — writing happens in the source, a refresh brings it in.
+`src/comments.ts` is pure and portable (extraction keyed on the global DFS
+cellKeys — comment leaves are excluded from renderLeafIdxs but never
+re-indexed, same invariant as tooltip-only measures) and the inline markup
+(`**b**`, `*i*`, `__u__`, `[#hex]…[/#]`) renders as DOM spans only — no
+HTML strings, hostile text stays inert. Unclosed markers style to the end
+on purpose: authors type in Excel, forgiveness beats strictness. The full
+portable architecture + porting checklist lives in docs/COMMENTS.md.
+Grid/border options ship the same release with one geometry rule: a
+disabled grid line goes transparent but keeps its width, so the uniform
+row-height estimate the virtualization depends on (§12) never lies.
+
+## 19. IBCS table templates T01-T04 (1.9.0.0)
+
+The four ibcs.com table templates map cleanly onto machinery we already
+had: scenario detection (§15) names the AC/PY/PL measures, the expression
+engine (§17) computes the variances, and the calc-column interleave (§14)
+places them per column group. A template is therefore a PLAN, not a mode:
+synthesized CalcDefs (ΔPY, ΔPY %, ΔPL, ΔPL %) prepended to the user's
+slots + a scenario sort of the measure leaves per group (AC · PY · PL ·
+FC). Two display primitives were genuinely new — the IBCS **pin**
+(relative variances in T02/T04) and the **T04 waterfall** (detail bars
+cascade via a per-column cumulative run; subtotal rows re-anchor at zero
+and show the running total) — both pure math in ibcs.ts, both on the
+shared zero-axis track the 1.5.0.0 bars introduced. Δ% divides by
+ABS(base) so cost rows keep a meaningful sign (the usual IBCS practice).
+Deliberate degradations: no detected AC or no PY/PL base → the template is
+silently inert (nothing to compute); template active → flat header path
+(the calc interleave already forces it), which the scenario sort relies
+on. Colour policy: the semantic good/bad/PY tokens joined the Format pane
+with the general font/background/accent — everything still flows through
+the CSS custom properties born in 1.0.1.0, so high contrast keeps a single
+override point and `color-mix` derives hover/selection from the accent
+instead of hardcoding rgba tints.
+
+## 20. User-driven layout (1.10.0.0)
+
+Column widths follow the native matrix's 2025 behaviour: auto stays the
+`max-content` table we always had; uniform/custom switch to an
+authoritative `<colgroup>` + `table-layout: fixed` (widths are law, text
+ellipses). Custom widths are dragged on header grips and persisted like
+every other user-authored state (JSON via persistProperties), keyed by a
+stable column identity (group path + measure name, `calc:<name>` for
+calculated columns) — NOT by ordinal, so widths survive reordering and
+survive the IBCS template's scenario sort. Per-row overrides (alignment,
+absolute indent) reuse the custom-rows path keys — one identity scheme
+for every row-addressed feature — and live in their own `rowStyles.state`.
+Row-label wrap had to negotiate with virtualization (§12): the clamp is a
+fixed line count and every row gets a forced uniform height, so the
+row-height estimate stays exact by construction rather than by hope.
+Aeration is rows and columns, not padding: blank spacer rows (auto
+before groups, or user-inserted — a third custom-row kind) keep the
+uniform height; blank gap columns between groups are render columns of a
+new "gap" kind, so spacers, colgroup and flat headers all count them
+without special cases. The gap/calc interleave shares one rule: anything
+that widens groups forces the flat header.
+
+## 21. Financial-communication frames (1.11.0.0)
+
+The ask was "reproduce an investor slide's table exactly" (Orange S1
+deck): a rule above the header, key lines bolded between rules, ONE
+chosen cell fully boxed, the current-period column in brand colour.
+Frames extend the per-row styles (§20) rather than a new object: a
+`RowBorderDef {mode, style, width, color, target}` rides on the same
+`rowStyles.state` entries, so frames use the row path keys and travel
+with the report. The interesting field is `target` — "all" draws ONE
+continuous frame around the row (top/bottom on every cell, left on the
+first, right on the last), "label" boxes the label cell, and a column
+identity (§20's stable keys) boxes exactly that cell. Painting is inline
+border-* on the cells: it wins over the theme grid without touching the
+CSS custom properties, and high contrast just swaps the colour for the
+HC foreground while keeping the structure. Widths are clamped 1-4 px and
+borders sit inside the forced uniform row height, so virtualization
+(§12) is untouched. The header top rule is deliberately a separate
+option from the bottom header rule (both coexist, as investor tables
+do), and the per-measure font colour reuses the 1:1 header-mapping guard
+the grips introduced — when a column tree makes headers span, only the
+cells keep the colour.
+
+## 22. Third adversarial review & hardening (1.11.1.0)
+
+The 64-agent review of the 1.9→1.11 diffs confirmed 27 findings (12 unique
+defects). Two were contract violations worth recording. First, the uniform
+row height (§12) was a hope, not an invariant: blank aeration rows
+collapsed to padding height and 2-4px frame borders grew framed rows in
+the collapsed-border model. Measured in Chromium: an explicit tr height
+absorbs both exactly (26.0px across normal/framed/blank with height
+forced; 20/22/8.5 without). So the rule is now structural — blank rows
+always get an explicit height, and every row does once virtualization is
+active. Don't "fix" that by estimating variable heights; force the
+geometry instead. Second, focus() on a tabindex-less row is a silent
+no-op, so arrow navigation must skip non-focusable rows explicitly —
+any future row kind that opts out of focus must be skipped in
+handleKeydown, not just excluded from tab order. Also here: frames paint
+with inline !important (the HC structure toggles use stylesheet
+!important and would erase them), bands-off re-asserts hover/group
+backgrounds at its own specificity, and gap width applies inline so auto
+layout honours it. Documented limitation: column identity keys (§20)
+join path and measure name with `·` and `|`; names containing those
+characters can collide. Accepted — an escaping scheme would invalidate
+every report's persisted widths for a case renaming the measure fixes.

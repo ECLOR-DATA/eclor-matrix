@@ -45,6 +45,8 @@ export interface HeaderCell {
   label: string;
   span: number;
   isSubtotal: boolean;
+  /** Blank aeration column (flat-header mode only). */
+  isGap?: boolean;
 }
 
 export interface RowModel {
@@ -212,6 +214,38 @@ export function flattenRows(
   };
   for (const c of root.children) walk(c, 0);
   return out;
+}
+
+/**
+ * Copy of the columns tree without the measure-level leaves of the given
+ * measures (tooltip-only / comments-only). Groups left empty disappear.
+ * Lets buildHeaderRows keep the REAL multi-level header when auxiliary
+ * measures are bound, instead of collapsing to the flat fallback — DFS
+ * order of the remaining leaves matches the filtered render columns.
+ */
+export function pruneColumnTree(
+  root: MatrixNodeLike | undefined,
+  excludeMeasures: Set<number>
+): MatrixNodeLike | undefined {
+  if (!root || !root.children || excludeMeasures.size === 0) return root;
+  const prune = (node: MatrixNodeLike): MatrixNodeLike | null => {
+    if (!node.children || node.children.length === 0) {
+      const isMeasureLeaf =
+        node.levelSourceIndex !== undefined &&
+        node.levelSourceIndex !== null &&
+        node.value === undefined &&
+        (node.levelValues === undefined || node.levelValues.length === 0);
+      if (isMeasureLeaf && excludeMeasures.has(node.levelSourceIndex as number)) return null;
+      return node;
+    }
+    const children = node.children
+      .map(prune)
+      .filter((c): c is MatrixNodeLike => c !== null);
+    if (children.length === 0) return null;
+    return { ...node, children };
+  };
+  const children = root.children.map(prune).filter((c): c is MatrixNodeLike => c !== null);
+  return { ...root, children };
 }
 
 /** Largest |numeric cell| across rendered rows — drives auto display units. */

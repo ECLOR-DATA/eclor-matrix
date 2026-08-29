@@ -23,6 +23,12 @@
       "name": "tooltips",
       "kind": "Measure",
       "description": "Optional. Additional measures displayed in the hover tooltip of each cell."
+    },
+    {
+      "displayName": "Comments",
+      "name": "comments",
+      "kind": "Measure",
+      "description": "Optional. Text measures carrying data comments (e.g. from a SharePoint list or Excel table related in the model). Shown as row markers, an inline column or the comments panel — never as grid values."
     }
   ],
   "dataViewMappings": [
@@ -53,6 +59,11 @@
             {
               "for": {
                 "in": "tooltips"
+              }
+            },
+            {
+              "for": {
+                "in": "comments"
               }
             }
           ]
@@ -97,6 +108,154 @@
           "type": {
             "numeric": true
           }
+        },
+        "cellPaddingX": {
+          "displayName": "Cell padding (px, horizontal)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "accentColor": {
+          "displayName": "Accent (hover/selection)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "banded": {
+          "displayName": "Banded rows",
+          "type": {
+            "bool": true
+          }
+        },
+        "bandColor": {
+          "displayName": "Band color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "blankRowBeforeGroups": {
+          "displayName": "Blank row before groups",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "grid": {
+      "displayName": "Grid & borders",
+      "displayNameKey": "Visual_Grid",
+      "properties": {
+        "horizontal": {
+          "displayName": "Horizontal grid",
+          "type": {
+            "bool": true
+          }
+        },
+        "horizontalColor": {
+          "displayName": "Horizontal color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "horizontalWidth": {
+          "displayName": "Horizontal width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "vertical": {
+          "displayName": "Vertical grid",
+          "type": {
+            "bool": true
+          }
+        },
+        "verticalColor": {
+          "displayName": "Vertical color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "verticalWidth": {
+          "displayName": "Vertical width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "outerBorder": {
+          "displayName": "Outer border",
+          "type": {
+            "bool": true
+          }
+        },
+        "outerColor": {
+          "displayName": "Outer border color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "outerWidth": {
+          "displayName": "Outer border width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "headerRule": {
+          "displayName": "Header bottom rule",
+          "type": {
+            "bool": true
+          }
+        },
+        "gapColumns": {
+          "displayName": "Blank column between groups",
+          "type": {
+            "bool": true
+          }
+        },
+        "gapWidth": {
+          "displayName": "Blank column width (px)",
+          "type": {
+            "numeric": true
+          }
         }
       }
     },
@@ -130,6 +289,73 @@
           "displayName": "Indent per level (px)",
           "type": {
             "numeric": true
+          }
+        },
+        "groupBold": {
+          "displayName": "Bold group rows",
+          "type": {
+            "bool": true
+          }
+        },
+        "groupBackColor": {
+          "displayName": "Group row background",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "showChevrons": {
+          "displayName": "Show expand icons",
+          "type": {
+            "bool": true
+          }
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "wrapText": {
+          "displayName": "Wrap labels",
+          "type": {
+            "bool": true
+          }
+        },
+        "maxLines": {
+          "displayName": "Max lines (1-3)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "expandIcon": {
+          "displayName": "Expand icon",
+          "type": {
+            "enumeration": [
+              {
+                "value": "chevron",
+                "displayName": "Chevrons ▸ ▾"
+              },
+              {
+                "value": "plusminus",
+                "displayName": "Plus / minus + −"
+              },
+              {
+                "value": "boxed",
+                "displayName": "Boxed ⊞ ⊟"
+              },
+              {
+                "value": "arrows",
+                "displayName": "Arrows ► ▼"
+              }
+            ]
           }
         }
       }
@@ -207,6 +433,62 @@
               }
             ]
           }
+        },
+        "separators": {
+          "displayName": "Vertical separators",
+          "type": {
+            "bool": true
+          }
+        },
+        "borderColor": {
+          "displayName": "Separator color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "borderWidth": {
+          "displayName": "Separator width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "wrapText": {
+          "displayName": "Wrap text",
+          "type": {
+            "bool": true
+          }
+        },
+        "textSize": {
+          "displayName": "Header text size (0 = table)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "topRule": {
+          "displayName": "Top rule",
+          "type": {
+            "bool": true
+          }
+        },
+        "topColor": {
+          "displayName": "Top rule color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "topWidth": {
+          "displayName": "Top rule width (px)",
+          "type": {
+            "numeric": true
+          }
         }
       }
     },
@@ -257,6 +539,109 @@
                 "displayName": "Bottom"
               }
             ]
+          }
+        }
+      }
+    },
+    "subtotalsStyle": {
+      "displayName": "Subtotal style",
+      "displayNameKey": "Visual_SubtotalsStyle",
+      "properties": {
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "comments": {
+      "displayName": "Comments",
+      "displayNameKey": "Visual_Comments",
+      "properties": {
+        "show": {
+          "displayName": "Show comments",
+          "type": {
+            "bool": true
+          }
+        },
+        "display": {
+          "displayName": "Display",
+          "type": {
+            "enumeration": [
+              {
+                "value": "markers",
+                "displayName": "Markers only"
+              },
+              {
+                "value": "column",
+                "displayName": "Inline column"
+              }
+            ]
+          }
+        },
+        "markerColor": {
+          "displayName": "Marker color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "columnTitle": {
+          "displayName": "Inline column title",
+          "type": {
+            "text": true
           }
         }
       }
@@ -333,6 +718,39 @@
                 "value": "none"
               }
             ]
+          }
+        },
+        "alignment": {
+          "displayName": "Alignment",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "left",
+                "displayName": "Left"
+              },
+              {
+                "value": "center",
+                "displayName": "Center"
+              },
+              {
+                "value": "right",
+                "displayName": "Right"
+              }
+            ]
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
           }
         }
       }
@@ -466,6 +884,12 @@
             ]
           }
         },
+        "calc1Sign": {
+          "displayName": "Column 1 explicit sign (+/-)",
+          "type": {
+            "bool": true
+          }
+        },
         "calc2Show": {
           "displayName": "Column 2",
           "type": {
@@ -516,6 +940,12 @@
                 "value": "bar"
               }
             ]
+          }
+        },
+        "calc2Sign": {
+          "displayName": "Column 2 explicit sign (+/-)",
+          "type": {
+            "bool": true
           }
         },
         "calc3Show": {
@@ -569,6 +999,12 @@
               }
             ]
           }
+        },
+        "calc3Sign": {
+          "displayName": "Column 3 explicit sign (+/-)",
+          "type": {
+            "bool": true
+          }
         }
       }
     },
@@ -581,6 +1017,63 @@
           "type": {
             "bool": true
           }
+        },
+        "template": {
+          "displayName": "Table template",
+          "type": {
+            "enumeration": [
+              {
+                "value": "none",
+                "displayName": "None"
+              },
+              {
+                "value": "t01",
+                "displayName": "T01 — AC·PY·PL, variances as figures"
+              },
+              {
+                "value": "t02",
+                "displayName": "T02 — variances as bars & pins"
+              },
+              {
+                "value": "t03",
+                "displayName": "T03 — calculation scheme, figures"
+              },
+              {
+                "value": "t04",
+                "displayName": "T04 — waterfall bars & pins"
+              }
+            ]
+          }
+        },
+        "goodColor": {
+          "displayName": "Good color (positive)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "badColor": {
+          "displayName": "Bad color (negative)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "pyColor": {
+          "displayName": "PY grey",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
         }
       }
     },
@@ -592,6 +1085,54 @@
             "text": true
           },
           "displayName": "State"
+        }
+      }
+    },
+    "columnWidths": {
+      "displayName": "Column widths",
+      "displayNameKey": "Visual_ColumnWidths",
+      "properties": {
+        "mode": {
+          "displayName": "Mode",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto (fit content)"
+              },
+              {
+                "value": "uniform",
+                "displayName": "Uniform"
+              },
+              {
+                "value": "custom",
+                "displayName": "Custom (drag to resize)"
+              }
+            ]
+          }
+        },
+        "uniformWidth": {
+          "displayName": "Uniform width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "state": {
+          "displayName": "State",
+          "type": {
+            "text": true
+          }
+        }
+      }
+    },
+    "rowStyles": {
+      "displayName": "Row styles (internal state)",
+      "properties": {
+        "state": {
+          "displayName": "State",
+          "type": {
+            "text": true
+          }
         }
       }
     }

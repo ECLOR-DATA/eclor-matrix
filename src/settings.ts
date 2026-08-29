@@ -51,10 +51,161 @@ class GeneralCardSettings extends FormattingSettingsCard {
     }
   });
 
+  cellPaddingX = new formattingSettings.NumUpDown({
+    name: "cellPaddingX",
+    displayName: "Cell padding (px, horizontal)",
+    value: 8,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 40 }
+    }
+  });
+
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
+  accentColor = new formattingSettings.ColorPicker({
+    name: "accentColor",
+    displayName: "Accent (hover/selection)",
+    value: { value: "" }
+  });
+  banded = new formattingSettings.ToggleSwitch({
+    name: "banded",
+    displayName: "Banded rows",
+    value: true
+  });
+  bandColor = new formattingSettings.ColorPicker({
+    name: "bandColor",
+    displayName: "Band color",
+    value: { value: "" }
+  });
+  blankRowBeforeGroups = new formattingSettings.ToggleSwitch({
+    name: "blankRowBeforeGroups",
+    displayName: "Blank row before groups",
+    value: false
+  });
+
   name: string = "general";
   displayName: string = "General";
   displayNameKey: string = "Visual_General";
-  slices: FormattingSettingsSlice[] = [this.textSize, this.density, this.rowPadding];
+  slices: FormattingSettingsSlice[] = [
+    this.textSize,
+    this.density,
+    this.rowPadding,
+    this.cellPaddingX,
+    this.fontColor,
+    this.backColor,
+    this.accentColor,
+    this.banded,
+    this.bandColor,
+    this.blankRowBeforeGroups
+  ];
+}
+
+/** Grid & borders — every rule of the table chrome is now an option (the
+ *  theme defaults stay: horizontal-only #E5E7E6, header bottom rule). */
+class GridCardSettings extends FormattingSettingsCard {
+  horizontal = new formattingSettings.ToggleSwitch({
+    name: "horizontal",
+    displayName: "Horizontal grid",
+    value: true
+  });
+  horizontalColor = new formattingSettings.ColorPicker({
+    name: "horizontalColor",
+    displayName: "Horizontal color",
+    value: { value: "" }
+  });
+  horizontalWidth = new formattingSettings.NumUpDown({
+    name: "horizontalWidth",
+    displayName: "Horizontal width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  vertical = new formattingSettings.ToggleSwitch({
+    name: "vertical",
+    displayName: "Vertical grid",
+    value: false
+  });
+  verticalColor = new formattingSettings.ColorPicker({
+    name: "verticalColor",
+    displayName: "Vertical color",
+    value: { value: "" }
+  });
+  verticalWidth = new formattingSettings.NumUpDown({
+    name: "verticalWidth",
+    displayName: "Vertical width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  outerBorder = new formattingSettings.ToggleSwitch({
+    name: "outerBorder",
+    displayName: "Outer border",
+    value: false
+  });
+  outerColor = new formattingSettings.ColorPicker({
+    name: "outerColor",
+    displayName: "Outer border color",
+    value: { value: "" }
+  });
+  outerWidth = new formattingSettings.NumUpDown({
+    name: "outerWidth",
+    displayName: "Outer border width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  headerRule = new formattingSettings.ToggleSwitch({
+    name: "headerRule",
+    displayName: "Header bottom rule",
+    value: true
+  });
+  gapColumns = new formattingSettings.ToggleSwitch({
+    name: "gapColumns",
+    displayName: "Blank column between groups",
+    value: false
+  });
+  gapWidth = new formattingSettings.NumUpDown({
+    name: "gapWidth",
+    displayName: "Blank column width (px)",
+    value: 14,
+    options: {
+      minValue: { type: 0, value: 2 },
+      maxValue: { type: 1, value: 80 }
+    }
+  });
+
+  name: string = "grid";
+  displayName: string = "Grid & borders";
+  displayNameKey: string = "Visual_Grid";
+  slices: FormattingSettingsSlice[] = [
+    this.horizontal,
+    this.horizontalColor,
+    this.horizontalWidth,
+    this.vertical,
+    this.verticalColor,
+    this.verticalWidth,
+    this.outerBorder,
+    this.outerColor,
+    this.outerWidth,
+    this.headerRule,
+    this.gapColumns,
+    this.gapWidth
+  ];
 }
 
 class RowHeadersCardSettings extends FormattingSettingsCard {
@@ -74,11 +225,68 @@ class RowHeadersCardSettings extends FormattingSettingsCard {
       maxValue: { type: 1, value: 60 }
     }
   });
+  groupBold = new formattingSettings.ToggleSwitch({
+    name: "groupBold",
+    displayName: "Bold group rows",
+    value: false
+  });
+  groupBackColor = new formattingSettings.ColorPicker({
+    name: "groupBackColor",
+    displayName: "Group row background",
+    value: { value: "" }
+  });
+  showChevrons = new formattingSettings.ToggleSwitch({
+    name: "showChevrons",
+    displayName: "Show expand icons",
+    value: true
+  });
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
+  wrapText = new formattingSettings.ToggleSwitch({
+    name: "wrapText",
+    displayName: "Wrap labels",
+    value: false
+  });
+  maxLines = new formattingSettings.NumUpDown({
+    name: "maxLines",
+    displayName: "Max lines (1-3)",
+    value: 2,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 3 }
+    }
+  });
+  expandIcon = new formattingSettings.ItemDropdown({
+    name: "expandIcon",
+    displayName: "Expand icon",
+    items: [
+      { value: "chevron", displayName: "Chevrons ▸ ▾" },
+      { value: "plusminus", displayName: "Plus / minus + −" },
+      { value: "boxed", displayName: "Boxed ⊞ ⊟" },
+      { value: "arrows", displayName: "Arrows ► ▼" }
+    ],
+    value: { value: "chevron", displayName: "Chevrons ▸ ▾" }
+  });
 
   name: string = "rowHeaders";
   displayName: string = "Row headers";
   displayNameKey: string = "Visual_RowHeaders";
-  slices: FormattingSettingsSlice[] = [this.bold, this.italic, this.fontColor, this.indent];
+  slices: FormattingSettingsSlice[] = [
+    this.bold,
+    this.italic,
+    this.fontColor,
+    this.backColor,
+    this.indent,
+    this.groupBold,
+    this.groupBackColor,
+    this.showChevrons,
+    this.expandIcon,
+    this.wrapText,
+    this.maxLines
+  ];
 }
 
 class ColumnHeadersCardSettings extends FormattingSettingsCard {
@@ -114,6 +322,58 @@ class ColumnHeadersCardSettings extends FormattingSettingsCard {
     ],
     value: { value: "0", displayName: "0°" }
   });
+  separators = new formattingSettings.ToggleSwitch({
+    name: "separators",
+    displayName: "Vertical separators",
+    value: false
+  });
+  borderColor = new formattingSettings.ColorPicker({
+    name: "borderColor",
+    displayName: "Separator color",
+    value: { value: "" }
+  });
+  borderWidth = new formattingSettings.NumUpDown({
+    name: "borderWidth",
+    displayName: "Separator width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
+  wrapText = new formattingSettings.ToggleSwitch({
+    name: "wrapText",
+    displayName: "Wrap text",
+    value: false
+  });
+  textSize = new formattingSettings.NumUpDown({
+    name: "textSize",
+    displayName: "Header text size (0 = table)",
+    value: 0,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 32 }
+    }
+  });
+  topRule = new formattingSettings.ToggleSwitch({
+    name: "topRule",
+    displayName: "Top rule",
+    value: false
+  });
+  topColor = new formattingSettings.ColorPicker({
+    name: "topColor",
+    displayName: "Top rule color",
+    value: { value: "" }
+  });
+  topWidth = new formattingSettings.NumUpDown({
+    name: "topWidth",
+    displayName: "Top rule width (px)",
+    value: 1,
+    options: {
+      minValue: { type: 0, value: 1 },
+      maxValue: { type: 1, value: 4 }
+    }
+  });
 
   name: string = "columnHeaders";
   displayName: string = "Column headers";
@@ -124,8 +384,45 @@ class ColumnHeadersCardSettings extends FormattingSettingsCard {
     this.fontColor,
     this.backColor,
     this.alignment,
-    this.rotation
+    this.rotation,
+    this.separators,
+    this.borderColor,
+    this.borderWidth,
+    this.wrapText,
+    this.textSize,
+    this.topRule,
+    this.topColor,
+    this.topWidth
   ];
+}
+
+/** Column widths — Power BI matrix-style sizing: auto, uniform, or
+ *  per-column drag (persisted in objects.columnWidths.state). */
+class ColumnWidthsCardSettings extends FormattingSettingsCard {
+  mode = new formattingSettings.ItemDropdown({
+    name: "mode",
+    displayName: "Mode",
+    items: [
+      { value: "auto", displayName: "Auto (fit content)" },
+      { value: "uniform", displayName: "Uniform" },
+      { value: "custom", displayName: "Custom (drag to resize)" }
+    ],
+    value: { value: "auto", displayName: "Auto (fit content)" }
+  });
+  uniformWidth = new formattingSettings.NumUpDown({
+    name: "uniformWidth",
+    displayName: "Uniform width (px)",
+    value: 110,
+    options: {
+      minValue: { type: 0, value: 24 },
+      maxValue: { type: 1, value: 1200 }
+    }
+  });
+
+  name: string = "columnWidths";
+  displayName: string = "Column widths";
+  displayNameKey: string = "Visual_ColumnWidths";
+  slices: FormattingSettingsSlice[] = [this.mode, this.uniformWidth];
 }
 
 /** Mirrors the capabilities `subtotals` switch mappings 1:1 — all six
@@ -185,6 +482,89 @@ class SubTotalsCardSettings extends FormattingSettingsCard {
   ];
 }
 
+/** Subtotal STYLING lives in its own object — the `subTotals` card above is
+ *  the load-bearing mirror of the capabilities switch mappings and must not
+ *  grow unrelated properties (playbook §4.3.6). */
+class SubtotalsStyleCardSettings extends FormattingSettingsCard {
+  backColor = new formattingSettings.ColorPicker({
+    name: "backColor",
+    displayName: "Background color",
+    value: { value: "" }
+  });
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  bold = new formattingSettings.ToggleSwitch({
+    name: "bold",
+    displayName: "Bold",
+    value: true
+  });
+
+  name: string = "subtotalsStyle";
+  displayName: string = "Subtotal style";
+  displayNameKey: string = "Visual_SubtotalsStyle";
+  slices: FormattingSettingsSlice[] = [this.backColor, this.fontColor, this.bold];
+}
+
+/** Data comments (Zebra-style): text measures on the `comments` role,
+ *  fed from the model (SharePoint list / Excel via Power Query). See
+ *  docs/COMMENTS.md for the full portable architecture. */
+class CommentsCardSettings extends FormattingSettingsCard {
+  show = new formattingSettings.ToggleSwitch({
+    name: "show",
+    displayName: "Show comments",
+    value: true
+  });
+  display = new formattingSettings.ItemDropdown({
+    name: "display",
+    displayName: "Display",
+    items: [
+      { value: "markers", displayName: "Markers only" },
+      { value: "column", displayName: "Inline column" }
+    ],
+    value: { value: "markers", displayName: "Markers only" }
+  });
+  markerColor = new formattingSettings.ColorPicker({
+    name: "markerColor",
+    displayName: "Marker color",
+    value: { value: "#1EF5B1" }
+  });
+  fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: "" }
+  });
+  bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: false });
+  italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
+  underline = new formattingSettings.ToggleSwitch({
+    name: "underline",
+    displayName: "Underline",
+    value: false
+  });
+  columnTitle = new formattingSettings.TextInput({
+    name: "columnTitle",
+    displayName: "Inline column title",
+    value: "",
+    placeholder: "Comments"
+  });
+
+  name: string = "comments";
+  displayName: string = "Comments";
+  displayNameKey: string = "Visual_Comments";
+  slices: FormattingSettingsSlice[] = [
+    this.show,
+    this.display,
+    this.markerColor,
+    this.fontColor,
+    this.bold,
+    this.italic,
+    this.underline,
+    this.columnTitle
+  ];
+}
+
 /** Values card — a CompositeCard: one static "All measures" group plus one
  *  dynamic group per bound measure (built each update() in visual.ts with
  *  `selector: { metadata: queryName }`; persisted instances come back on
@@ -207,10 +587,22 @@ class ValuesCardSettings extends formattingSettings.CompositeCard {
     }
   });
 
+  alignment = new formattingSettings.ItemDropdown({
+    name: "alignment",
+    displayName: "Alignment",
+    items: [
+      { value: "auto", displayName: "Auto" },
+      { value: "left", displayName: "Left" },
+      { value: "center", displayName: "Center" },
+      { value: "right", displayName: "Right" }
+    ],
+    value: { value: "auto", displayName: "Auto" }
+  });
+
   globalGroup: formattingSettings.Group = new formattingSettings.Group({
     name: "valuesGlobal",
     displayName: "All measures",
-    slices: [this.displayUnits, this.decimals]
+    slices: [this.displayUnits, this.decimals, this.alignment]
   });
 
   name: string = "values";
@@ -226,7 +618,20 @@ export interface MeasureFormatOverride {
   decimals: number;
   /** IBCS scenario override: auto | AC | PY | BU | FC | none. */
   scenario: string;
+  /** Column alignment: auto (theme right) | left | center | right —
+   *  effective without the useCustom gate. */
+  alignment: string;
+  /** Column font colour ("" = theme) — cells + measure-level header,
+   *  effective without the useCustom gate. */
+  fontColor: string;
 }
+
+export const ALIGNMENT_ITEMS: powerbi.IEnumMember[] = [
+  { value: "auto", displayName: "Auto" },
+  { value: "left", displayName: "Left" },
+  { value: "center", displayName: "Center" },
+  { value: "right", displayName: "Right" }
+];
 
 const SCENARIO_ITEMS: powerbi.IEnumMember[] = [
   { value: "auto", displayName: "Auto (detect from name)" },
@@ -278,10 +683,25 @@ export function makePerMeasureValueGroup(
     value: scenarioItem
   });
   scenario.selector = selector;
+  const alignItem =
+    ALIGNMENT_ITEMS.find((i) => i.value === persisted.alignment) ?? ALIGNMENT_ITEMS[0];
+  const alignment = new formattingSettings.ItemDropdown({
+    name: "alignment",
+    displayName: "Alignment",
+    items: ALIGNMENT_ITEMS,
+    value: alignItem
+  });
+  alignment.selector = selector;
+  const fontColor = new formattingSettings.ColorPicker({
+    name: "fontColor",
+    displayName: "Font color",
+    value: { value: persisted.fontColor }
+  });
+  fontColor.selector = selector;
   return new formattingSettings.Group({
     name: `valuesM${index}`,
     displayName: displayName,
-    slices: [useCustom, units, decimals, scenario]
+    slices: [useCustom, units, decimals, scenario, alignment, fontColor]
   });
 }
 
@@ -424,6 +844,7 @@ export interface CalcSlot {
   formula: formattingSettings.TextInput;
   format: formattingSettings.ItemDropdown;
   display: formattingSettings.ItemDropdown;
+  sign: formattingSettings.ToggleSwitch;
 }
 
 const CALC_FORMAT_ITEMS: powerbi.IEnumMember[] = [
@@ -481,10 +902,15 @@ class CalculatedColumnsCardSettings extends FormattingSettingsCard {
           displayName: `Column ${n} display`,
           items: CALC_DISPLAY_ITEMS,
           value: CALC_DISPLAY_ITEMS[0]
+        }),
+        sign: new formattingSettings.ToggleSwitch({
+          name: `calc${n}Sign`,
+          displayName: `Column ${n} explicit sign (+/-)`,
+          value: true
         })
       };
       this.slots.push(slot);
-      this.slices.push(slot.show, slot.label, slot.formula, slot.format, slot.display);
+      this.slices.push(slot.show, slot.label, slot.formula, slot.format, slot.display, slot.sign);
     }
   }
 }
@@ -495,31 +921,72 @@ class IbcsCardSettings extends FormattingSettingsCard {
     displayName: "Enable IBCS styling",
     value: false
   });
+  template = new formattingSettings.ItemDropdown({
+    name: "template",
+    displayName: "Table template",
+    items: [
+      { value: "none", displayName: "None" },
+      { value: "t01", displayName: "T01 — AC·PY·PL, variances as figures" },
+      { value: "t02", displayName: "T02 — variances as bars & pins" },
+      { value: "t03", displayName: "T03 — calculation scheme, figures" },
+      { value: "t04", displayName: "T04 — waterfall bars & pins" }
+    ],
+    value: { value: "none", displayName: "None" }
+  });
+  goodColor = new formattingSettings.ColorPicker({
+    name: "goodColor",
+    displayName: "Good color (positive)",
+    value: { value: "" }
+  });
+  badColor = new formattingSettings.ColorPicker({
+    name: "badColor",
+    displayName: "Bad color (negative)",
+    value: { value: "" }
+  });
+  pyColor = new formattingSettings.ColorPicker({
+    name: "pyColor",
+    displayName: "PY grey",
+    value: { value: "" }
+  });
 
   name: string = "ibcs";
   displayName: string = "IBCS";
   displayNameKey: string = "Visual_IBCS";
-  slices: FormattingSettingsSlice[] = [this.enabled];
+  slices: FormattingSettingsSlice[] = [
+    this.enabled,
+    this.template,
+    this.goodColor,
+    this.badColor,
+    this.pyColor
+  ];
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
   general = new GeneralCardSettings();
+  grid = new GridCardSettings();
   subTotals = new SubTotalsCardSettings();
+  subtotalsStyle = new SubtotalsStyleCardSettings();
   rowHeaders = new RowHeadersCardSettings();
   columnHeaders = new ColumnHeadersCardSettings();
+  columnWidths = new ColumnWidthsCardSettings();
   values = new ValuesCardSettings();
   cellColors = new CellColorsCardSettings();
   calculatedColumns = new CalculatedColumnsCardSettings();
   ibcs = new IbcsCardSettings();
+  comments = new CommentsCardSettings();
 
   cards = [
     this.general,
+    this.grid,
     this.subTotals,
+    this.subtotalsStyle,
     this.rowHeaders,
     this.columnHeaders,
+    this.columnWidths,
     this.values,
     this.cellColors,
     this.calculatedColumns,
-    this.ibcs
+    this.ibcs,
+    this.comments
   ];
 }

@@ -7,7 +7,7 @@
 Power BI custom visual (`.pbiviz`) — advanced matrix/cross-tab: hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic number formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting. Successor project to `eclor-waterfall` (certified 2026-07) — same shop: workflows, agents, test harness, conventions.
 Target: **AppSource certification** (Stage C from day one — retrofit costs 10x).
 
-- **Current version:** 1.0.0.0 — see [CHANGELOG.md](CHANGELOG.md)
+- **Current version:** 1.11.1.0 — see [CHANGELOG.md](CHANGELOG.md)
 - **Stage status:** A ⏳ (skeleton) / B ⏳ / C ⏳
 - **API:** `powerbi-visuals-api ~5.11.0`
 
@@ -35,14 +35,16 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 ## Architecture
 
 - [src/visual.ts](src/visual.ts) — main `IVisual` class (constructor, update, parseMatrix, renderFromInput, interactions, destroy)
-- [src/matrixModel.ts](src/matrixModel.ts) — PURE matrix-tree flattening (flattenRows/flattenColumns/buildHeaderRows/computeMaxAbs) — no host coupling, fully testable
+- [src/matrixModel.ts](src/matrixModel.ts) — PURE matrix-tree flattening (flattenRows/flattenColumns/buildHeaderRows/pruneColumnTree/computeMaxAbs) — no host coupling, fully testable
+- [src/layout.ts](src/layout.ts) — PURE layout state (column widths auto/uniform/custom + per-row style overrides), persisted like customRows
 - [src/settings.ts](src/settings.ts) — `FormattingSettingsModel` (8 cards; dynamic per-measure groups for values/cellColors)
 - [src/format.ts](src/format.ts) — pure number/format-string helpers, copied verbatim from eclor-waterfall (scale-then-format pipeline, ~15 bugs already paid for — don't fork lightly)
 - [src/virtualize.ts](src/virtualize.ts) — pure windowed-scroll math (computeWindow/estimateRowHeight)
 - [src/cellColor.ts](src/cellColor.ts) — pure rules/heat-map engine + WCAG auto text contrast
-- [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard)
-- [src/ibcs.ts](src/ibcs.ts) — IBCS scenario detection (EN/FR tokens) + bar math
-- Tests in [test/](test/) — Jest + jsdom + ts-jest, 101 tests / 13 suites; shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
+- [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard): + - * / ^ %, comparisons, SUM/AVERAGE/MIN/MAX/ABS/ROUND/IF with FR aliases (SOMME/MOYENNE/ARRONDI/SI) and `;` separator
+- [src/ibcs.ts](src/ibcs.ts) — IBCS scenario detection (EN/FR tokens), bar/pin/waterfall math, table templates T01-T04 (variance-column specs)
+- [src/comments.ts](src/comments.ts) — PURE data-comments layer (comments role): extraction + inline markup parser (**bold**/*italic*/__underline__/[#hex]) — architecture & porting guide in [docs/COMMENTS.md](docs/COMMENTS.md)
+- Tests in [test/](test/) — Jest + jsdom + ts-jest (21 suites, count via `npm test`); shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
 
 ## Agent workflow (see docs/WORKFLOW.md for detail)
 
@@ -58,7 +60,8 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 - **"Custom measures" are client-side calculated rows/columns** (Zebra BI/Inforiver model) — a custom visual CANNOT execute DAX. Never promise dynamic DAX in docs or UI copy. Expression engine (when it lands) must be a hand-rolled parser — `eval`/`new Function` are cert-fatal.
 - **The `subtotals` capabilities block is load-bearing and complete** — all SIX switch mappings declared (`columnSubtotalsPerLevel` included). `rowSubtotalsPerLevel`/`perColumnLevel` default `false` (per-level route needs persisted per-field props we don't emit). Breaking this is SILENT (playbook §4.3.6). Never add a second `dataViewMappings` object (§4.3.5 — crashes the host query generator).
 - **Two empty-state branches** in `update()`: `dv.matrix === undefined` → page-switch transient → replay `lastValidRenderInput`; parsed but 0 rows → user-cleared → wipe caches. Ghost-frame class of bugs (playbook §4.1.2).
-- **Tooltip-only measures** (roles.tooltips without roles.values) are excluded from grid columns (`renderLeafIdxs`) but keep their global `cellKey` — cell keys are DFS ordinals over ALL column leaves, never re-indexed.
+- **Tooltip-only measures** (roles.tooltips without roles.values) are excluded from grid columns (`renderLeafIdxs`) but keep their global `cellKey` — cell keys are DFS ordinals over ALL column leaves, never re-indexed. **Comments-role measures follow the exact same rule** (excluded from grid, cellKey intact).
+- **Comments come from the MODEL, never from the network** (docs/COMMENTS.md): a certified visual has `privileges: []` — no SharePoint/Graph calls, no writeback. The `comments` role is the 3rd entry of the SAME matrix mapping's values.select. Rendering is DOM spans only — no HTML strings, even for the inline markup.
 - **Virtual scrolling above 400 rows** (spacers + windowed slice, `virtualize.ts`) — rows are single-line `nowrap` so the uniform row-height estimate holds; don't add multi-line cells without revisiting it. Keyboard nav outside the window is a known gap.
 - **The per-measure pattern** (CONTEXT.md §13): dynamic Groups with `selector={metadata:queryName}` rebuilt each update; persisted values come back on `valueSources[i].objects`, NEVER through populate. Resolution = override-if-enabled else global card.
 - **Calc columns force flat headers** when a column tree exists (spans no longer match). Subtotal rows evaluate formulas on engine subtotals (ratio-correct). Invalid formulas skip silently.

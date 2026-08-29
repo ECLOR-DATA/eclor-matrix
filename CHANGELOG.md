@@ -3,6 +3,127 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.1.0] — 2026-08-29
+
+### Fixed
+
+Hardening pass driven by the third adversarial review (64 agents over the 1.9.0.0→1.11.0.0 diffs — 28 findings judged, 27 confirmed after independent counter-verification, deduplicated to 12 defects, all fixed or documented):
+
+- **Keyboard navigation no longer dead-ends at blank rows**: ArrowUp/ArrowDown walk past aeration/spacer rows (which carry no tabindex — focus() on them silently no-oped and ate the key, making every row past the first spacer unreachable); Home/End target focusable rows only.
+- **Uniform row height is now enforced, not hoped for**: blank rows always get an explicit tr height (empty cells used to collapse to ~padding height, drifting virtualized scroll by ~16px per blank row), and once virtualization is active every row gets one — measured in Chromium, an explicit tr height absorbs 1-4px frame borders in the collapsed model exactly, so `computeWindow`'s estimate is exact by construction with frames, blank rows and wrap in any combination.
+- **Per-row bold now bolds the row-header label too** (the inline style on the tr was overridden by the th's own font-weight).
+- **Frames survive high contrast + structure toggles**: frame edges are painted with inline `!important`, so `.em-hc.em-nohgrid`'s transparent-border override can no longer erase the bottom edge of a financial frame.
+- **Banded rows OFF no longer eats interactive backgrounds**: the hover tint and the custom group background are re-asserted at the nobands specificity (they lost the cascade on every even row).
+- **Header top rule only opens the table**: it no longer redraws between the levels of multi-row column headers.
+- **Aeration integrity**: gap headers are excluded from the custom header background; gap columns honour `gapWidth` in the default auto width mode (was colgroup-only, i.e. dead in auto); high contrast no longer redraws grid rules across gap columns and blank rows.
+- **Column grips on repeated identities**: a calc column re-emitted in every group shares one width — the drag now moves every matching `<col>` (previously only the last one moved live).
+- New locked tests for all of the above + grip drag/persist/dblclick-reset (224 tests / 21 suites). Documented limitation (CONTEXT §22): column identity keys join group path and measure name with `·`/`|`, so names containing those characters can collide.
+
+## [1.11.0.0] — 2026-08-28
+
+### Added
+
+Financial-communication styling (replicating investor-deck tables à la Orange S1):
+
+- **Frames on any row or any single cell** (✎ panel, persisted with the per-row styles in `rowStyles.state`): select rows and apply a frame **mode** (full box, top rule, bottom rule, top + bottom rules), **line style** (solid / dashed / dotted), **width** (1-4 px) and **colour** — on a **target** of your choice: the whole row (one continuous frame around it), the label cell only, or **one precise column → that exact cell gets its own closed box**. High contrast repaints frames with the HC foreground; widths are part of the uniform row height, so virtualization holds.
+- **Bold toggle per selected row** (same panel) — subtotal-grade emphasis on any line without touching the data.
+- **Header top rule** (Column headers card): a rule ABOVE the header band (colour + width 1-4 px), the classic investor-table opener, independent from the existing bottom header rule and separators.
+- **Font colour per measure** (each measure's Values group): colours that measure's data cells *and* its header cell when headers map 1:1 onto the grid columns — e.g. the current-period column in brand orange. Conditional cell colours and high contrast still win.
+
+## [1.10.0.0] — 2026-08-27
+
+### Added
+
+- **Column widths, Power BI matrix-style** (new Column widths card): **Auto** (fit content, as before), **Uniform** (one width for every value column) or **Custom** — drag the resize grips on the header edges (row-header and comment columns included), double-click a grip to reset; widths persist in the report (`columnWidths.state`) keyed by a stable column identity, so they survive save/publish and follow renamed groups' measures. Uniform/custom render through an authoritative `<colgroup>` + fixed table layout with ellipsis overflow.
+- **Column header options**: vertical separators between header cells (colour + width), text wrap, and a dedicated header text size.
+- **Per-row layout overrides** (✎ panel, persisted in `rowStyles.state`): select any rows in the grid and set their **text alignment** (left/center/right) and/or an **absolute indent** — the hierarchy indent becomes overridable row by row; existing overrides are listed and deletable.
+- **Alignment per column**: a global Values alignment plus a per-measure alignment on each measure's group (effective without the Override-format gate).
+- **Expand icon choice** (Row headers): chevrons ▸ ▾, plus/minus + −, boxed ⊞ ⊟, or arrows ► ▼.
+- **Row label wrap** with a clamped line count (1-3): every row keeps the same forced height, so the virtualization contract holds by construction.
+- **Aeration**: automatic **blank row before every top-level group**, user-inserted **blank rows** anywhere (✎ panel, a third custom-row kind `spacer`), and **blank columns between column groups** (width configurable) — all inert: no borders, no background, no focus, no aria noise.
+
+## [1.9.0.0] — 2026-08-27
+
+### Added
+
+- **IBCS table templates T01-T04** (Format → IBCS → Table template), the four official ibcs.com table templates as one-click presets over the detected AC/PY/PL(BU) measures:
+  - **T01** — AC · PY · PL column order per group + synthesized variance columns ΔPY, ΔPY %, ΔPL, ΔPL % as figures;
+  - **T02** — same data, Δ as IBCS bars and Δ % as **pins** (new display);
+  - **T03** — T01 columns for calculation-scheme rows (P&L in the Rows bucket);
+  - **T04** — same data as T03, Δ as **waterfall bars** (new display: detail rows cascade, subtotal rows re-anchor at zero) and Δ % as pins.
+  Variance formulas run on the shared expression engine (`Δ% = Δ / ABS(base)` so cost lines keep a meaningful sign); an active template implies the IBCS header semantics; no AC or no base detected → silently inert; user calculated columns keep working after the template columns.
+- **Colour options for every visible element**:
+  - IBCS card: **good / bad** semantic colours (variance bars, pins, waterfalls) and the **PY grey**;
+  - General card: global **font colour**, **background**, **accent** (drives hover *and* selection via `color-mix`), **banded rows** toggle + band colour;
+  - Row headers card: **background of the sticky row-header column**.
+  All flow through the existing CSS custom properties, are clamped/validated, and yield to the high-contrast palette.
+
+## [1.8.2.0] — 2026-08-27
+
+### Fixed
+
+Hardening pass driven by the second adversarial review (38 findings on the comments/options diff, all triaged):
+
+- **Multi-level column headers survive a comments/tooltips binding**: aux measure leaves are pruned from a copy of the column tree (`pruneColumnTree`) instead of collapsing the whole header to the flat fallback — the flagship 1.8 feature no longer degrades cross-tab headers.
+- **Custom formula rows can no longer sprout phantom comments** (their formula cells at comment ordinals are numeric noise — extraction now skips woven rows, as docs/COMMENTS.md always claimed).
+- **Clicks inside the 💬 panel no longer clear the row selection / cross-filter** (same guard as the layout editor).
+- **`Show comments` off now also removes comments from hover tooltips**, and a panel left open no longer survives the toggle or the measure's removal.
+- **Markup data-fidelity**: `*italic*` and `__underline__` only open at a word start — `2*3*4 = 24` and `MY__TABLE__NAME` stay literal; a colour tag counts only when its `[/#]` closer exists — ticket references like `[#123]` stay literal; comment text capped at 2000 chars (ellipsis), which also bounds the parser's hostile-input cost.
+- **Comments panel truncation is announced** (« … +N autres lignes commentées ») and bounded per line count, not only per row count.
+- **High-contrast**: panels/toolbar follow the host palette (no more white-on-white in HC Black), grid/header-rule structure toggles keep working, marker forced to HC foreground.
+- **Grid colour token isolated** (`--em-hgrid-c`): the horizontal grid colour no longer repaints panel borders and variance-bar axes; custom group-row backgrounds hold on hover (no unreadable 14%-alpha swap).
+- **Inline comment column clamp moved to an inner div** (max-width on a table cell is undefined in auto layout — Firefox ignored it); comment column header now honours the alignment/italic options.
+- **`cellPaddingX` clamped (0-40) and applied to the row-header indent base** (was hardcoded 8px); persisted out-of-range grid widths clamped.
+- **Dual-role (values + comments) measures render their markup in the grid** instead of raw asterisks.
+- New guard tests: capabilities.json shape (single mapping, six subtotal switches, `privileges: []`), comments × column hierarchy, comments × calculated columns, comments × virtualization (window + spacer colSpan), high-contrast surfaces. 175 tests / 17 suites.
+
+## [1.8.1.0] — 2026-08-27
+
+### Fixed
+
+Hardening pass driven by a 60-agent adversarial review of the 1.7.0.0 engine (every finding independently counter-verified):
+
+- **Prefix `%` no longer silently binds to the previous operand** — `1 + %2` used to compile and evaluate to 2.01; now rejected (`misplaced '%'`), like every prefix/infix `%`.
+- **Bare function names rejected everywhere** — `(5 MAX)`, `SUM([a] MAX; [b])` used to evaluate as implicit 1-arg calls; now `missing '(' after MAX`.
+- **Empty/trailing argument slots rejected structurally** — `SUM(1 2,)` used to compile (a missing separator cancelling a trailing one); `SUM(1,,2)`, `SUM(1; 2;)`, `IF(1, , 2)` now fail with `empty function argument`.
+- **`ROUND` half-away-from-zero now holds on decimal halves** — `ROUND(1.005; 2)` returned 1.00 (binary float noise); now 1.01, and `ROUND` can no longer return `-0`.
+- **Variadic `MIN`/`MAX` no longer blow the call stack** on huge argument counts (loop instead of spread), and formulas are capped at **8192 characters — Excel's own limit** (hostile-input backstop).
+- **Comparisons use Excel semantics**: operands normalized to 15 significant digits, so `10% + 20% = 30%` is now TRUE.
+
+### Added
+
+- **Unary `+` and leading-dot decimals accepted** (`=+[Réel]-[Budget]`, `[a]*.5`) — Lotus-era Excel habits.
+- **`AVG`** documented as an `AVERAGE` alias (was implemented, untested).
+- **Per-column "explicit sign" toggle** on calculated columns (default on, preserving the 1.4.0.0 behaviour) — turn it off for flag/rounded columns like `SI([Réel]>=[Budget];1;0)` where a leading `+` reads wrong.
+- **Opaque sticky headers**: the 10%-alpha theme band is now composited over solid white, so rows no longer bleed through the column headers during virtualized scrolling.
+
+## [1.8.0.0] — 2026-08-27
+
+### Added
+
+- **Data comments, Zebra-style** (`comments` data role + `src/comments.ts`): text measures fed from the MODEL (SharePoint list / Excel via Power Query, related to the dimensions) surface as row markers (●, configurable colour), an optional inline column, or the 💬 side panel. Inline rich markup — `**bold**`, `*italic*`, `__underline__`, `[#RRGGBB]colour[/#]` — parsed without any HTML string (DOM spans only), forgiving by design (unclosed markers style to the end, malformed tags stay literal). Card styling (bold/italic/underline/colour/column title) as the base, markup overrides locally. Comment text also lands in tooltips and aria-labels (markup stripped). Access management is the model's own (RLS + source permissions at refresh) — no network from the visual, certification-safe. **Full portable architecture documented in [docs/COMMENTS.md](docs/COMMENTS.md)** for reuse on other ECLOR visuals.
+- **Grid & borders card**: horizontal grid (toggle/colour/width 1-4px), vertical grid (toggle/colour/width), outer border (toggle/colour/width), header bottom rule toggle. Disabled rules go transparent but keep their width, so row geometry — and the virtualization row-height math — never shifts.
+- **Spacing**: horizontal cell padding (px) on the General card.
+- **Hierarchy options** (Row headers card): bold group rows, group-row background (hover still wins), show/hide expand chevrons.
+- **Subtotal style card** (`subtotalsStyle`, deliberately separate from the load-bearing `subTotals` switch mirror): background colour, font colour, bold toggle.
+
+## [1.7.0.0] — 2026-08-27
+
+### Added
+
+- **Simplified Excel-style calculation engine** (`src/expressions.ts` v2) — powers BOTH calculated columns and custom formula rows, still 100% eval-free (hand-rolled tokenizer + shunting-yard, certification-safe):
+  - operators `^` (power, Excel semantics: `-2^2 = 4`, left-associative) and postfix `%` (`[Actual] * 110%`);
+  - comparisons `= <> < <= > >=` returning 1/0, so Excel idioms like `([Actual] > [Budget]) * 10` work;
+  - functions `SUM`, `AVERAGE`, `MIN`, `MAX` (variadic, blanks ignored like Excel), `ABS`, `ROUND` (half away from zero, optional/negative digits), `IF`;
+  - French aliases `SOMME`, `MOYENNE`, `ARRONDI`, `SI` and the Excel-FR `;` argument separator;
+  - a leading `=` is tolerated (pasted-from-Excel habit);
+  - null-safety unchanged: missing ref, null operand, ÷0, NaN/overflow → blank, never a crash.
+- Formula hint line in the layout-editor panel (localized fr/en) listing the available operators and functions.
+
+### Changed
+
+- `MIN`/`MAX` are now variadic and skip null arguments (Excel blank-cell behaviour): `MIN([a], [b])` with `[a]` blank now returns `[b]` instead of blank; `MIN(1)` is now a valid formula.
+
 ## [1.6.0.0] — 2026-08-10
 
 ### Added

@@ -14,8 +14,10 @@
   --em-header-bg: rgba(9, 22, 18, 0.1);
   --em-total-bg: #efefef;
   --em-band-bg: #f5f6f5;
-  --em-hover-bg: rgba(30, 245, 177, 0.14);
-  --em-selected-bg: rgba(30, 245, 177, 0.28);
+  // Derived from the accent so General → Accent recolours hover/selection
+  // too (color-mix: all Power BI service browsers since 2023).
+  --em-hover-bg: color-mix(in srgb, var(--em-accent) 14%, transparent);
+  --em-selected-bg: color-mix(in srgb, var(--em-accent) 28%, transparent);
   --em-focus: #091612;
   --em-good: #1ef5b1;
   --em-bad: #ff4d6d;
@@ -41,12 +43,13 @@
   width: max-content;
   min-width: 100%;
 
-  // Theme grid: horizontal rules only (gridHorizontal #E5E7E6, no vertical).
+  // Theme grid: horizontal rules only by default (gridHorizontal #E5E7E6);
+  // width, colour, vertical grid and outer border are Format-pane options.
   th,
   td {
     border: none;
-    border-bottom: 1px solid var(--em-grid);
-    padding: var(--em-pad-y, 4px) 8px;
+    border-bottom: var(--em-grid-w, 1px) solid var(--em-hgrid-c, var(--em-grid));
+    padding: var(--em-pad-y, 4px) var(--em-pad-x, 8px);
     text-align: right;
     white-space: nowrap;
   }
@@ -55,7 +58,11 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--em-header-bg);
+    // Opaque compositing: the theme band is 10%-alpha, so paint it OVER a
+    // solid white — otherwise rows scrolling under the sticky header bleed
+    // through the translucent band.
+    background-color: #ffffff;
+    background-image: linear-gradient(var(--em-header-bg), var(--em-header-bg));
     font-weight: 700;
     text-align: center;
     border-bottom: 1px solid var(--em-fg);
@@ -65,7 +72,7 @@
     position: sticky;
     left: 0;
     z-index: 1;
-    background-color: #ffffff;
+    background-color: var(--em-rowh-bg, #ffffff);
     text-align: left;
     font-weight: 400;
   }
@@ -75,13 +82,15 @@
     left: 0;
   }
 
-  // Theme total/subtotal: #EFEFEF band, bold, applyToHeaders.
+  // Theme total/subtotal: #EFEFEF band, bold, applyToHeaders — colours and
+  // weight overridable through the Subtotal style card (vars + root class).
   tr.em-subtotal {
     font-weight: 700;
 
     td,
     th.em-rowheader {
       background-color: var(--em-total-bg);
+      color: var(--em-total-fg, inherit);
     }
   }
 
@@ -127,6 +136,191 @@
 
 .em-density-comfortable {
   --em-pad-y: 8px;
+}
+
+// ---- Grid & borders / hierarchy / subtotal-style toggles (root classes,
+// set from the Format pane by visual.ts::applyGridOptions) ----
+
+// Horizontal grid off: the rule goes transparent but keeps its width so row
+// geometry (and the virtualization row-height estimate) never shifts.
+.em-nohgrid .em-table tbody td,
+.em-nohgrid .em-table tbody th.em-rowheader {
+  border-bottom-color: transparent;
+}
+
+.em-vgrid .em-table th,
+.em-vgrid .em-table td {
+  border-left: var(--em-vgrid-w, 1px) solid var(--em-vgrid-c, var(--em-grid));
+}
+
+.em-vgrid .em-table th.em-rowheader,
+.em-vgrid .em-table th.em-corner {
+  border-left: none;
+}
+
+.em-outer .em-table {
+  border: var(--em-outer-w, 1px) solid var(--em-outer-c, var(--em-fg));
+}
+
+.em-noheadrule .em-table thead th {
+  border-bottom-color: transparent;
+}
+
+.em-nochev .em-chevron {
+  display: none;
+}
+
+.em-stnobold .em-table tr.em-subtotal {
+  font-weight: 400;
+}
+
+.em-groupbold .em-table tbody tr.em-grouprow th.em-rowheader {
+  font-weight: 700;
+}
+
+// Banded rows off (General → Banded rows).
+.em-nobands .em-table tbody tr:nth-child(even):not(.em-subtotal) td,
+.em-nobands .em-table tbody tr:nth-child(even):not(.em-subtotal) th.em-rowheader {
+  background-color: transparent;
+}
+
+.em-nobands .em-table tbody tr:nth-child(even):not(.em-subtotal) th.em-rowheader {
+  background-color: var(--em-rowh-bg, #ffffff);
+}
+
+// The custom group background also holds on hover: swapping an opaque
+// user colour for the 14%-alpha hover tint would break text contrast.
+.em-groupbg .em-table tbody tr.em-grouprow td,
+.em-groupbg .em-table tbody tr.em-grouprow th.em-rowheader {
+  background-color: var(--em-group-bg);
+}
+
+// Bands off must not eat the interactive/custom backgrounds on even rows:
+// the .em-nobands transparent rule is more specific than the hover and
+// group rules above, so both are re-asserted at nobands specificity.
+.em-nobands .em-table tbody tr:hover:not(.em-subtotal) td,
+.em-nobands .em-table tbody tr:hover:not(.em-subtotal) th.em-rowheader {
+  background-color: var(--em-hover-bg);
+}
+
+.em-nobands.em-groupbg .em-table tbody tr.em-grouprow td,
+.em-nobands.em-groupbg .em-table tbody tr.em-grouprow th.em-rowheader {
+  background-color: var(--em-group-bg);
+}
+
+// ---- Header options / column widths / row wrap / aeration (1.10.0.0) ----
+
+// Vertical separators between header cells (Column headers card).
+.em-hsep .em-table thead th {
+  border-left: var(--em-hsep-w, 1px) solid var(--em-hsep-c, var(--em-grid));
+}
+
+.em-hsep .em-table thead th.em-corner {
+  border-left: none;
+}
+
+// Header TOP rule (with the bottom rule + separators, headers can be
+// fully framed — financial-communication style). First header row only:
+// the rule opens the table, it must not redraw between header levels.
+.em-htop .em-table thead tr:first-child th {
+  border-top: var(--em-htop-w, 1px) solid var(--em-htop-c, var(--em-fg));
+}
+
+// Wrapped header labels.
+.em-hwrap .em-table thead th {
+  white-space: normal;
+}
+
+// Wrapped row labels: clamped to a fixed line count on an inner block so
+// every row keeps the same height (virtualization contract).
+.em-rwrap .em-table tbody th.em-rowheader {
+  white-space: normal;
+}
+
+.em-rlabelclamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--em-rwrap-lines, 2);
+  overflow: hidden;
+}
+
+// Fixed column widths (uniform/custom modes): the colgroup is authoritative.
+.em-table.em-fixed {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.em-table.em-fixed th,
+.em-table.em-fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Resize grips (custom mode) — the sticky th is the positioning context.
+.em-colgrip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+.em-colgrip:hover {
+  background: var(--em-selected-bg);
+}
+
+// Aeration: blank columns between groups and blank rows before groups.
+.eclor-matrix-root .em-table thead th.em-gapcol {
+  background-color: transparent;
+  background-image: none;
+  border-bottom-color: transparent;
+  border-left: none;
+}
+
+.eclor-matrix-root .em-table tbody td.em-gapcol {
+  background-color: transparent !important;
+  border-bottom-color: transparent;
+  border-left: none;
+}
+
+.eclor-matrix-root .em-table tbody tr.em-blankrow td {
+  background-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.eclor-matrix-root .em-table tbody tr.em-blankrow th.em-rowheader {
+  border-bottom-color: transparent;
+}
+
+// ---- Data comments (comments role) ----
+
+.em-cmark {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--em-cmark, var(--em-accent));
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.em-table td.em-commentcell {
+  text-align: left;
+}
+
+// The clamp lives on a block div INSIDE the cell — max-width on a table
+// cell is undefined in auto table layout and Firefox ignores it.
+.em-commentclamp {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.em-table thead th.em-commentth {
+  vertical-align: middle;
 }
 
 // IBCS scenario semantics (Format → IBCS → Enable): AC solid underline,
@@ -209,6 +403,49 @@
   background: var(--em-bad);
 }
 
+// T04 waterfall bars: positioned by inline left/width (cumulative run),
+// no zero-axis anchor — only the sign colour comes from CSS.
+.em-bar-wf {
+  left: auto;
+  right: auto;
+}
+
+.em-bar-wf-pos {
+  background: var(--em-good);
+}
+
+.em-bar-wf-neg {
+  background: var(--em-bad);
+}
+
+// IBCS pins (relative variances in templates T02/T04): needle from the
+// zero axis + head, positioned by inline left/width.
+.em-pinline {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+}
+
+.em-pindot {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.em-pin-pos .em-pinline,
+.em-pin-pos .em-pindot {
+  background: var(--em-good);
+}
+
+.em-pin-neg .em-pinline,
+.em-pin-neg .em-pindot {
+  background: var(--em-bad);
+}
+
 .em-barlabel {
   white-space: nowrap;
 }
@@ -246,12 +483,14 @@
   }
 }
 
-// In-visual layout editor.
+// In-visual layout editor + comments panel.
 .em-toolbar {
   position: absolute;
   top: 4px;
   right: 4px;
   z-index: 6;
+  display: flex;
+  gap: 4px;
 }
 
 .em-toolbtn {
@@ -270,7 +509,8 @@
   }
 }
 
-.em-editpanel {
+.em-editpanel,
+.em-commentspanel {
   position: absolute;
   top: 32px;
   right: 4px;
@@ -385,6 +625,26 @@
     color: var(--em-py);
     font-size: 10px;
   }
+
+  .em-citem {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--em-grid);
+  }
+
+  .em-crow {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .em-cpath {
+    color: var(--em-py);
+    font-size: 10px;
+    margin-left: 6px;
+  }
+
+  .em-ctext {
+    line-height: 1.4;
+  }
 }
 
 .em-empty {
@@ -428,4 +688,45 @@
   .em-empty {
     color: var(--em-fg);
   }
+
+  .em-cmark {
+    background: var(--em-fg) !important;
+  }
+
+  .em-table thead th {
+    background-image: none !important;
+  }
+
+  // Panels and toolbar hardcode a white surface for the normal theme —
+  // in HC they must follow the host palette (white-on-white otherwise).
+  .em-editpanel,
+  .em-commentspanel,
+  .em-toolbtn,
+  .em-panelsection > button {
+    background: var(--em-bg) !important;
+    color: var(--em-fg) !important;
+    border-color: var(--em-fg) !important;
+  }
+}
+
+// Structure toggles stay honoured in high-contrast mode: the HC block
+// forces border COLOURS, but a disabled rule is still a disabled rule.
+.eclor-matrix-root.em-hc.em-nohgrid .em-table tbody td,
+.eclor-matrix-root.em-hc.em-nohgrid .em-table tbody th.em-rowheader {
+  border-bottom-color: transparent !important;
+}
+
+.eclor-matrix-root.em-hc.em-noheadrule .em-table thead th {
+  border-bottom-color: transparent !important;
+}
+
+// Aeration surfaces stay inert in high contrast too: the HC block forces
+// border colours with !important, which would redraw grid rules across
+// blank columns and blank rows.
+.eclor-matrix-root.em-hc .em-table thead th.em-gapcol,
+.eclor-matrix-root.em-hc .em-table tbody td.em-gapcol,
+.eclor-matrix-root.em-hc .em-table tbody tr.em-blankrow td,
+.eclor-matrix-root.em-hc .em-table tbody tr.em-blankrow th.em-rowheader {
+  border-bottom-color: transparent !important;
+  border-left: none !important;
 }

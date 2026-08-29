@@ -86,13 +86,17 @@ describe("settings model", () => {
     const names = m.cards.map((c) => c.name);
     expect(names).toEqual([
       "general",
+      "grid",
       "subTotals",
+      "subtotalsStyle",
       "rowHeaders",
       "columnHeaders",
+      "columnWidths",
       "values",
       "cellColors",
       "calculatedColumns",
-      "ibcs"
+      "ibcs",
+      "comments"
     ]);
     expect(new Set(names).size).toBe(names.length);
   });

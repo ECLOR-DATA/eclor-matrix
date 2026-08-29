@@ -275,3 +275,26 @@ option from the bottom header rule (both coexist, as investor tables
 do), and the per-measure font colour reuses the 1:1 header-mapping guard
 the grips introduced — when a column tree makes headers span, only the
 cells keep the colour.
+
+## 22. Third adversarial review & hardening (1.11.1.0)
+
+The 64-agent review of the 1.9→1.11 diffs confirmed 27 findings (12 unique
+defects). Two were contract violations worth recording. First, the uniform
+row height (§12) was a hope, not an invariant: blank aeration rows
+collapsed to padding height and 2-4px frame borders grew framed rows in
+the collapsed-border model. Measured in Chromium: an explicit tr height
+absorbs both exactly (26.0px across normal/framed/blank with height
+forced; 20/22/8.5 without). So the rule is now structural — blank rows
+always get an explicit height, and every row does once virtualization is
+active. Don't "fix" that by estimating variable heights; force the
+geometry instead. Second, focus() on a tabindex-less row is a silent
+no-op, so arrow navigation must skip non-focusable rows explicitly —
+any future row kind that opts out of focus must be skipped in
+handleKeydown, not just excluded from tab order. Also here: frames paint
+with inline !important (the HC structure toggles use stylesheet
+!important and would erase them), bands-off re-asserts hover/group
+backgrounds at its own specificity, and gap width applies inline so auto
+layout honours it. Documented limitation: column identity keys (§20)
+join path and measure name with `·` and `|`; names containing those
+characters can collide. Accepted — an escaping scheme would invalidate
+every report's persisted widths for a case renaming the measure fixes.

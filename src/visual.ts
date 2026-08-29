@@ -187,14 +187,14 @@ export class Visual implements IVisual {
   private colWidths: Record<string, number> = {};
   private colWidthsDirty: boolean = false;
   /** colgroup cols of the current render, keyed by column identity. */
-  private colEls: Map<string, HTMLTableColElement> = new Map();
+  private colEls: Map<string, HTMLTableColElement[]> = new Map();
   private tableEl: HTMLTableElement | null = null;
   private drag: {
     key: string;
     startX: number;
     startWidth: number;
     startTableWidth: number;
-    colEl: HTMLTableColElement;
+    cols: HTMLTableColElement[];
   } | null = null;
 
   constructor(options?: VisualConstructorOptions) {
@@ -1253,13 +1253,18 @@ export class Visual implements IVisual {
     return columnKeyForLeaf(leaf.path, parsed.valueSources[leaf.measureIndex]?.displayName ?? "");
   }
 
+  /** Clamped width of the blank aeration columns (Grid card). */
+  private gapColWidth(): number {
+    const raw = Number(this.formattingSettings.grid.gapWidth.value) || 14;
+    return Math.min(80, Math.max(2, raw));
+  }
+
   /** Fixed-layout colgroup for the uniform/custom modes; null in auto. */
   private buildColgroup(parsed: ParseResult, table: HTMLTableElement): HTMLTableColElement | null {
     this.colEls.clear();
     const mode = this.columnWidthMode();
     if (mode === "auto") return null;
     table.classList.add("em-fixed");
-    const gapWidth = Number(this.formattingSettings.grid.gapWidth.value) || 14;
     const colgroup = document.createElement("colgroup");
     let total = 0;
     const addCol = (key: string | null, width: number): void => {
@@ -1267,12 +1272,14 @@ export class Visual implements IVisual {
       col.style.width = `${width}px`;
       colgroup.appendChild(col);
       total += width;
-      if (key) this.colEls.set(key, col);
+      // Repeated identities (a calc column re-emitted in every group) share
+      // one width — track EVERY col element so a grip drag moves them all.
+      if (key) this.colEls.set(key, [...(this.colEls.get(key) ?? []), col]);
     };
     addCol(ROW_HEADER_COL_KEY, this.colWidths[ROW_HEADER_COL_KEY] ?? 220);
     for (const col of parsed.renderCols) {
       if (col.kind === "gap") {
-        addCol(null, Math.min(80, Math.max(2, gapWidth)));
+        addCol(null, this.gapColWidth());
         continue;
       }
       const key = this.columnKeyFor(parsed, col) as string;
@@ -1291,16 +1298,16 @@ export class Visual implements IVisual {
     const grip = (e.target as Element)?.closest?.(".em-colgrip") as HTMLElement | null;
     if (!grip || !this.tableEl) return;
     const key = grip.getAttribute("data-col-key");
-    const colEl = key ? this.colEls.get(key) : undefined;
-    if (!key || !colEl) return;
+    const cols = key ? this.colEls.get(key) : undefined;
+    if (!key || !cols || cols.length === 0) return;
     e.preventDefault();
     e.stopPropagation();
     this.drag = {
       key,
       startX: e.clientX,
-      startWidth: parseFloat(colEl.style.width) || MIN_COL_WIDTH,
+      startWidth: parseFloat(cols[0].style.width) || MIN_COL_WIDTH,
       startTableWidth: parseFloat(this.tableEl.style.width) || 0,
-      colEl
+      cols
     };
     document.addEventListener("mousemove", this.handleGripMove);
     document.addEventListener("mouseup", this.handleGripUp);
@@ -1312,15 +1319,17 @@ export class Visual implements IVisual {
       MAX_COL_WIDTH,
       Math.max(MIN_COL_WIDTH, Math.round(this.drag.startWidth + e.clientX - this.drag.startX))
     );
-    this.drag.colEl.style.width = `${w}px`;
-    this.tableEl.style.width = `${this.drag.startTableWidth + (w - this.drag.startWidth)}px`;
+    for (const col of this.drag.cols) col.style.width = `${w}px`;
+    this.tableEl.style.width = `${
+      this.drag.startTableWidth + (w - this.drag.startWidth) * this.drag.cols.length
+    }px`;
   };
 
   private handleGripUp = (): void => {
     document.removeEventListener("mousemove", this.handleGripMove);
     document.removeEventListener("mouseup", this.handleGripUp);
     if (!this.drag) return;
-    const w = parseFloat(this.drag.colEl.style.width);
+    const w = parseFloat(this.drag.cols[0].style.width);
     if (Number.isFinite(w)) {
       this.colWidths[this.drag.key] = Math.round(w);
       this.persistColumnWidths();
@@ -2023,10 +2032,13 @@ export class Visual implements IVisual {
         th.style.fontWeight = chBold ? "700" : "400";
         if (chItalic) th.style.fontStyle = "italic";
         if (chColor) th.style.color = chColor;
-        if (chBg) {
+        // Gap headers stay unpainted — the blank column IS the aeration —
+        // and carry the configured gap width so auto layout honours it too.
+        if (chBg && !cell.isGap) {
           th.style.backgroundColor = chBg;
           th.style.backgroundImage = "none";
         }
+        if (cell.isGap) th.style.width = `${this.gapColWidth()}px`;
         tr.appendChild(th);
       }
       if (levelIdx === 0 && this.commentColumnOn(parsed)) {
@@ -2210,12 +2222,17 @@ export class Visual implements IVisual {
     const bottom = border.mode !== "top";
     const box = border.mode === "box";
     const rowFrame = border.target === "all";
+    // "important" so the frame survives the HC structure toggles
+    // (.em-hc.em-nohgrid / .em-hc.em-noheadrule force border colours with
+    // !important) — an inline important declaration wins over both.
+    const paint = (el: HTMLElement, prop: string): void =>
+      el.style.setProperty(prop, line, "important");
     targets.forEach((el, i) => {
-      if (top) el.style.borderTop = line;
-      if (bottom) el.style.borderBottom = line;
+      if (top) paint(el, "border-top");
+      if (bottom) paint(el, "border-bottom");
       if (box) {
-        if (!rowFrame || i === 0) el.style.borderLeft = line;
-        if (!rowFrame || i === targets.length - 1) el.style.borderRight = line;
+        if (!rowFrame || i === 0) paint(el, "border-left");
+        if (!rowFrame || i === targets.length - 1) paint(el, "border-right");
       }
     });
   }
@@ -2241,7 +2258,7 @@ export class Visual implements IVisual {
       opts.rowStyle?.indent !== undefined
         ? `${opts.rowStyle.indent}px`
         : `${this.cellPaddingX() + row.level * opts.indent}px`;
-    if (opts.rhBold) th.style.fontWeight = "700";
+    if (opts.rhBold || opts.rowStyle?.bold) th.style.fontWeight = "700";
     if (opts.rhItalic) th.style.fontStyle = "italic";
     if (opts.rhColor) th.style.color = opts.rhColor;
     if (opts.rowStyle?.align) th.style.textAlign = opts.rowStyle.align;
@@ -2290,6 +2307,27 @@ export class Visual implements IVisual {
     return parsed.hasComments && c.show && c.column;
   }
 
+  private buildCommentCell(
+    comments: RowComment[],
+    copts: { fontColor: string; bold: boolean; italic: boolean; underline: boolean }
+  ): HTMLTableCellElement {
+    const td = document.createElement("td");
+    td.className = "em-commentcell";
+    // The width clamp lives on an inner block div — max-width on a
+    // table cell is undefined in auto layout (Firefox ignores it).
+    const clamp = document.createElement("div");
+    clamp.className = "em-commentclamp";
+    comments.forEach((c, ci) => {
+      if (ci > 0) clamp.appendChild(document.createTextNode(" · "));
+      this.renderCommentInto(clamp, c.text, copts);
+    });
+    td.appendChild(clamp);
+    if (comments.length > 0) {
+      td.setAttribute("title", comments.map((c) => plainCommentText(c.text)).join(" · "));
+    }
+    return td;
+  }
+
   private fillTbody(tbody: HTMLTableSectionElement, parsed: ParseResult, spec: WindowSpec): void {
     const dataMaxAbs = computeMaxAbs(parsed.rows);
     const copts = this.commentOpts();
@@ -2315,7 +2353,14 @@ export class Visual implements IVisual {
       const rowStyle = blank ? undefined : styleByKey.get(this.rowPathKeys[rIdx]);
       const tr = document.createElement("tr");
       tr.setAttribute("data-row-idx", String(rIdx));
-      if (wrapLines > 1) tr.style.height = `${this.rowHeightPx}px`;
+      // Forced uniform height: always under wrap (clamped lines), always on
+      // blank rows (empty cells would collapse to padding height), and on
+      // every row once virtualization is active — an explicit tr height
+      // absorbs 1-4px frame borders in the collapsed model (measured), so
+      // the computeWindow estimate stays exact.
+      if (wrapLines > 1 || blank || parsed.rows.length > VIRTUALIZE_THRESHOLD) {
+        tr.style.height = `${this.rowHeightPx}px`;
+      }
       if (blank) {
         tr.classList.add("em-blankrow");
         tr.setAttribute("aria-hidden", "true");
@@ -2348,6 +2393,7 @@ export class Visual implements IVisual {
         if (col.kind === "gap") {
           const gap = document.createElement("td");
           gap.className = "em-gapcol";
+          gap.style.width = `${this.gapColWidth()}px`;
           tr.appendChild(gap);
           continue;
         }
@@ -2357,23 +2403,7 @@ export class Visual implements IVisual {
         }
         tr.appendChild(this.buildLeafCell(parsed, row, col.leafIdx, dataMaxAbs, ibcsOn, ariaParts));
       }
-      if (commentCol) {
-        const td = document.createElement("td");
-        td.className = "em-commentcell";
-        // The width clamp lives on an inner block div — max-width on a
-        // table cell is undefined in auto layout (Firefox ignores it).
-        const clamp = document.createElement("div");
-        clamp.className = "em-commentclamp";
-        comments.forEach((c, ci) => {
-          if (ci > 0) clamp.appendChild(document.createTextNode(" · "));
-          this.renderCommentInto(clamp, c.text, copts);
-        });
-        td.appendChild(clamp);
-        if (comments.length > 0) {
-          td.setAttribute("title", comments.map((c) => plainCommentText(c.text)).join(" · "));
-        }
-        tr.appendChild(td);
-      }
+      if (commentCol) tr.appendChild(this.buildCommentCell(comments, copts));
       if (comments.length > 0) {
         ariaParts.push(...comments.map((c) => plainCommentText(c.text)));
       }
@@ -2596,9 +2626,18 @@ export class Visual implements IVisual {
     switch (e.key) {
       case "ArrowDown":
       case "ArrowUp": {
-        const next = this.target.querySelector(
-          `tr[data-row-idx="${e.key === "ArrowDown" ? idx + 1 : idx - 1}"]`
-        ) as HTMLElement | null;
+        // Blank aeration rows carry no tabindex — walk past them, never
+        // land on them (focus() would silently no-op and eat the key).
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        let next: HTMLElement | null = null;
+        for (let i = idx + step; ; i += step) {
+          const tr = this.target.querySelector(`tr[data-row-idx="${i}"]`) as HTMLElement | null;
+          if (!tr) break;
+          if (tr.hasAttribute("tabindex")) {
+            next = tr;
+            break;
+          }
+        }
         if (next) {
           next.focus();
           e.preventDefault();
@@ -2607,7 +2646,7 @@ export class Visual implements IVisual {
       }
       case "Home":
       case "End": {
-        const rows = this.target.querySelectorAll("tr[data-row-idx]");
+        const rows = this.target.querySelectorAll("tr[data-row-idx][tabindex]");
         const next = (e.key === "Home" ? rows[0] : rows[rows.length - 1]) as HTMLElement | null;
         if (next) {
           next.focus();

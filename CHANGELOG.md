@@ -3,6 +3,22 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.1.0] — 2026-08-29
+
+### Fixed
+
+Hardening pass driven by the third adversarial review (64 agents over the 1.9.0.0→1.11.0.0 diffs — 28 findings judged, 27 confirmed after independent counter-verification, deduplicated to 12 defects, all fixed or documented):
+
+- **Keyboard navigation no longer dead-ends at blank rows**: ArrowUp/ArrowDown walk past aeration/spacer rows (which carry no tabindex — focus() on them silently no-oped and ate the key, making every row past the first spacer unreachable); Home/End target focusable rows only.
+- **Uniform row height is now enforced, not hoped for**: blank rows always get an explicit tr height (empty cells used to collapse to ~padding height, drifting virtualized scroll by ~16px per blank row), and once virtualization is active every row gets one — measured in Chromium, an explicit tr height absorbs 1-4px frame borders in the collapsed model exactly, so `computeWindow`'s estimate is exact by construction with frames, blank rows and wrap in any combination.
+- **Per-row bold now bolds the row-header label too** (the inline style on the tr was overridden by the th's own font-weight).
+- **Frames survive high contrast + structure toggles**: frame edges are painted with inline `!important`, so `.em-hc.em-nohgrid`'s transparent-border override can no longer erase the bottom edge of a financial frame.
+- **Banded rows OFF no longer eats interactive backgrounds**: the hover tint and the custom group background are re-asserted at the nobands specificity (they lost the cascade on every even row).
+- **Header top rule only opens the table**: it no longer redraws between the levels of multi-row column headers.
+- **Aeration integrity**: gap headers are excluded from the custom header background; gap columns honour `gapWidth` in the default auto width mode (was colgroup-only, i.e. dead in auto); high contrast no longer redraws grid rules across gap columns and blank rows.
+- **Column grips on repeated identities**: a calc column re-emitted in every group shares one width — the drag now moves every matching `<col>` (previously only the last one moved live).
+- New locked tests for all of the above + grip drag/persist/dblclick-reset (224 tests / 21 suites). Documented limitation (CONTEXT §22): column identity keys join group path and measure name with `·`/`|`, so names containing those characters can collide.
+
 ## [1.11.0.0] — 2026-08-28
 
 ### Added

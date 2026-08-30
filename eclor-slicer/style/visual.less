@@ -248,8 +248,12 @@
   transition: filter 0.08s ease;
 
   .es-chip-path {
+    flex: 0 1 auto;
     color: var(--es-muted);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 64px;
   }
 
   .es-chip-label {
@@ -303,6 +307,48 @@
   padding: 0 2px;
 }
 
+// Hierarchy recap: one group per level, labelled with the field name and
+// separated by a hairline; the group × clears that whole level.
+.es-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+
+  & + .es-chip-group {
+    border-left: 1px solid var(--es-border);
+    padding-left: 8px;
+    margin-left: 2px;
+  }
+}
+
+.es-chip-group-label {
+  color: var(--es-muted);
+  white-space: nowrap;
+
+  &::after {
+    content: " :";
+  }
+}
+
+.es-chip-level-clear {
+  color: var(--es-muted);
+  font-size: calc(var(--es-font-size) + 2px);
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 999px;
+
+  &:hover {
+    color: var(--es-fg);
+    background: var(--es-hover-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
 // ---------------------------------------------------------------------- body
 
 .es-body {
@@ -334,6 +380,7 @@
 // list items ---------------------------------------------------------------
 
 .es-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -341,6 +388,7 @@
   margin: 0 4px;
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
+  overflow: hidden;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.08s ease;
@@ -349,12 +397,22 @@
     background: var(--es-hover-bg);
   }
 
-  // Calm selection (design P2.1): soft tint + inset accent bar + filled
-  // check — the state reads clearly without shouting across the page.
+  // Calm selection (design P2.1): soft tint + accent bar + filled check.
+  // The bar is a clipped ::before, NOT an inset box-shadow — the shadow
+  // leaked around the border-radius as an emerald "crescent" (review R2).
   &.es-on {
     background: var(--es-selected-soft-bg);
-    box-shadow: inset 3px 0 0 var(--es-selected-bg);
     color: var(--es-selected-fg);
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--es-selected-bg);
+    }
 
     .es-count {
       color: var(--es-selected-fg);
@@ -409,7 +467,7 @@
 // Filled glyph carries the selected state (design P2.1).
 .es-item.es-on .es-check,
 .es-item.es-on .es-radio {
-  border-color: var(--es-selected-bg);
+  border-color: var(--es-selected-fg);
   background: var(--es-selected-bg);
 }
 

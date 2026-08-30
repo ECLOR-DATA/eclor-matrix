@@ -105,7 +105,7 @@ describe("render snapshots", () => {
     clickEl(itemByLabel(target, ".es-item", "France"));
     clickEl(itemByLabel(target, ".es-item", "Espagne"));
     clickEl(itemByLabel(target, ".es-item", "Portugal"));
-    // Width 260 → one-line chip cap = floor(260/90) = 2 chips + "+1".
+    // Width 260 → one-line chip cap = floor((260-80)/90) = 2 chips + "+1".
     expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(2);
     expect(target.querySelector(".es-chip-more")?.textContent).toBe("+1");
     snapshot("01-list-selection", target, 260, 380, "Liste verticale — multi-sélection, badges retirables, valeurs formatées");

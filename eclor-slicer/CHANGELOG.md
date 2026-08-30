@@ -3,6 +3,17 @@
 All notable changes to Eclor Slicer are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow the pbiviz `X.Y.Z.W` scheme.
 
+## [1.1.0.0] — 2026-08-30
+
+### Added
+- **Récapitulatif des filtres par niveau de hiérarchie** (demande produit) : les badges sont groupés par niveau et étiquetés du nom du champ (« Pays : France × · Ville : Paris × »), avec une croix DE NIVEAU qui vide toutes les sélections de ce niveau en un clic (affichée dès 2 sélections au niveau) ; aria-labels enrichis du nom de niveau ; nouvelle clé `Visual_ClearLevel` (en/fr).
+
+### Fixed (revue design R2)
+- Artefact « croissant » émeraude : la barre accent est un `::before` clippé par `overflow: hidden`, plus un inset box-shadow qui fuyait autour du border-radius.
+- High-contrast : la case cochée garde une bordure contrastée (`--es-selected-fg`) au lieu de fondre dans la ligne.
+- Le cap « chips une ligne » réserve ~80 px pour « Tout effacer » (fini le wrap en slicer étroit) ; préfixe parent des chips borné à 64 px avec ellipse.
+- Chips masquées sous le panneau dropdown ouvert (le panneau montre déjà la sélection).
+
 ## [1.0.1.0] — 2026-08-30
 
 Round 2 — intégration de la boucle multi-agents (revue design, durcissement QA, audit cert statique).

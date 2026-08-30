@@ -78,5 +78,6 @@
   "Visual_UnitsMillions": "Millions",
   "Visual_UnitsBillions": "Billions",
   "Visual_Decimals": "Decimal places",
-  "Visual_CountFiltered": "{0} of {1} items"
+  "Visual_CountFiltered": "{0} of {1} items",
+  "Visual_ClearLevel": "Clear {0}"
 }

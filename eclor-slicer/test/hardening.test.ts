@@ -358,9 +358,10 @@ describe("hardening: render caps and chip overflow", () => {
       values: all.slice(0, 10) // 10 of 12 selected (11/12 would still not collapse)
     };
     visual.update(makeUpdateOptions(oneLevelFixture(all), 300, 400, [persisted]));
-    // One-line auto-fit (design R1 P1.5): min(user maxChips 6, floor(300/90)=3).
-    expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(3);
-    expect(target.querySelector(".es-chip-more")?.textContent).toBe("+7");
+    // One-line auto-fit with the Clear-all reserve (design R1 P1.5 + R2):
+    // min(user maxChips 6, floor((300-80)/90)=2).
+    expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(2);
+    expect(target.querySelector(".es-chip-more")?.textContent).toBe("+8");
     expect(target.querySelector(".es-chip-clear")).not.toBeNull();
   });
 

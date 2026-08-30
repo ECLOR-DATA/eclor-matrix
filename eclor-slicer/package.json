@@ -1,6 +1,6 @@
 {
   "name": "eclor-slicer",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Eclor Slicer \u2014 Power BI custom visual. All-in-one slicer: list, chiclets, dropdown and hierarchy modes with search, single/multi select, select all / invert / clear and removable filter-recap badges.",
   "license": "MIT",
   "scripts": {

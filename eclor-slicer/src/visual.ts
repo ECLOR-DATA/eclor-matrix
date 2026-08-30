@@ -400,7 +400,10 @@ export class Visual implements IVisual {
     // Chips are redundant noise in single mode (one row already shows the
     // state), and in dropdown mode they must sit BELOW the master field,
     // never above it (design P1.5).
-    const chipsWanted = s.chips.show.value && this.isMulti();
+    // In dropdown layout the open panel already lists the selection —
+    // chips below it would triple the redundancy (review R2).
+    const chipsWanted =
+      s.chips.show.value && this.isMulti() && !(layout === "dropdown" && this.dropdownOpen);
     const chipsTop = String(s.chips.position.value.value) !== "bottom" && layout !== "dropdown";
     if (chipsWanted && chipsTop) frag.appendChild(this.buildChips(input));
 
@@ -512,49 +515,62 @@ export class Visual implements IVisual {
     // Effective cap = user setting ∩ what roughly fits on ONE line (~90px a
     // chip) — keeps the recap to a single row in narrow slicers (P1.5).
     const userMax = Math.max(1, Math.min(30, Number(s.chips.maxChips.value) || 6));
-    const fitMax = Math.max(1, Math.floor(input.width / 90));
+    // ~80px reserved for the "Clear all" chip so the row truly holds ONE
+    // line (review R2: it wrapped in narrow hierarchies).
+    const fitMax = Math.max(1, Math.floor((input.width - 80) / 90));
     const maxChips = Math.min(userMax, fitMax);
-    const shown = nodes.slice(0, maxChips);
-    for (const n of shown) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "es-chip";
-      chip.dataset.chipKey = n.key;
-      const pathLabels = n.rawPath.map((_, i) => {
-        let anc: typeof n | null = n;
-        for (let up = n.level; up > i; up--) anc = anc && anc.parent;
-        return anc ? anc.label || this.blankLabel() : "";
-      });
-      chip.title = pathLabels.join(" / ");
-      chip.setAttribute(
-        "aria-label",
-        this.template("Visual_RemoveFilter", "Remove filter {0}", chip.title)
-      );
-      // Deep nodes get their parent as context — "Paris" alone is ambiguous
-      // in a multi-country model (design P2.6).
-      if (n.level > 0 && n.parent && n.parent.level >= 0) {
-        const pathSpan = document.createElement("span");
-        pathSpan.className = "es-chip-path";
-        pathSpan.textContent = `${n.parent.label || this.blankLabel()} · `;
-        chip.appendChild(pathSpan);
+
+    if (input.tree.levelCount > 1) {
+      // Hierarchy recap is organised BY LEVEL, labelled with the hierarchy
+      // field name ("Pays : France ×  ·  Ville : Paris ×"), each level with
+      // its own clear-× when it holds several selections.
+      let budget = maxChips;
+      let overflow = 0;
+      for (let lvl = 0; lvl < input.tree.levelCount; lvl++) {
+        const levelNodes = nodes.filter((n) => n.level === lvl);
+        if (levelNodes.length === 0) continue;
+        const group = document.createElement("div");
+        group.className = "es-chip-group";
+        const label = document.createElement("span");
+        label.className = "es-chip-group-label";
+        label.textContent = input.fieldNames[lvl] || "";
+        group.appendChild(label);
+        const take = Math.max(0, Math.min(levelNodes.length, budget));
+        for (const n of levelNodes.slice(0, take)) {
+          group.appendChild(this.makeChip(n, input.fieldNames[lvl]));
+        }
+        budget -= take;
+        overflow += levelNodes.length - take;
+        if (levelNodes.length > 1) {
+          const clearLvl = document.createElement("button");
+          clearLvl.type = "button";
+          clearLvl.className = "es-chip-level-clear";
+          clearLvl.dataset.clearLevel = String(lvl);
+          const lvlName = input.fieldNames[lvl] || "";
+          clearLvl.title = this.template("Visual_ClearLevel", "Clear {0}", lvlName);
+          clearLvl.setAttribute("aria-label", clearLvl.title);
+          clearLvl.textContent = "×";
+          group.appendChild(clearLvl);
+        }
+        row.appendChild(group);
       }
-      const label = document.createElement("span");
-      label.className = "es-chip-label";
-      label.textContent = n.label || this.blankLabel();
-      chip.appendChild(label);
-      const x = document.createElement("span");
-      x.className = "es-chip-x";
-      x.setAttribute("aria-hidden", "true");
-      x.textContent = "×";
-      chip.appendChild(x);
-      row.appendChild(chip);
+      if (overflow > 0) {
+        const more = document.createElement("span");
+        more.className = "es-chip-more";
+        more.textContent = this.template("Visual_MoreChips", "+{0}", overflow);
+        row.appendChild(more);
+      }
+    } else {
+      const shown = nodes.slice(0, maxChips);
+      for (const n of shown) row.appendChild(this.makeChip(n));
+      if (nodes.length > shown.length) {
+        const more = document.createElement("span");
+        more.className = "es-chip-more";
+        more.textContent = this.template("Visual_MoreChips", "+{0}", nodes.length - shown.length);
+        row.appendChild(more);
+      }
     }
-    if (nodes.length > shown.length) {
-      const more = document.createElement("span");
-      more.className = "es-chip-more";
-      more.textContent = this.template("Visual_MoreChips", "+{0}", nodes.length - shown.length);
-      row.appendChild(more);
-    }
+
     const clearAll = document.createElement("button");
     clearAll.type = "button";
     clearAll.className = "es-chip es-chip-clear";
@@ -562,6 +578,39 @@ export class Visual implements IVisual {
     clearAll.textContent = this.str("Visual_ClearAll", "Clear all");
     row.appendChild(clearAll);
     return row;
+  }
+
+  private makeChip(n: SlicerNode, levelName?: string): HTMLButtonElement {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "es-chip";
+    chip.dataset.chipKey = n.key;
+    const pathLabels = n.rawPath.map((_, i) => {
+      let anc: SlicerNode | null = n;
+      for (let up = n.level; up > i; up--) anc = anc && anc.parent;
+      return anc ? anc.label || this.blankLabel() : "";
+    });
+    chip.title = pathLabels.join(" / ");
+    const ariaTarget = levelName ? `${levelName} : ${chip.title}` : chip.title;
+    chip.setAttribute("aria-label", this.template("Visual_RemoveFilter", "Remove filter {0}", ariaTarget));
+    // Deep nodes get their parent as context — "Paris" alone is ambiguous
+    // in a multi-country model (design P2.6).
+    if (n.level > 0 && n.parent && n.parent.level >= 0) {
+      const pathSpan = document.createElement("span");
+      pathSpan.className = "es-chip-path";
+      pathSpan.textContent = `${n.parent.label || this.blankLabel()} · `;
+      chip.appendChild(pathSpan);
+    }
+    const label = document.createElement("span");
+    label.className = "es-chip-label";
+    label.textContent = n.label || this.blankLabel();
+    chip.appendChild(label);
+    const x = document.createElement("span");
+    x.className = "es-chip-x";
+    x.setAttribute("aria-hidden", "true");
+    x.textContent = "×";
+    chip.appendChild(x);
+    return chip;
   }
 
   private buildBody(input: RenderInput, layout: LayoutMode): HTMLElement {
@@ -883,6 +932,21 @@ export class Visual implements IVisual {
       next.delete(chip.dataset.chipKey);
       this.focusKey = null;
       this.setSelection(next);
+      return;
+    }
+
+    const levelClear = t.closest?.("[data-clear-level]") as HTMLElement | null;
+    if (levelClear?.dataset.clearLevel !== undefined) {
+      const lvl = parseInt(levelClear.dataset.clearLevel || "-1", 10);
+      const input = this.lastValidRenderInput;
+      if (input && lvl >= 0) {
+        const next = new Set(this.selectedKeys);
+        for (const n of selectedNodesInOrder(input.tree, this.selectedKeys)) {
+          if (n.level === lvl) next.delete(n.key);
+        }
+        this.focusKey = null;
+        this.setSelection(next);
+      }
       return;
     }
 

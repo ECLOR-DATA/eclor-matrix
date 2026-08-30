@@ -108,6 +108,39 @@ describe("selection → filter", () => {
     expect(f.values).toHaveLength(3);
   });
 
+  test("hierarchy: chips grouped by level name, per-level clear removes only that level", () => {
+    const { visual, target, host } = makeVisual();
+    visual.update(makeUpdateOptions(twoLevelFixture(), 700, 400));
+    // Expand France, select two of its products + all of Germany.
+    click(target.querySelector("[data-exp-key]"));
+    const byLabel = (label: string) =>
+      Array.from(target.querySelectorAll(".es-item")).find((e) => e.textContent?.includes(label)) ?? null;
+    click(byLabel("Alpha"));
+    click(byLabel("Gamma"));
+    click(byLabel("Germany"));
+
+    const groups = target.querySelectorAll(".es-chip-group");
+    expect(groups).toHaveLength(2);
+    const labels = Array.from(target.querySelectorAll(".es-chip-group-label")).map((e) => e.textContent);
+    expect(labels).toEqual(["Country", "Product"]);
+    // Country group: 1 chip (Germany), no level-clear (single chip).
+    expect(groups[0].querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(1);
+    expect(groups[0].querySelector("[data-clear-level]")).toBeNull();
+    // Product group: 2 chips with parent context + a level-clear ×.
+    expect(groups[1].querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(2);
+    expect(groups[1].querySelector(".es-chip-path")?.textContent).toBe("France · ");
+    const lvlClear = groups[1].querySelector("[data-clear-level]");
+    expect(lvlClear).not.toBeNull();
+
+    const before = host.applied.length;
+    click(lvlClear);
+    // Only Germany survives → tuple filter over its 2 leaves.
+    const f = host.applied[before].filter as { filterType: number; values: unknown[][] };
+    expect(f.filterType).toBe(6);
+    expect(f.values).toHaveLength(2);
+    expect(target.querySelectorAll(".es-chip-group")).toHaveLength(1);
+  });
+
   test("select all / invert / clear header actions", () => {
     const { visual, target, host } = makeVisual();
     visual.update(makeUpdateOptions(oneLevelFixture()));

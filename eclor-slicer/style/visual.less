@@ -30,7 +30,7 @@
   --es-btn-disabled: #b3bdb9;
   --es-font-size: 11px;
   --es-pad-y: 4px;
-  --es-radius: 6px;
+  --es-radius: 8px;
   --es-indent: 16px;
 
   position: relative;
@@ -86,9 +86,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   flex: 0 0 auto;
-  padding: 4px 8px;
+  padding: 8px 12px 6px;
   color: var(--es-header-fg);
   background: var(--es-header-bg);
   border-bottom: 1px solid var(--es-border);
@@ -98,7 +98,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 0;
+  // The component's identity shrinks LAST (design R3.1): the title keeps at
+  // least 40% of the header before actions start giving way.
+  flex: 1 1 auto;
+  min-width: 40%;
   font-family: var(--es-header-font-family, inherit);
   font-size: var(--es-header-font-size, inherit);
   font-weight: var(--es-header-weight, 700);
@@ -110,11 +113,13 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
   flex: 0 0 auto;
 }
 
 .es-btn {
-  padding: 2px 8px;
+  padding: 3px 7px;
   border: 1px solid transparent;
   border-radius: calc(var(--es-radius) / 1.5);
   color: var(--es-muted);
@@ -192,10 +197,10 @@
 .es-search {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 0 0 auto;
-  margin: 6px 8px 2px;
-  padding: 3px 8px;
+  margin: 8px 12px 4px;
+  padding: 6px 10px;
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
@@ -211,8 +216,8 @@
 
 .es-search-icon {
   flex: 0 0 auto;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border: 1.5px solid var(--es-muted-soft);
   border-radius: 50%;
   position: relative;
@@ -220,8 +225,8 @@
   &::after {
     content: "";
     position: absolute;
-    left: 8px;
-    top: 8px;
+    left: 9px;
+    top: 9px;
     width: 5px;
     height: 1.5px;
     background: var(--es-muted-soft);
@@ -263,13 +268,26 @@
 
 // --------------------------------------------------------------------- chips
 
+// One-line rail (design R3.2, Notion/Linear pattern): value chips live in a
+// clipped nowrap scroller, "Clear all" stays anchored at the right edge —
+// an orphan wrap line is structurally impossible.
 .es-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex: 0 0 auto;
-  padding: 6px 8px 4px;
+  padding: 8px 12px 6px;
+}
+
+.es-chips-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .es-chips-hint {
@@ -282,9 +300,9 @@
 .es-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   max-width: 100%;
-  padding: 2px 7px;
+  padding: 3px 10px;
   border: 1px solid var(--es-chip-border);
   border-radius: 999px;
   background: var(--es-chip-bg);
@@ -331,6 +349,8 @@
 
 // Solid hairline + × prefix: an action, not a disabled ghost (design P2.5).
 .es-chip-clear {
+  margin-left: auto;
+  flex: 0 0 auto;
   background: transparent;
   border: 1px solid var(--es-border);
   color: var(--es-muted);
@@ -358,12 +378,13 @@
 .es-chip-group {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
+  flex: 0 0 auto;
 
   & + .es-chip-group {
     border-left: 1px solid var(--es-border);
-    padding-left: 8px;
+    padding-left: 10px;
     margin-left: 2px;
   }
 }
@@ -402,7 +423,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 3px 2px;
+  padding: 4px 4px 6px;
   scrollbar-width: thin;
   scrollbar-color: var(--es-chiclet-border) transparent;
 
@@ -418,7 +439,7 @@
 
 .es-no-results,
 .es-cap-note {
-  padding: 8px;
+  padding: 12px;
   color: var(--es-muted);
   text-align: center;
 }
@@ -429,9 +450,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: var(--es-pad-y) 8px var(--es-pad-y) 4px;
-  margin: 0 4px var(--es-item-gap, 0);
+  gap: 8px;
+  padding: var(--es-pad-y) 10px var(--es-pad-y) 6px;
+  margin: 0 8px var(--es-item-gap, 0);
   font-family: var(--es-item-font-family, inherit);
   font-size: var(--es-item-font-size, inherit);
   font-weight: var(--es-item-weight, 400);
@@ -500,8 +521,8 @@
 .es-check,
 .es-radio {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   border: 1.5px solid var(--es-muted);
   background: transparent;
   position: relative;
@@ -527,7 +548,7 @@
   position: absolute;
   left: 2px;
   top: 4px;
-  width: 7px;
+  width: 8px;
   height: 4px;
   border-left: 2px solid var(--es-selected-fg);
   border-bottom: 2px solid var(--es-selected-fg);
@@ -539,8 +560,8 @@
   position: absolute;
   left: 3px;
   top: 3px;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--es-selected-fg);
 }
@@ -552,8 +573,8 @@
     content: "";
     position: absolute;
     left: 2px;
-    top: 5px;
-    width: 7px;
+    top: 6px;
+    width: 8px;
     height: 2px;
     background: var(--es-fg);
   }
@@ -568,8 +589,8 @@
 // Toggle switch — pill + sliding knob.
 .es-toggle {
   flex: 0 0 auto;
-  width: 24px;
-  height: 13px;
+  width: 26px;
+  height: 15px;
   border: 1.5px solid var(--es-muted);
   border-radius: 999px;
   background: transparent;
@@ -581,10 +602,10 @@
   &::after {
     content: "";
     position: absolute;
-    left: 1px;
+    left: 2px;
     top: 50%;
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: var(--es-muted);
     transform: translateY(-50%);
@@ -597,7 +618,7 @@
   background: var(--es-selected-bg);
 
   &::after {
-    transform: translateY(-50%) translateX(11px);
+    transform: translateY(-50%) translateX(10px);
     background: var(--es-selected-fg);
   }
 }
@@ -610,8 +631,8 @@
 // Tick only — reserved slot, ✓ appears on selection.
 .es-tick {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   position: relative;
 }
 
@@ -640,8 +661,8 @@
 // Dot — small bullet, filled on selection.
 .es-dot {
   flex: 0 0 auto;
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border: 1.5px solid var(--es-muted);
   border-radius: 50%;
   background: transparent;
@@ -741,7 +762,7 @@
 // chiclets ------------------------------------------------------------------
 
 .es-chiclet-body {
-  padding: 2px 0 6px;
+  padding: 2px 0 8px;
 }
 
 // One section per hierarchy level (field name header + button grid).
@@ -753,7 +774,7 @@
 }
 
 .es-chiclet-section-label {
-  padding: 6px 8px 0;
+  padding: 8px 12px 0;
   color: var(--es-muted);
   font-weight: 700;
 }
@@ -761,8 +782,8 @@
 .es-chiclet-grid {
   display: grid;
   grid-template-columns: repeat(var(--es-chiclet-cols, 3), minmax(0, 1fr));
-  gap: calc(5px + var(--es-item-gap, 0px));
-  padding: 6px 8px;
+  gap: calc(8px + var(--es-item-gap, 0px));
+  padding: 8px 12px;
   align-content: start;
 }
 
@@ -773,13 +794,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   font-family: var(--es-item-font-family, inherit);
   font-size: var(--es-item-font-size, inherit);
   font-weight: var(--es-item-weight, 400);
   font-style: var(--es-item-style, normal);
   text-decoration: var(--es-item-deco, none);
-  padding: calc(var(--es-pad-y) + 2px) 6px;
+  padding: calc(var(--es-pad-y) + 3px) 8px;
   border: 1px solid var(--es-chiclet-border);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
@@ -825,10 +846,18 @@
     max-width: 56px;
   }
 
-  // Partially-covered branch (some descendants selected).
+  // Partially-covered branch: same tri-state vocabulary as the list's
+  // dash-in-checkbox — accent border + leading "–" (design R3.5).
   &.es-partial {
-    border-color: var(--es-selected-bg);
+    border: 1.5px solid var(--es-selected-bg);
     background: var(--es-hover-bg);
+
+    .es-chiclet-lab::before {
+      content: "–";
+      font-weight: 700;
+      margin-right: 4px;
+      color: var(--es-fg);
+    }
   }
 
   // No bold on selection — bold reflows the label and makes the grid jump
@@ -845,7 +874,7 @@
 
     .es-chiclet-ctx {
       color: var(--es-selected-fg);
-      opacity: 0.7;
+      opacity: 0.85;
     }
   }
 
@@ -863,7 +892,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 6px 8px;
+  padding: 8px 12px;
 }
 
 .es-dd-field {
@@ -872,7 +901,7 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: calc(var(--es-pad-y) + 2px) 10px;
+  padding: calc(var(--es-pad-y) + 3px) 12px;
   border: 1px solid var(--es-chiclet-border);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
@@ -932,7 +961,7 @@
   overflow: hidden;
 
   .es-search {
-    margin: 6px 8px 2px;
+    margin: 8px 10px 4px;
   }
 }
 
@@ -940,7 +969,7 @@
 
 .es-footer {
   flex: 0 0 auto;
-  padding: 3px 8px 4px;
+  padding: 5px 12px 7px;
   border-top: 1px solid var(--es-border);
   color: var(--es-muted);
   text-align: right;

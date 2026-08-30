@@ -103,5 +103,6 @@
   "Visual_ItemSpacing": "Espacement des éléments (px)",
   "Visual_SingleExpand": "Accordéon (une branche ouverte par niveau)",
   "Visual_ExpandAllBtn": "Tout développer",
-  "Visual_CollapseAllBtn": "Tout réduire"
+  "Visual_CollapseAllBtn": "Tout réduire",
+  "Visual_CountSelectedLeavesOne": "{0} sélectionnés · {1} valeur"
 }

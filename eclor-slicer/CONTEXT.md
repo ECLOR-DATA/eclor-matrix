@@ -184,3 +184,16 @@ Demandes produit intégrées :
 - **Accordéon** (`singleExpand`) : `expandNode` referme les sœurs — l'état
   profond d'une branche refermée est conservé (réouverture = même sous-arbre).
 - Marges : `--es-inner-pad` (root) et `--es-item-gap` (items + gap chiclets).
+
+## 15. Breathing pass v1.3.1 (2026-08-30, revue design R3)
+
+Échelle d'espacement par défaut alignée sur les filtres web modernes :
+gouttières 12 px, rythme vertical 6/8/12, lignes ≥ 28 px, indicateurs 15 px,
+radius 8. La rangée de badges est un RAIL une-ligne (`.es-chips-scroll`
+nowrap clippé + « Tout effacer » ancré `margin-left:auto`) — le budget de
+chips est calculé contre la largeur réelle (réserves : 24 px de gouttières,
+92 px Clear all, 24 px « +N » ; ~100 px/chip à plat, ~130 px en groupé pour
+absorber les étiquettes de niveau) et un groupe ne se rend jamais sans son
+budget. `.es-title` garde min-width 40 % du header. Trade-off documenté
+(R3.6) : un fond fx pleine ligne partage la géométrie de la sélection — la
+sélection reste distinguée par la barre accent + l'indicateur rempli.

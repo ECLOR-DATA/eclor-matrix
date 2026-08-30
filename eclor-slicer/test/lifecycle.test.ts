@@ -89,7 +89,7 @@ describe("selection → filter", () => {
 
   test("multi mode accumulates; chips row shows removable badges", () => {
     const { visual, target, host } = makeVisual();
-    visual.update(makeUpdateOptions(oneLevelFixture()));
+    visual.update(makeUpdateOptions(oneLevelFixture(), 600, 400));
     click(target.querySelectorAll(".es-item")[0]);
     click(target.querySelectorAll(".es-item")[2]);
     expect((host.applied[1].filter as { values: string[] }).values).toEqual(["Alpha", "Gamma"]);

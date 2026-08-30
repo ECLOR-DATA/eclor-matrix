@@ -378,7 +378,9 @@ export class Visual implements IVisual {
     const st = this.target.style;
     const textSize = Math.max(8, Math.min(24, Number(s.slicerStyle.textSize.value) || 11));
     const density = String(s.slicerStyle.density.value.value);
-    const padY = density === "compact" ? 2 : density === "comfortable" ? 8 : 4;
+    // Web-filter breathing scale: compact 3 / normal 6 / comfortable 10 —
+    // normal now matches modern facet lists (≥28px touch rows).
+    const padY = density === "compact" ? 3 : density === "comfortable" ? 10 : 6;
     st.setProperty("--es-font-size", `${textSize}px`);
     st.setProperty("--es-pad-y", `${padY}px`);
     st.setProperty("--es-inner-pad", `${Math.max(0, Math.min(24, Number(s.slicerStyle.innerPadding.value) || 0))}px`);
@@ -606,20 +608,30 @@ export class Visual implements IVisual {
     // Effective cap = user setting ∩ what roughly fits on ONE line (~90px a
     // chip) — keeps the recap to a single row in narrow slicers (P1.5).
     const userMax = Math.max(1, Math.min(30, Number(s.chips.maxChips.value) || 6));
-    // ~80px reserved for the "Clear all" chip so the row truly holds ONE
-    // line (review R2: it wrapped in narrow hierarchies).
-    const fitMax = Math.max(1, Math.floor((input.width - 80) / 90));
+    // One-line rail arithmetic (R3.2): 24px gutters + ~92px anchored
+    // "Clear all" + ~24px "+N" leave (width-122) for ~100px chips — an
+    // honest fit beats a clipped chip.
+    const fitMax = Math.max(1, Math.floor((input.width - 122) / 100));
     const maxChips = Math.min(userMax, fitMax);
+
+    const rail = document.createElement("div");
+    rail.className = "es-chips-scroll";
 
     if (input.tree.levelCount > 1) {
       // Hierarchy recap is organised BY LEVEL, labelled with the hierarchy
       // field name ("Pays : France ×  ·  Ville : Paris ×"), each level with
-      // its own clear-× when it holds several selections.
-      let budget = maxChips;
+      // its own clear-× when it holds several selections. Level labels eat
+      // rail width, so the grouped budget uses a wider per-chip estimate
+      // (design R3.2 — no half-clipped group on the one-line rail).
+      let budget = Math.min(maxChips, Math.max(1, Math.floor((input.width - 116) / 130)));
       let overflow = 0;
       for (let lvl = 0; lvl < input.tree.levelCount; lvl++) {
         const levelNodes = nodes.filter((n) => n.level === lvl);
         if (levelNodes.length === 0) continue;
+        if (budget <= 0) {
+          overflow += levelNodes.length;
+          continue;
+        }
         const group = document.createElement("div");
         group.className = "es-chip-group";
         const label = document.createElement("span");
@@ -643,24 +655,26 @@ export class Visual implements IVisual {
           clearLvl.textContent = "×";
           group.appendChild(clearLvl);
         }
-        row.appendChild(group);
+        rail.appendChild(group);
       }
       if (overflow > 0) {
         const more = document.createElement("span");
         more.className = "es-chip-more";
         more.textContent = this.template("Visual_MoreChips", "+{0}", overflow);
-        row.appendChild(more);
+        rail.appendChild(more);
       }
     } else {
       const shown = nodes.slice(0, maxChips);
-      for (const n of shown) row.appendChild(this.makeChip(n));
+      for (const n of shown) rail.appendChild(this.makeChip(n));
       if (nodes.length > shown.length) {
         const more = document.createElement("span");
         more.className = "es-chip-more";
         more.textContent = this.template("Visual_MoreChips", "+{0}", nodes.length - shown.length);
-        row.appendChild(more);
+        rail.appendChild(more);
       }
     }
+
+    row.appendChild(rail);
 
     const clearAll = document.createElement("button");
     clearAll.type = "button";
@@ -1009,7 +1023,9 @@ export class Visual implements IVisual {
       this.selectedKeys.size === 0
         ? this.template("Visual_CountAll", "{0} items", rootTotal)
         : input.tree.levelCount > 1
-          ? this.template("Visual_CountSelectedLeaves", "{0} selected · {1} values", selectedRoots, leaves)
+          ? leaves === 1
+            ? this.template("Visual_CountSelectedLeavesOne", "{0} selected · {1} value", selectedRoots, leaves)
+            : this.template("Visual_CountSelectedLeaves", "{0} selected · {1} values", selectedRoots, leaves)
           : this.template("Visual_CountSelected", "{0} / {1} selected", leaves, rootTotal);
     return footer;
   }

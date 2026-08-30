@@ -103,5 +103,6 @@
   "Visual_ItemSpacing": "Item spacing (px)",
   "Visual_SingleExpand": "Accordion (one branch open per level)",
   "Visual_ExpandAllBtn": "Expand all",
-  "Visual_CollapseAllBtn": "Collapse all"
+  "Visual_CollapseAllBtn": "Collapse all",
+  "Visual_CountSelectedLeavesOne": "{0} selected · {1} value"
 }

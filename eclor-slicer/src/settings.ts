@@ -397,7 +397,7 @@ class ItemsCardSettings extends FormattingSettingsCard {
     name: "borderRadius",
     displayName: "Border radius (px)",
     displayNameKey: "Visual_BorderRadius",
-    value: 6,
+    value: 8,
     options: {
       minValue: { type: 0, value: 0 },
       maxValue: { type: 1, value: 24 }

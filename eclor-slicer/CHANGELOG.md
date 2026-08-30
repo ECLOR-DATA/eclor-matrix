@@ -3,6 +3,16 @@
 All notable changes to Eclor Slicer are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow the pbiviz `X.Y.Z.W` scheme.
 
+## [1.3.1.0] — 2026-08-30
+
+### Changed — « breathing pass » (bonnes pratiques des filtres web, validée par revue design R3)
+- **Espacements par défaut recalibrés** sur les standards de facettes web (Linear/Stripe/e-commerce) : gouttières extérieures 12 px, lignes ≥ 28 px (densité normale 6 px, confortable 10 px), champ de recherche ~32 px, badges 3×10 + gap 6, espace interne des lignes 8 px, grille chiclets 8 px, coins arrondis 8 px par défaut. La densité « Compacte » reste le mode serré.
+- **Indicateurs 15 px** (cases/coche/radio taille web standard), toggle 26×15, pastille 10 px.
+- **Rangée de badges une-ligne garantie** (pattern Notion/Linear) : rail clippé `nowrap` + « Tout effacer » ancré à droite — plus jamais d'orphelin sur une 2e ligne ; budget de chips réaliste (plat et groupé, étiquettes de niveau comprises).
+- **Le titre du header rétrécit en dernier** (min-width 40 %) — plus de « Région / … » tronqué pendant que les actions gardent leurs marges.
+- **Tri-état lisible sur les chiclets** : branche partiellement couverte = bordure accent 1,5 px + « – » devant le libellé (même vocabulaire que le tiret des cases).
+- Footer : singulier « 1 value » / « 1 valeur » ; contraste du préfixe parent remonté sur chiclet sélectionné.
+
 ## [1.3.0.0] — 2026-08-30
 
 ### Added (demandes produit)

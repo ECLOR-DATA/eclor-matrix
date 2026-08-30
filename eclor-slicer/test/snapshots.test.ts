@@ -101,67 +101,67 @@ function itemByLabel(target: HTMLElement, selector: string, label: string): Elem
 describe("render snapshots", () => {
   test("01 — vertical list with selection + badges", () => {
     const { visual, target } = makeVisual();
-    visual.update(makeUpdateOptions(fixtureCountries(), 260, 380));
+    visual.update(makeUpdateOptions(fixtureCountries(), 260, 470));
     clickEl(itemByLabel(target, ".es-item", "France"));
     clickEl(itemByLabel(target, ".es-item", "Espagne"));
     clickEl(itemByLabel(target, ".es-item", "Portugal"));
-    // Width 260 → one-line chip cap = floor((260-80)/90) = 2 chips + "+1".
-    expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(2);
-    expect(target.querySelector(".es-chip-more")?.textContent).toBe("+1");
-    snapshot("01-list-selection", target, 260, 380, "Liste verticale — multi-sélection, badges retirables, valeurs formatées");
+    // Width 260 → one-line rail cap = floor((260-122)/100) = 1 chip + "+2".
+    expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(1);
+    expect(target.querySelector(".es-chip-more")?.textContent).toBe("+2");
+    snapshot("01-list-selection", target, 260, 470, "Liste verticale — multi-sélection, badges retirables, valeurs formatées");
   });
 
   test("02 — hierarchy tree, partial selection", () => {
     const { visual, target } = makeVisual();
-    visual.update(makeUpdateOptions(fixtureHierarchy(), 280, 430));
+    visual.update(makeUpdateOptions(fixtureHierarchy(), 280, 490));
     clickEl(itemByLabel(target, ".es-item", "Europe").querySelector("[data-exp-key]"));
     clickEl(itemByLabel(target, ".es-item", "France").querySelector("[data-exp-key]"));
     clickEl(itemByLabel(target, ".es-item", "Paris"));
     clickEl(itemByLabel(target, ".es-item", "Italie"));
     expect(target.querySelector('.es-item[aria-checked="mixed"]')).not.toBeNull();
-    snapshot("02-hierarchy-partial", target, 280, 430, "Hiérarchie 3 niveaux — tri-état, sélection partielle, chevrons");
+    snapshot("02-hierarchy-partial", target, 280, 490, "Hiérarchie 3 niveaux — tri-état, sélection partielle, chevrons");
   });
 
   test("03 — chiclet grid", () => {
     const { visual, target } = makeVisual();
     visual.update(
-      makeUpdateOptions(fixtureCountries({ slicerStyle: { layout: "chiclets", chicletColumns: 2 } }), 260, 380)
+      makeUpdateOptions(fixtureCountries({ slicerStyle: { layout: "chiclets", chicletColumns: 2 } }), 260, 470)
     );
     clickEl(itemByLabel(target, ".es-chiclet", "France"));
     clickEl(itemByLabel(target, ".es-chiclet", "Italie"));
     expect(target.querySelectorAll(".es-chiclet.es-on")).toHaveLength(2);
-    snapshot("03-chiclets", target, 260, 380, "Boutons chiclets — grille 2 colonnes, états sélectionnés");
+    snapshot("03-chiclets", target, 260, 470, "Boutons chiclets — grille 2 colonnes, états sélectionnés");
   });
 
   test("04 — dropdown open with search", () => {
     const { visual, target } = makeVisual();
-    visual.update(makeUpdateOptions(fixtureCountries({ slicerStyle: { layout: "dropdown" } }), 260, 380));
+    visual.update(makeUpdateOptions(fixtureCountries({ slicerStyle: { layout: "dropdown" } }), 260, 470));
     expect(target.querySelector(".es-popover")).toBeNull();
     clickEl(target.querySelector("[data-action='ddToggle']"));
     clickEl(itemByLabel(target, ".es-item", "Allemagne"));
     clickEl(itemByLabel(target, ".es-item", "Suisse"));
     expect(target.querySelector(".es-popover")).not.toBeNull();
-    snapshot("04-dropdown-open", target, 260, 380, "Mode dropdown — panneau ouvert, résumé de sélection dans le champ");
+    snapshot("04-dropdown-open", target, 260, 470, "Mode dropdown — panneau ouvert, résumé de sélection dans le champ");
   });
 
   test("05 — active search narrows the tree", () => {
     const { visual, target } = makeVisual();
-    visual.update(makeUpdateOptions(fixtureHierarchy(), 280, 430));
+    visual.update(makeUpdateOptions(fixtureHierarchy(), 280, 490));
     const input = target.querySelector<HTMLInputElement>(".es-search-input");
     if (!input) throw new Error("no search input");
     input.value = "to";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     expect(target.querySelectorAll(".es-item").length).toBeGreaterThan(0);
-    snapshot("05-search", target, 280, 430, "Recherche — descendants dépliés automatiquement, ancêtres conservés");
+    snapshot("05-search", target, 280, 490, "Recherche — descendants dépliés automatiquement, ancêtres conservés");
   });
 
   test("06 — single-select radios, badge unique", () => {
     const { visual, target } = makeVisual();
-    visual.update(makeUpdateOptions(fixtureCountries({ selection: { selectionMode: "single" } }), 260, 380));
+    visual.update(makeUpdateOptions(fixtureCountries({ selection: { selectionMode: "single" } }), 260, 470));
     clickEl(itemByLabel(target, ".es-item", "Allemagne"));
     expect(target.querySelectorAll(".es-radio")).not.toHaveLength(0);
     expect(target.querySelectorAll(".es-item.es-on")).toHaveLength(1);
-    snapshot("06-single-select", target, 260, 380, "Sélection unique — radios, boutons Tout/Inverser masqués");
+    snapshot("06-single-select", target, 260, 470, "Sélection unique — radios, boutons Tout/Inverser masqués");
   });
 
   test("07 — high-contrast mode (Night-sky-like palette)", () => {
@@ -172,11 +172,11 @@ describe("render snapshots", () => {
     palette.foreground = { value: "#ffffff" };
     palette.background = { value: "#0d1117" };
     palette.hyperlink = { value: "#75b6e7" };
-    visual.update(makeUpdateOptions(fixtureCountries(), 260, 380));
+    visual.update(makeUpdateOptions(fixtureCountries(), 260, 470));
     clickEl(itemByLabel(target, ".es-item", "France"));
     clickEl(itemByLabel(target, ".es-item", "Espagne"));
     expect(target.style.getPropertyValue("--es-selected-bg")).toBe("#75b6e7");
-    snapshot("07-high-contrast", target, 260, 380, "Mode high-contrast — tous les tokens écrasés par la palette hôte");
+    snapshot("07-high-contrast", target, 260, 470, "Mode high-contrast — tous les tokens écrasés par la palette hôte");
   });
 
   test("08 — locale fr-FR (chaînes localisées)", () => {
@@ -189,10 +189,10 @@ describe("render snapshots", () => {
     host.createLocalizationManager = () => ({ getDisplayName: (k: string) => frDict[k] ?? k });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const visual = new Visual({ host, element: target } as any);
-    visual.update(makeUpdateOptions(fixtureCountries(), 260, 380));
+    visual.update(makeUpdateOptions(fixtureCountries(), 260, 470));
     clickEl(itemByLabel(target, ".es-item", "France"));
     expect(target.querySelector(".es-footer")?.textContent).toContain("sélectionné");
-    snapshot("08-locale-fr", target, 260, 380, "Locale fr-FR — recherche, actions, footer et badges localisés");
+    snapshot("08-locale-fr", target, 260, 470, "Locale fr-FR — recherche, actions, footer et badges localisés");
   });
 
   test("09 — chiclet hiérarchie : sections par niveau, tous les éléments", () => {
@@ -225,11 +225,11 @@ describe("render snapshots", () => {
       { name: "CA", values: [820000, 340000, 210000, 560000], format: "#,##0 \"€\"" },
       { items: { indicator: "toggle", indicatorPosition: "right", wrapLabels: true } }
     );
-    visual.update(makeUpdateOptions(dv, 240, 340));
+    visual.update(makeUpdateOptions(dv, 250, 420));
     clickEl(itemByLabel(target, ".es-item", "Grands comptes"));
     clickEl(itemByLabel(target, ".es-item", "e-commerce"));
     expect(target.querySelectorAll(".es-toggle")).toHaveLength(4);
-    snapshot("10-toggle-wrap", target, 240, 340, "Indicateur toggle à droite + retour à la ligne des libellés longs");
+    snapshot("10-toggle-wrap", target, 250, 420, "Indicateur toggle à droite + retour à la ligne des libellés longs");
   });
 
   test("11 — typographie, marges et couleurs par règle (fx)", () => {
@@ -249,10 +249,10 @@ describe("render snapshots", () => {
       undefined,
       { items: { fontColor: { solid: { color: "#B00020" } } } }
     ];
-    visual.update(makeUpdateOptions(dv, 260, 400));
+    visual.update(makeUpdateOptions(dv, 260, 500));
     clickEl(itemByLabel(target, ".es-item", "Espagne"));
     expect(target.style.getPropertyValue("--es-item-style")).toBe("italic");
-    snapshot("11-typo-fx", target, 260, 400, "Typo par zone (Georgia, italique, souligné), marges, gras badges + couleurs conditionnelles par élément");
+    snapshot("11-typo-fx", target, 260, 500, "Typo par zone (Georgia, italique, souligné), marges, gras badges + couleurs conditionnelles par élément");
   });
 
   test("12 — interactions hiérarchie : tout développer + accordéon", () => {

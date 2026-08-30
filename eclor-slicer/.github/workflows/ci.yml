@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, certification]
+  pull_request:
+    branches: [main, certification]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Lint, type-check, test, package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test -- --ci --reporters=default
+
+      - name: Build .pbiviz
+        run: npx pbiviz package
+
+      - name: Upload .pbiviz artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclor-slicer-pbiviz
+          path: dist/*.pbiviz
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,977 @@
+// Eclor Slicer — container, list/chiclet/dropdown/tree, chips and a11y styles.
+// Default look mirrors the ECLOR "eclor — Light" report theme (same tokens as
+// eclor-matrix): Arial 11, #091612 ink, #E5E7E6 hairlines, #1EF5B1 emerald
+// accent. Informational grey is #5E6E68 (5.38:1, WCAG AA); the softer #8A9994
+// is decorative-only (design review R1 P1.1). Every colour flows through CSS
+// custom properties set from visual.ts (applyCssVars) so high-contrast mode
+// overrides all of them in one place — never hard-code a colour outside the
+// token block below (audit HC-01).
+
+.eclor-slicer-root {
+  --es-fg: #091612;
+  --es-bg: transparent;
+  --es-item-bg: transparent;
+  --es-selected-bg: #1ef5b1;
+  --es-selected-soft-bg: #d9fdf1;
+  --es-selected-fg: #091612;
+  --es-hover-bg: rgba(30, 245, 177, 0.14);
+  --es-chip-bg: #d9fdf1;
+  --es-chip-fg: #091612;
+  --es-header-fg: #091612;
+  --es-header-bg: transparent;
+  --es-border: #e5e7e6;
+  --es-chiclet-border: #d6dad8;
+  --es-muted: #5e6e68;
+  --es-muted-soft: #8a9994;
+  --es-focus: #091612;
+  --es-popover-bg: #ffffff;
+  --es-popover-shadow: 0 4px 14px rgba(9, 22, 18, 0.12);
+  --es-chip-border: transparent;
+  --es-btn-disabled: #b3bdb9;
+  --es-font-size: 11px;
+  --es-pad-y: 4px;
+  --es-radius: 8px;
+  --es-indent: 16px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: var(--es-inner-pad, 0);
+  font-family: Arial, "Segoe UI", wf_segoe-ui_normal, helvetica, sans-serif;
+  font-size: var(--es-font-size);
+  color: var(--es-fg);
+  background: var(--es-bg);
+
+  * {
+    box-sizing: border-box;
+  }
+
+  // :where() keeps the reset at 0 specificity so component classes
+  // (.es-chip, .es-chiclet, .es-dd-field…) can restyle without escalation.
+  :where(button) {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+}
+
+// ---------------------------------------------------------------- empty state
+
+.es-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 12px;
+}
+
+.es-empty-text {
+  color: var(--es-muted);
+  text-align: center;
+}
+
+// -------------------------------------------------------------------- header
+// 8px horizontal grid throughout (design P2.9): header/search/chips/footer
+// all start their content 8px from the edge; items at 4px margin + 4px pad.
+
+.es-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 12px 6px;
+  color: var(--es-header-fg);
+  background: var(--es-header-bg);
+  border-bottom: 1px solid var(--es-border);
+}
+
+.es-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  // The component's identity shrinks LAST (design R3.1): the title keeps at
+  // least 40% of the header before actions start giving way.
+  flex: 1 1 auto;
+  min-width: 40%;
+  font-family: var(--es-header-font-family, inherit);
+  font-size: var(--es-header-font-size, inherit);
+  font-weight: var(--es-header-weight, 700);
+  font-style: var(--es-header-style, normal);
+  text-decoration: var(--es-header-deco, none);
+}
+
+.es-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.es-btn {
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--es-radius) / 1.5);
+  color: var(--es-muted);
+  line-height: 1.5;
+  white-space: nowrap;
+  transition: background-color 0.08s ease, border-color 0.08s ease;
+
+  &:hover {
+    color: var(--es-fg);
+    background: var(--es-hover-bg);
+    border-color: var(--es-border);
+  }
+
+  // Explicit light grey instead of stacked opacity on an already-grey
+  // token (design P1.2) — reads as disabled, stays visible.
+  &:disabled {
+    opacity: 1;
+    color: var(--es-btn-disabled);
+    cursor: default;
+    background: none;
+    border-color: transparent;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+.es-btn-tree {
+  padding: 2px 5px;
+}
+
+// Double chevron pointing down (expand all) / up (collapse all).
+.es-tree-glyph {
+  display: block;
+  width: 10px;
+  height: 11px;
+  position: relative;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+  }
+
+  &.es-tree-down::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+
+  &.es-tree-down::after {
+    top: 4px;
+    transform: rotate(45deg);
+  }
+
+  &.es-tree-up::before {
+    top: 3px;
+    transform: rotate(-135deg);
+  }
+
+  &.es-tree-up::after {
+    top: 7px;
+    transform: rotate(-135deg);
+  }
+}
+
+// -------------------------------------------------------------------- search
+
+.es-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin: 8px 12px 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+
+  // Border tint alone is colour-only signalling (audit A11Y-03) — add the
+  // same focus outline the rest of the visual uses.
+  &:focus-within {
+    border-color: var(--es-selected-bg);
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+.es-search-icon {
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--es-muted-soft);
+  border-radius: 50%;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 9px;
+    width: 5px;
+    height: 1.5px;
+    background: var(--es-muted-soft);
+    transform: rotate(45deg);
+    transform-origin: 0 0;
+  }
+}
+
+.es-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--es-fg);
+
+  &::placeholder {
+    color: var(--es-muted);
+  }
+}
+
+.es-search-clear {
+  flex: 0 0 auto;
+  color: var(--es-muted);
+  font-size: calc(var(--es-font-size) + 3px);
+  line-height: 1;
+  padding: 0 2px;
+
+  &:hover {
+    color: var(--es-fg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+// --------------------------------------------------------------------- chips
+
+// One-line rail (design R3.2, Notion/Linear pattern): value chips live in a
+// clipped nowrap scroller, "Clear all" stays anchored at the right edge —
+// an orphan wrap line is structurally impossible.
+.es-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 12px 6px;
+}
+
+.es-chips-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.es-chips-hint {
+  color: var(--es-muted);
+  font-style: italic;
+  line-height: 1.6;
+  padding: 2px 0;
+}
+
+.es-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--es-chip-border);
+  border-radius: 999px;
+  background: var(--es-chip-bg);
+  color: var(--es-chip-fg);
+  font-weight: var(--es-chip-weight, 400);
+  line-height: 1.6;
+  transition: filter 0.08s ease;
+
+  .es-chip-path {
+    flex: 0 1 auto;
+    color: var(--es-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 64px;
+  }
+
+  .es-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+  }
+
+  .es-chip-x {
+    font-size: calc(var(--es-font-size) + 2px);
+    line-height: 1;
+    opacity: 0.6;
+  }
+
+  &:hover .es-chip-x {
+    opacity: 1;
+  }
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+// Solid hairline + × prefix: an action, not a disabled ghost (design P2.5).
+.es-chip-clear {
+  margin-left: auto;
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--es-border);
+  color: var(--es-muted);
+
+  &::before {
+    content: "×";
+    margin-right: 4px;
+    opacity: 0.7;
+  }
+
+  &:hover {
+    color: var(--es-fg);
+    border-color: var(--es-muted);
+    filter: none;
+  }
+}
+
+.es-chip-more {
+  color: var(--es-muted);
+  padding: 0 2px;
+}
+
+// Hierarchy recap: one group per level, labelled with the field name and
+// separated by a hairline; the group × clears that whole level.
+.es-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 0 auto;
+
+  & + .es-chip-group {
+    border-left: 1px solid var(--es-border);
+    padding-left: 10px;
+    margin-left: 2px;
+  }
+}
+
+.es-chip-group-label {
+  color: var(--es-muted);
+  white-space: nowrap;
+
+  &::after {
+    content: " :";
+  }
+}
+
+.es-chip-level-clear {
+  color: var(--es-muted);
+  font-size: calc(var(--es-font-size) + 2px);
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 999px;
+
+  &:hover {
+    color: var(--es-fg);
+    background: var(--es-hover-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+// ---------------------------------------------------------------------- body
+
+.es-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 4px 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--es-chiclet-border) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--es-chiclet-border);
+    border-radius: 3px;
+  }
+}
+
+.es-no-results,
+.es-cap-note {
+  padding: 12px;
+  color: var(--es-muted);
+  text-align: center;
+}
+
+// list items ---------------------------------------------------------------
+
+.es-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--es-pad-y) 10px var(--es-pad-y) 6px;
+  margin: 0 8px var(--es-item-gap, 0);
+  font-family: var(--es-item-font-family, inherit);
+  font-size: var(--es-item-font-size, inherit);
+  font-weight: var(--es-item-weight, 400);
+  font-style: var(--es-item-style, normal);
+  text-decoration: var(--es-item-deco, none);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.08s ease;
+
+  &:hover {
+    background: var(--es-hover-bg);
+  }
+
+  // Calm selection (design P2.1): soft tint + accent bar + filled check.
+  // The bar is a clipped ::before, NOT an inset box-shadow — the shadow
+  // leaked around the border-radius as an emerald "crescent" (review R2).
+  &.es-on {
+    background: var(--es-selected-soft-bg);
+    color: var(--es-selected-fg);
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--es-selected-bg);
+    }
+
+    .es-count {
+      color: var(--es-selected-fg);
+      opacity: 0.75;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: -2px;
+  }
+}
+
+.es-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.es-match {
+  font-weight: 700;
+}
+
+.es-count {
+  flex: 0 0 auto;
+  color: var(--es-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+// checkbox / radio glyphs ---------------------------------------------------
+
+.es-check,
+.es-radio {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--es-muted);
+  background: transparent;
+  position: relative;
+}
+
+.es-check {
+  border-radius: 3px;
+}
+
+.es-radio {
+  border-radius: 50%;
+}
+
+// Filled glyph carries the selected state (design P2.1).
+.es-item.es-on .es-check,
+.es-item.es-on .es-radio {
+  border-color: var(--es-selected-fg);
+  background: var(--es-selected-bg);
+}
+
+.es-item.es-on .es-check::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 4px;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid var(--es-selected-fg);
+  border-bottom: 2px solid var(--es-selected-fg);
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.es-item.es-on .es-radio::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--es-selected-fg);
+}
+
+.es-item.es-partial .es-check {
+  border-color: var(--es-fg);
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 6px;
+    width: 8px;
+    height: 2px;
+    background: var(--es-fg);
+  }
+}
+
+// alternative indicators (Items card: indicator / indicatorShape) ----------
+
+.es-check.es-round {
+  border-radius: 50%;
+}
+
+// Toggle switch — pill + sliding knob.
+.es-toggle {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 15px;
+  border: 1.5px solid var(--es-muted);
+  border-radius: 999px;
+  background: transparent;
+  position: relative;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+
+  // top:50% + translateY keeps the knob dead-centred whatever the pill's
+  // border/box rounding does (reported: knob sat high).
+  &::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--es-muted);
+    transform: translateY(-50%);
+    transition: transform 0.1s ease, background-color 0.1s ease;
+  }
+}
+
+.es-item.es-on .es-toggle {
+  border-color: var(--es-selected-fg);
+  background: var(--es-selected-bg);
+
+  &::after {
+    transform: translateY(-50%) translateX(10px);
+    background: var(--es-selected-fg);
+  }
+}
+
+.es-item.es-partial .es-toggle::after {
+  transform: translateY(-50%) translateX(5px);
+  background: var(--es-fg);
+}
+
+// Tick only — reserved slot, ✓ appears on selection.
+.es-tick {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  position: relative;
+}
+
+.es-item.es-on .es-tick::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 3px;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid var(--es-selected-fg);
+  border-bottom: 2px solid var(--es-selected-fg);
+  transform: rotate(-45deg);
+}
+
+.es-item.es-partial .es-tick::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 8px;
+  height: 2px;
+  background: var(--es-fg);
+}
+
+// Dot — small bullet, filled on selection.
+.es-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--es-muted);
+  border-radius: 50%;
+  background: transparent;
+
+  &.es-squared {
+    border-radius: 2px;
+  }
+}
+
+.es-item.es-on .es-dot {
+  border-color: var(--es-selected-fg);
+  background: var(--es-selected-bg);
+}
+
+.es-item.es-partial .es-dot {
+  border-color: var(--es-fg);
+  background: var(--es-hover-bg);
+}
+
+// indicator position variants (Items card: indicatorPosition) --------------
+
+.es-pos-right .es-item {
+  .es-check,
+  .es-radio,
+  .es-toggle,
+  .es-tick,
+  .es-dot {
+    order: 10;
+  }
+
+  .es-count {
+    order: 9;
+  }
+}
+
+.es-pos-center .es-item {
+  justify-content: center;
+
+  .es-label {
+    flex: 0 1 auto;
+  }
+}
+
+// wrap option (Items card: wrapLabels) — multi-line labels for deep trees.
+.es-wrap .es-item .es-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.es-wrap .es-item {
+  align-items: flex-start;
+
+  .es-check,
+  .es-radio,
+  .es-toggle,
+  .es-tick,
+  .es-dot,
+  .es-caret {
+    margin-top: 1px;
+  }
+}
+
+// tree caret ----------------------------------------------------------------
+// Expand/collapse is THE hierarchy interaction: 16px hit zone, AA-visible
+// chevron (design P2.2). Leaf carets stay as ghosts to keep rows aligned.
+
+.es-caret {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  position: relative;
+  cursor: pointer;
+}
+
+.es-caret-closed::after,
+.es-caret-open::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  border-left: 5px solid var(--es-muted);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.1s ease;
+}
+
+.es-caret-open::after {
+  transform: rotate(90deg);
+  border-left-color: var(--es-fg);
+}
+
+.es-item.es-on .es-caret-closed::after,
+.es-item.es-on .es-caret-open::after {
+  border-left-color: var(--es-selected-fg);
+}
+
+// chiclets ------------------------------------------------------------------
+
+.es-chiclet-body {
+  padding: 2px 0 8px;
+}
+
+// One section per hierarchy level (field name header + button grid).
+.es-chiclet-section {
+  & + .es-chiclet-section {
+    margin-top: 4px;
+    border-top: 1px solid var(--es-border);
+  }
+}
+
+.es-chiclet-section-label {
+  padding: 8px 12px 0;
+  color: var(--es-muted);
+  font-weight: 700;
+}
+
+.es-chiclet-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--es-chiclet-cols, 3), minmax(0, 1fr));
+  gap: calc(8px + var(--es-item-gap, 0px));
+  padding: 8px 12px;
+  align-content: start;
+}
+
+// Two-line chiclet: the label owns the width, the value sits under it in a
+// smaller size — labels never lose to their own metadata (design P1.3).
+.es-chiclet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-family: var(--es-item-font-family, inherit);
+  font-size: var(--es-item-font-size, inherit);
+  font-weight: var(--es-item-weight, 400);
+  font-style: var(--es-item-style, normal);
+  text-decoration: var(--es-item-deco, none);
+  padding: calc(var(--es-pad-y) + 3px) 8px;
+  border: 1px solid var(--es-chiclet-border);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+  box-shadow: 0 1px 2px rgba(9, 22, 18, 0.07);
+  min-width: 0;
+  transition: background-color 0.08s ease, border-color 0.08s ease;
+
+  .es-label {
+    flex: 0 1 auto;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .es-count {
+    font-size: calc(var(--es-font-size) - 1px);
+  }
+
+  &:hover {
+    background: var(--es-hover-bg);
+    border-color: var(--es-selected-bg);
+  }
+
+  &:active {
+    box-shadow: none;
+    transform: translateY(0.5px);
+  }
+
+  .es-chiclet-lab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .es-chiclet-ctx {
+    flex: 0 1 auto;
+    color: var(--es-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 56px;
+  }
+
+  // Partially-covered branch: same tri-state vocabulary as the list's
+  // dash-in-checkbox — accent border + leading "–" (design R3.5).
+  &.es-partial {
+    border: 1.5px solid var(--es-selected-bg);
+    background: var(--es-hover-bg);
+
+    .es-chiclet-lab::before {
+      content: "–";
+      font-weight: 700;
+      margin-right: 4px;
+      color: var(--es-fg);
+    }
+  }
+
+  // No bold on selection — bold reflows the label and makes the grid jump
+  // on click (design P2.4); the emerald fill is signal enough.
+  &.es-on {
+    background: var(--es-selected-bg);
+    border-color: var(--es-selected-bg);
+    color: var(--es-selected-fg);
+
+    .es-count {
+      color: var(--es-selected-fg);
+      opacity: 0.75;
+    }
+
+    .es-chiclet-ctx {
+      color: var(--es-selected-fg);
+      opacity: 0.85;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+// dropdown ------------------------------------------------------------------
+
+.es-dd {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+}
+
+.es-dd-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: calc(var(--es-pad-y) + 3px) 12px;
+  border: 1px solid var(--es-chiclet-border);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+  text-align: left;
+  transition: border-color 0.08s ease;
+
+  &:hover {
+    border-color: var(--es-selected-bg);
+  }
+
+  &[aria-expanded="true"] {
+    border-color: var(--es-selected-bg);
+
+    .es-dd-caret {
+      transform: rotate(180deg);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+.es-dd-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+
+  &.es-dd-all {
+    color: var(--es-muted);
+  }
+}
+
+.es-dd-caret {
+  flex: 0 0 auto;
+  border-top: 5px solid var(--es-muted);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  transition: transform 0.12s ease;
+}
+
+// In-flow panel: the visual owns its whole viewport, so the open dropdown
+// takes the remaining height instead of overlaying (an iframe can't spill).
+.es-popover {
+  position: relative;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-popover-bg);
+  box-shadow: var(--es-popover-shadow);
+  overflow: hidden;
+
+  .es-search {
+    margin: 8px 10px 4px;
+  }
+}
+
+// -------------------------------------------------------------------- footer
+
+.es-footer {
+  flex: 0 0 auto;
+  padding: 5px 12px 7px;
+  border-top: 1px solid var(--es-border);
+  color: var(--es-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

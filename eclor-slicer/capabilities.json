@@ -1,0 +1,633 @@
+{
+  "dataRoles": [
+    {
+      "displayName": "Field",
+      "displayNameKey": "Visual_Field",
+      "name": "field",
+      "kind": "Grouping",
+      "description": "One or more columns to filter by. Bind 2+ columns to get a hierarchy tree (order defines the levels, top → bottom).",
+      "descriptionKey": "Visual_Field_Desc"
+    },
+    {
+      "displayName": "Values",
+      "displayNameKey": "Visual_Values",
+      "name": "values",
+      "kind": "Measure",
+      "description": "Optional. A measure displayed next to each item (e.g. sales amount or row count).",
+      "descriptionKey": "Visual_Values_Desc"
+    }
+  ],
+  "dataViewMappings": [
+    {
+      "conditions": [
+        {
+          "field": {
+            "max": 6
+          },
+          "values": {
+            "max": 1
+          }
+        }
+      ],
+      "categorical": {
+        "categories": {
+          "for": {
+            "in": "field"
+          },
+          "dataReductionAlgorithm": {
+            "top": {
+              "count": 10000
+            }
+          }
+        },
+        "values": {
+          "select": [
+            {
+              "bind": {
+                "to": "values"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "objects": {
+    "general": {
+      "displayName": "General",
+      "displayNameKey": "Visual_General",
+      "properties": {
+        "filter": {
+          "type": {
+            "filter": true
+          }
+        }
+      }
+    },
+    "selection": {
+      "displayName": "Selection",
+      "displayNameKey": "Visual_Selection",
+      "properties": {
+        "selectionMode": {
+          "displayName": "Selection mode",
+          "type": {
+            "enumeration": [
+              {
+                "value": "multi",
+                "displayName": "Multiple",
+                "displayNameKey": "Visual_ModeMulti"
+              },
+              {
+                "value": "single",
+                "displayName": "Single",
+                "displayNameKey": "Visual_ModeSingle"
+              }
+            ]
+          },
+          "displayNameKey": "Visual_SelectionMode"
+        },
+        "showSelectAll": {
+          "displayName": "Show \"Select all\"",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowSelectAll"
+        },
+        "showInvert": {
+          "displayName": "Show \"Invert\"",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowInvert"
+        },
+        "showClear": {
+          "displayName": "Show \"Clear\"",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowClear"
+        }
+      }
+    },
+    "slicerStyle": {
+      "displayName": "Style",
+      "displayNameKey": "Visual_Style",
+      "properties": {
+        "layout": {
+          "displayName": "Layout",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto",
+                "displayNameKey": "Visual_LayoutAuto"
+              },
+              {
+                "value": "list",
+                "displayName": "Vertical list",
+                "displayNameKey": "Visual_LayoutList"
+              },
+              {
+                "value": "chiclets",
+                "displayName": "Chiclet buttons",
+                "displayNameKey": "Visual_LayoutChiclets"
+              },
+              {
+                "value": "dropdown",
+                "displayName": "Dropdown",
+                "displayNameKey": "Visual_LayoutDropdown"
+              }
+            ]
+          },
+          "displayNameKey": "Visual_Layout"
+        },
+        "chicletColumns": {
+          "displayName": "Chiclet columns",
+          "type": {
+            "numeric": true
+          },
+          "displayNameKey": "Visual_ChicletColumns"
+        },
+        "textSize": {
+          "displayName": "Text size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          },
+          "displayNameKey": "Visual_TextSize"
+        },
+        "density": {
+          "displayName": "Item density",
+          "type": {
+            "enumeration": [
+              {
+                "value": "compact",
+                "displayName": "Compact",
+                "displayNameKey": "Visual_DensityCompact"
+              },
+              {
+                "value": "normal",
+                "displayName": "Normal",
+                "displayNameKey": "Visual_DensityNormal"
+              },
+              {
+                "value": "comfortable",
+                "displayName": "Comfortable",
+                "displayNameKey": "Visual_DensityComfortable"
+              }
+            ]
+          },
+          "displayNameKey": "Visual_Density"
+        },
+        "innerPadding": {
+          "displayName": "Inner padding (px)",
+          "displayNameKey": "Visual_InnerPadding",
+          "type": {
+            "numeric": true
+          }
+        },
+        "itemSpacing": {
+          "displayName": "Item spacing (px)",
+          "displayNameKey": "Visual_ItemSpacing",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "slicerHeader": {
+      "displayName": "Header",
+      "displayNameKey": "Visual_Header",
+      "properties": {
+        "show": {
+          "displayName": "Show header",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowHeader"
+        },
+        "title": {
+          "displayName": "Title",
+          "type": {
+            "text": true
+          },
+          "displayNameKey": "Visual_Title"
+        },
+        "fontFamily": {
+          "displayName": "Font family",
+          "displayNameKey": "Visual_FontFamily",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Font size",
+          "displayNameKey": "Visual_FontSize",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "displayNameKey": "Visual_Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "displayNameKey": "Visual_Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "displayNameKey": "Visual_Underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_FontColor"
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_BackColor"
+        }
+      }
+    },
+    "search": {
+      "displayName": "Search",
+      "displayNameKey": "Visual_Search",
+      "properties": {
+        "show": {
+          "displayName": "Show search box",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowSearch"
+        },
+        "placeholder": {
+          "displayName": "Placeholder text",
+          "type": {
+            "text": true
+          },
+          "displayNameKey": "Visual_Placeholder"
+        }
+      }
+    },
+    "chips": {
+      "displayName": "Selection badges",
+      "displayNameKey": "Visual_Chips",
+      "properties": {
+        "show": {
+          "displayName": "Show badges",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowChips"
+        },
+        "position": {
+          "displayName": "Position",
+          "type": {
+            "enumeration": [
+              {
+                "value": "top",
+                "displayName": "Top",
+                "displayNameKey": "Visual_PositionTop"
+              },
+              {
+                "value": "bottom",
+                "displayName": "Bottom",
+                "displayNameKey": "Visual_PositionBottom"
+              }
+            ]
+          },
+          "displayNameKey": "Visual_Position"
+        },
+        "maxChips": {
+          "displayName": "Max visible badges",
+          "type": {
+            "numeric": true
+          },
+          "displayNameKey": "Visual_MaxChips"
+        },
+        "chipColor": {
+          "displayName": "Badge color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_ChipColor"
+        },
+        "chipTextColor": {
+          "displayName": "Badge text color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_ChipTextColor"
+        },
+        "bold": {
+          "displayName": "Bold",
+          "displayNameKey": "Visual_Bold",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "items": {
+      "displayName": "Items",
+      "displayNameKey": "Visual_Items",
+      "properties": {
+        "fontFamily": {
+          "displayName": "Font family",
+          "displayNameKey": "Visual_FontFamily",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Font size",
+          "displayNameKey": "Visual_FontSize",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "displayNameKey": "Visual_Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "displayNameKey": "Visual_Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "displayNameKey": "Visual_Underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_FontColor"
+        },
+        "backColor": {
+          "displayName": "Background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_BackColor"
+        },
+        "selectedColor": {
+          "displayName": "Selected background",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_SelectedColor"
+        },
+        "selectedFontColor": {
+          "displayName": "Selected font color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          },
+          "displayNameKey": "Visual_SelectedFontColor"
+        },
+        "borderRadius": {
+          "displayName": "Border radius (px)",
+          "type": {
+            "numeric": true
+          },
+          "displayNameKey": "Visual_BorderRadius"
+        },
+        "indicator": {
+          "displayName": "Selection indicator",
+          "displayNameKey": "Visual_Indicator",
+          "type": {
+            "enumeration": [
+              {
+                "value": "check",
+                "displayName": "Checkbox",
+                "displayNameKey": "Visual_IndicatorCheck"
+              },
+              {
+                "value": "toggle",
+                "displayName": "Toggle switch",
+                "displayNameKey": "Visual_IndicatorToggle"
+              },
+              {
+                "value": "tick",
+                "displayName": "Tick only",
+                "displayNameKey": "Visual_IndicatorTick"
+              },
+              {
+                "value": "dot",
+                "displayName": "Dot",
+                "displayNameKey": "Visual_IndicatorDot"
+              },
+              {
+                "value": "none",
+                "displayName": "None (background only)",
+                "displayNameKey": "Visual_IndicatorNone"
+              }
+            ]
+          }
+        },
+        "indicatorShape": {
+          "displayName": "Indicator shape",
+          "displayNameKey": "Visual_IndicatorShape",
+          "type": {
+            "enumeration": [
+              {
+                "value": "square",
+                "displayName": "Square",
+                "displayNameKey": "Visual_ShapeSquare"
+              },
+              {
+                "value": "round",
+                "displayName": "Round",
+                "displayNameKey": "Visual_ShapeRound"
+              }
+            ]
+          }
+        },
+        "indicatorPosition": {
+          "displayName": "Indicator position",
+          "displayNameKey": "Visual_IndicatorPosition",
+          "type": {
+            "enumeration": [
+              {
+                "value": "left",
+                "displayName": "Left",
+                "displayNameKey": "Visual_PosLeft"
+              },
+              {
+                "value": "right",
+                "displayName": "Right",
+                "displayNameKey": "Visual_PosRight"
+              },
+              {
+                "value": "center",
+                "displayName": "Center",
+                "displayNameKey": "Visual_PosCenter"
+              }
+            ]
+          }
+        },
+        "wrapLabels": {
+          "displayName": "Wrap long labels",
+          "displayNameKey": "Visual_WrapLabels",
+          "type": {
+            "bool": true
+          }
+        },
+        "showCounts": {
+          "displayName": "Show counts / values",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ShowCounts"
+        }
+      }
+    },
+    "hierarchy": {
+      "displayName": "Hierarchy",
+      "displayNameKey": "Visual_Hierarchy",
+      "properties": {
+        "expandAll": {
+          "displayName": "Expand all by default",
+          "type": {
+            "bool": true
+          },
+          "displayNameKey": "Visual_ExpandAll"
+        },
+        "singleExpand": {
+          "displayName": "Accordion (one branch open per level)",
+          "displayNameKey": "Visual_SingleExpand",
+          "type": {
+            "bool": true
+          }
+        },
+        "indent": {
+          "displayName": "Indent per level (px)",
+          "type": {
+            "numeric": true
+          },
+          "displayNameKey": "Visual_Indent"
+        }
+      }
+    },
+    "valuesFormat": {
+      "displayName": "Value format",
+      "displayNameKey": "Visual_ValuesFormat",
+      "properties": {
+        "displayUnits": {
+          "displayName": "Display units",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto",
+                "displayNameKey": "Visual_UnitsAuto"
+              },
+              {
+                "value": "none",
+                "displayName": "None",
+                "displayNameKey": "Visual_UnitsNone"
+              },
+              {
+                "value": "thousands",
+                "displayName": "Thousands",
+                "displayNameKey": "Visual_UnitsThousands"
+              },
+              {
+                "value": "millions",
+                "displayName": "Millions",
+                "displayNameKey": "Visual_UnitsMillions"
+              },
+              {
+                "value": "billions",
+                "displayName": "Billions",
+                "displayNameKey": "Visual_UnitsBillions"
+              }
+            ]
+          },
+          "displayNameKey": "Visual_DisplayUnits"
+        },
+        "decimals": {
+          "displayName": "Decimal places",
+          "type": {
+            "numeric": true
+          },
+          "displayNameKey": "Visual_Decimals"
+        }
+      }
+    }
+  },
+  "sorting": {
+    "default": {}
+  },
+  "suppressDefaultTitle": true,
+  "supportsSynchronizingFilterState": true,
+  "supportsLandingPage": true,
+  "supportsKeyboardFocus": true,
+  "privileges": []
+}

@@ -1,0 +1,29 @@
+{
+  "visual": {
+    "name": "eclorSlicer",
+    "displayName": "Eclor Slicer",
+    "guid": "eclorSlicerECLOR2026",
+    "visualClassName": "Visual",
+    "version": "1.3.1.0",
+    "description": "Eclor Slicer — all-in-one slicer: vertical list, chiclet buttons, compact dropdown and hierarchy tree in a single visual, with built-in search, single/multi select, select all / invert / clear actions and removable selection badges that recap the active filter.",
+    "supportUrl": "https://github.com/ECLOR-DATA/eclor-slicer/issues",
+    "gitHubUrl": "https://github.com/ECLOR-DATA/eclor-slicer"
+  },
+  "apiVersion": "5.11.0",
+  "author": {
+    "name": "ECLOR",
+    "email": "contact@eclor-data.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": [],
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [
+    "stringResources/en-US/resources.resjson",
+    "stringResources/fr-FR/resources.resjson"
+  ],
+  "ignorePackageWarnings": false
+}

@@ -1,0 +1,556 @@
+// Eclor Slicer — container, list/chiclet/dropdown/tree, chips and a11y styles.
+// Default look mirrors the ECLOR "eclor — Light" report theme (same tokens as
+// eclor-matrix, CONTEXT.md §11 there): Arial 11, #091612 ink, #E5E7E6 hairlines,
+// #1EF5B1 emerald accent, #8A9994 muted. Every colour flows through CSS custom
+// properties set from visual.ts so high-contrast mode overrides in one place.
+
+.eclor-slicer-root {
+  --es-fg: #091612;
+  --es-bg: transparent;
+  --es-item-bg: transparent;
+  --es-selected-bg: #1ef5b1;
+  --es-selected-fg: #091612;
+  --es-hover-bg: rgba(30, 245, 177, 0.14);
+  --es-chip-bg: #d9fdf1;
+  --es-chip-fg: #091612;
+  --es-header-fg: #091612;
+  --es-header-bg: transparent;
+  --es-border: #e5e7e6;
+  --es-muted: #8a9994;
+  --es-focus: #091612;
+  --es-font-size: 11px;
+  --es-pad-y: 4px;
+  --es-radius: 6px;
+  --es-indent: 16px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: Arial, "Segoe UI", wf_segoe-ui_normal, helvetica, sans-serif;
+  font-size: var(--es-font-size);
+  color: var(--es-fg);
+  background: var(--es-bg);
+
+  * {
+    box-sizing: border-box;
+  }
+
+  // :where() keeps the reset at 0 specificity so component classes
+  // (.es-chip, .es-chiclet, .es-dd-field…) can restyle without escalation.
+  :where(button) {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+}
+
+// ---------------------------------------------------------------- empty state
+
+.es-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 12px;
+}
+
+.es-empty-text {
+  color: var(--es-muted);
+  text-align: center;
+}
+
+// -------------------------------------------------------------------- header
+
+.es-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  color: var(--es-header-fg);
+  background: var(--es-header-bg);
+  border-bottom: 1px solid var(--es-border);
+
+  &.es-bold .es-title {
+    font-weight: 700;
+  }
+}
+
+.es-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.es-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.es-btn {
+  padding: 2px 7px;
+  border-radius: calc(var(--es-radius) / 1.5);
+  color: var(--es-muted);
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--es-fg);
+    background: var(--es-hover-bg);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+    background: none;
+  }
+
+  &:focus-visible {
+    outline: 1px dashed var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+// -------------------------------------------------------------------- search
+
+.es-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin: 5px 6px 2px;
+  padding: 3px 8px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+
+  &:focus-within {
+    border-color: var(--es-selected-bg);
+  }
+}
+
+.es-search-icon {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--es-muted);
+  border-radius: 50%;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    width: 5px;
+    height: 1.5px;
+    background: var(--es-muted);
+    transform: rotate(45deg);
+    transform-origin: 0 0;
+  }
+}
+
+.es-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--es-fg);
+
+  &::placeholder {
+    color: var(--es-muted);
+  }
+}
+
+.es-search-clear {
+  flex: 0 0 auto;
+  color: var(--es-muted);
+  font-size: calc(var(--es-font-size) + 3px);
+  line-height: 1;
+  padding: 0 2px;
+
+  &:hover {
+    color: var(--es-fg);
+  }
+
+  &:focus-visible {
+    outline: 1px dashed var(--es-focus);
+  }
+}
+
+// --------------------------------------------------------------------- chips
+
+.es-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 5px 6px 3px;
+}
+
+.es-chips-hint {
+  color: var(--es-muted);
+}
+
+.es-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--es-chip-bg);
+  color: var(--es-chip-fg);
+  line-height: 1.6;
+
+  .es-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+  }
+
+  .es-chip-x {
+    font-size: calc(var(--es-font-size) + 2px);
+    line-height: 1;
+    opacity: 0.6;
+  }
+
+  &:hover .es-chip-x {
+    opacity: 1;
+  }
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+
+  &:focus-visible {
+    outline: 1px dashed var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+.es-chip-clear {
+  background: transparent;
+  border: 1px dashed var(--es-border);
+  color: var(--es-muted);
+
+  &:hover {
+    color: var(--es-fg);
+    border-color: var(--es-muted);
+    filter: none;
+  }
+}
+
+.es-chip-more {
+  color: var(--es-muted);
+  padding: 0 2px;
+}
+
+// ---------------------------------------------------------------------- body
+
+.es-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 3px 2px;
+}
+
+.es-no-results,
+.es-cap-note {
+  padding: 8px;
+  color: var(--es-muted);
+  text-align: center;
+}
+
+// list items ---------------------------------------------------------------
+
+.es-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--es-pad-y) 8px;
+  margin: 0 4px;
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: var(--es-hover-bg);
+  }
+
+  &.es-on {
+    background: var(--es-selected-bg);
+    color: var(--es-selected-fg);
+
+    .es-count {
+      color: var(--es-selected-fg);
+      opacity: 0.75;
+    }
+  }
+
+  &:focus-visible {
+    outline: 1px dashed var(--es-focus);
+    outline-offset: -1px;
+  }
+}
+
+.es-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.es-count {
+  flex: 0 0 auto;
+  color: var(--es-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+// checkbox / radio glyphs ---------------------------------------------------
+
+.es-check,
+.es-radio {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--es-muted);
+  background: transparent;
+  position: relative;
+}
+
+.es-check {
+  border-radius: 3px;
+}
+
+.es-radio {
+  border-radius: 50%;
+}
+
+.es-item.es-on .es-check,
+.es-item.es-on .es-radio {
+  border-color: var(--es-selected-fg);
+}
+
+.es-item.es-on .es-check::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 4px;
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid var(--es-selected-fg);
+  border-bottom: 2px solid var(--es-selected-fg);
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.es-item.es-on .es-radio::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--es-selected-fg);
+}
+
+.es-item.es-partial .es-check {
+  border-color: var(--es-fg);
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 4px;
+    width: 5px;
+    height: 2px;
+    background: var(--es-fg);
+  }
+}
+
+// tree caret ----------------------------------------------------------------
+
+.es-caret {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  position: relative;
+  cursor: pointer;
+}
+
+.es-caret-closed::after,
+.es-caret-open::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  border-left: 4px solid var(--es-muted);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transition: transform 0.1s ease;
+}
+
+.es-caret-open::after {
+  transform: rotate(90deg);
+  border-left-color: var(--es-fg);
+}
+
+.es-item.es-on .es-caret-closed::after,
+.es-item.es-on .es-caret-open::after {
+  border-left-color: var(--es-selected-fg);
+}
+
+// chiclets ------------------------------------------------------------------
+
+.es-chiclet-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--es-chiclet-cols, 3), minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px 6px;
+  align-content: start;
+}
+
+.es-chiclet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: calc(var(--es-pad-y) + 2px) 6px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+  min-width: 0;
+
+  .es-label {
+    flex: 0 1 auto;
+    text-align: center;
+  }
+
+  &:hover {
+    background: var(--es-hover-bg);
+    border-color: var(--es-selected-bg);
+  }
+
+  &.es-on {
+    background: var(--es-selected-bg);
+    border-color: var(--es-selected-bg);
+    color: var(--es-selected-fg);
+    font-weight: 700;
+
+    .es-count {
+      color: var(--es-selected-fg);
+      opacity: 0.75;
+    }
+  }
+
+  &:focus-visible {
+    outline: 1px dashed var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+// dropdown ------------------------------------------------------------------
+
+.es-dd {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 5px 6px;
+}
+
+.es-dd-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: calc(var(--es-pad-y) + 2px) 10px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-item-bg);
+  text-align: left;
+
+  &:hover {
+    border-color: var(--es-selected-bg);
+  }
+
+  &[aria-expanded="true"] {
+    border-color: var(--es-selected-bg);
+  }
+
+  &:focus-visible {
+    outline: 1px dashed var(--es-focus);
+    outline-offset: 1px;
+  }
+}
+
+.es-dd-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+
+  &.es-dd-all {
+    color: var(--es-muted);
+  }
+}
+
+.es-dd-caret {
+  flex: 0 0 auto;
+  border-top: 5px solid var(--es-muted);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+// In-flow panel: the visual owns its whole viewport, so the open dropdown
+// takes the remaining height instead of overlaying (an iframe can't spill).
+.es-popover {
+  position: relative;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(9, 22, 18, 0.12);
+  overflow: hidden;
+
+  .es-search {
+    margin: 5px 6px 2px;
+  }
+}
+
+// -------------------------------------------------------------------- footer
+
+.es-footer {
+  flex: 0 0 auto;
+  padding: 3px 8px 4px;
+  border-top: 1px solid var(--es-border);
+  color: var(--es-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,88 @@
+/**
+ * Formatting-model integrity: globally-unique card/group names (playbook
+ * §4.2.3), i18n key parity across locales, and capabilities.json ↔ settings
+ * card synchronisation (playbook §4.2.5).
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+
+import { VisualFormattingSettingsModel } from "../src/settings";
+
+const root = path.resolve(__dirname, "..");
+const en = JSON.parse(fs.readFileSync(path.join(root, "stringResources/en-US/resources.resjson"), "utf8"));
+const fr = JSON.parse(fs.readFileSync(path.join(root, "stringResources/fr-FR/resources.resjson"), "utf8"));
+const capabilities = JSON.parse(fs.readFileSync(path.join(root, "capabilities.json"), "utf8"));
+
+describe("formatting model", () => {
+  test("every Card.name is globally unique", () => {
+    const model = new VisualFormattingSettingsModel();
+    const names = model.cards.map((c) => c.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  test("every card has a displayNameKey present in both locales", () => {
+    const model = new VisualFormattingSettingsModel();
+    for (const card of model.cards) {
+      const key = (card as { displayNameKey?: string }).displayNameKey;
+      expect(key).toBeTruthy();
+      expect(en[key as string]).toBeTruthy();
+      expect(fr[key as string]).toBeTruthy();
+    }
+  });
+});
+
+describe("i18n", () => {
+  test("en-US and fr-FR key sets match exactly", () => {
+    expect(Object.keys(fr).sort()).toEqual(Object.keys(en).sort());
+  });
+
+  test("no empty translations", () => {
+    for (const dict of [en, fr]) {
+      for (const [k, v] of Object.entries(dict)) {
+        expect(typeof v).toBe("string");
+        expect((v as string).length).toBeGreaterThan(0);
+        expect(k.startsWith("Visual_")).toBe(true);
+      }
+    }
+  });
+});
+
+describe("capabilities ↔ settings sync", () => {
+  test("every settings card maps to a capabilities object with the same properties", () => {
+    const model = new VisualFormattingSettingsModel();
+    for (const card of model.cards) {
+      const capObject = capabilities.objects[card.name];
+      expect(capObject).toBeTruthy();
+      const sliceNames = (card.slices ?? []).map((s) => (s as { name: string }).name);
+      for (const sliceName of sliceNames) {
+        expect(Object.keys(capObject.properties)).toContain(sliceName);
+      }
+    }
+  });
+
+  test("the filter object required by applyJsonFilter is declared", () => {
+    expect(capabilities.objects.general.properties.filter.type.filter).toBe(true);
+  });
+
+  test("cert-footer flags are present", () => {
+    expect(capabilities.supportsLandingPage).toBe(true);
+    expect(capabilities.supportsKeyboardFocus).toBe(true);
+    expect(capabilities.privileges).toEqual([]);
+    expect(capabilities.suppressDefaultTitle).toBe(true);
+    expect(capabilities.supportsSynchronizingFilterState).toBe(true);
+    expect(
+      capabilities.dataViewMappings[0].categorical.categories.dataReductionAlgorithm.top.count
+    ).toBe(10000);
+  });
+
+  test("every capabilities object with a displayName carries a displayNameKey known to both locales", () => {
+    for (const [objName, obj] of Object.entries<Record<string, unknown>>(capabilities.objects)) {
+      if (objName === "general") continue; // host-managed, not surfaced
+      const key = obj.displayNameKey as string | undefined;
+      expect(key).toBeTruthy();
+      expect(en[key as string]).toBeTruthy();
+      expect(fr[key as string]).toBeTruthy();
+    }
+  });
+});

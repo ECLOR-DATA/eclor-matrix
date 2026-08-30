@@ -1,0 +1,21 @@
+node_modules/
+.tmp/
+dist/
+*.pbiviz
+!releases/*.pbiviz
+.vscode/
+.DS_Store
+*.log
+.env
+coverage/
+.nyc_output/
+webpack.statistics.*.html
+tools/snapshots/
+tools/screens/
+.claude/
+
+# pbiviz-cert-audit workspace (skill-generated; reports/findings ARE committed)
+audit/screens/
+audit/.auth/
+audit/state.json
+!audit/test-report/**/*.pbiviz

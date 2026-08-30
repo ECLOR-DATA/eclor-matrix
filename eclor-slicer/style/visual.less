@@ -508,6 +508,148 @@
   }
 }
 
+// alternative indicators (Items card: indicator / indicatorShape) ----------
+
+.es-check.es-round {
+  border-radius: 50%;
+}
+
+// Toggle switch — pill + sliding knob.
+.es-toggle {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 13px;
+  border: 1.5px solid var(--es-muted);
+  border-radius: 999px;
+  background: transparent;
+  position: relative;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    top: 1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--es-muted);
+    transition: transform 0.1s ease, background-color 0.1s ease;
+  }
+}
+
+.es-item.es-on .es-toggle {
+  border-color: var(--es-selected-fg);
+  background: var(--es-selected-bg);
+
+  &::after {
+    transform: translateX(11px);
+    background: var(--es-selected-fg);
+  }
+}
+
+.es-item.es-partial .es-toggle::after {
+  transform: translateX(5px);
+  background: var(--es-fg);
+}
+
+// Tick only — reserved slot, ✓ appears on selection.
+.es-tick {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  position: relative;
+}
+
+.es-item.es-on .es-tick::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 3px;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid var(--es-selected-fg);
+  border-bottom: 2px solid var(--es-selected-fg);
+  transform: rotate(-45deg);
+}
+
+.es-item.es-partial .es-tick::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 8px;
+  height: 2px;
+  background: var(--es-fg);
+}
+
+// Dot — small bullet, filled on selection.
+.es-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--es-muted);
+  border-radius: 50%;
+  background: transparent;
+
+  &.es-squared {
+    border-radius: 2px;
+  }
+}
+
+.es-item.es-on .es-dot {
+  border-color: var(--es-selected-fg);
+  background: var(--es-selected-bg);
+}
+
+.es-item.es-partial .es-dot {
+  border-color: var(--es-fg);
+  background: var(--es-hover-bg);
+}
+
+// indicator position variants (Items card: indicatorPosition) --------------
+
+.es-pos-right .es-item {
+  .es-check,
+  .es-radio,
+  .es-toggle,
+  .es-tick,
+  .es-dot {
+    order: 10;
+  }
+
+  .es-count {
+    order: 9;
+  }
+}
+
+.es-pos-center .es-item {
+  justify-content: center;
+
+  .es-label {
+    flex: 0 1 auto;
+  }
+}
+
+// wrap option (Items card: wrapLabels) — multi-line labels for deep trees.
+.es-wrap .es-item .es-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.es-wrap .es-item {
+  align-items: flex-start;
+
+  .es-check,
+  .es-radio,
+  .es-toggle,
+  .es-tick,
+  .es-dot,
+  .es-caret {
+    margin-top: 1px;
+  }
+}
+
 // tree caret ----------------------------------------------------------------
 // Expand/collapse is THE hierarchy interaction: 16px hit zone, AA-visible
 // chevron (design P2.2). Leaf carets stay as ghosts to keep rows aligned.
@@ -543,6 +685,24 @@
 }
 
 // chiclets ------------------------------------------------------------------
+
+.es-chiclet-body {
+  padding: 2px 0 6px;
+}
+
+// One section per hierarchy level (field name header + button grid).
+.es-chiclet-section {
+  & + .es-chiclet-section {
+    margin-top: 4px;
+    border-top: 1px solid var(--es-border);
+  }
+}
+
+.es-chiclet-section-label {
+  padding: 6px 8px 0;
+  color: var(--es-muted);
+  font-weight: 700;
+}
 
 .es-chiclet-grid {
   display: grid;
@@ -588,6 +748,30 @@
     transform: translateY(0.5px);
   }
 
+  .es-chiclet-lab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .es-chiclet-ctx {
+    flex: 0 1 auto;
+    color: var(--es-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 56px;
+  }
+
+  // Partially-covered branch (some descendants selected).
+  &.es-partial {
+    border-color: var(--es-selected-bg);
+    background: var(--es-hover-bg);
+  }
+
   // No bold on selection — bold reflows the label and makes the grid jump
   // on click (design P2.4); the emerald fill is signal enough.
   &.es-on {
@@ -598,6 +782,11 @@
     .es-count {
       color: var(--es-selected-fg);
       opacity: 0.75;
+    }
+
+    .es-chiclet-ctx {
+      color: var(--es-selected-fg);
+      opacity: 0.7;
     }
   }
 

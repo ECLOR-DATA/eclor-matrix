@@ -276,6 +276,50 @@ class ItemsCardSettings extends FormattingSettingsCard {
     }
   });
 
+  indicator = new formattingSettings.ItemDropdown({
+    name: "indicator",
+    displayName: "Selection indicator",
+    displayNameKey: "Visual_Indicator",
+    items: [
+      { value: "check", displayName: "Checkbox", displayNameKey: "Visual_IndicatorCheck" },
+      { value: "toggle", displayName: "Toggle switch", displayNameKey: "Visual_IndicatorToggle" },
+      { value: "tick", displayName: "Tick only", displayNameKey: "Visual_IndicatorTick" },
+      { value: "dot", displayName: "Dot", displayNameKey: "Visual_IndicatorDot" },
+      { value: "none", displayName: "None (background only)", displayNameKey: "Visual_IndicatorNone" }
+    ] as LocItem[],
+    value: { value: "check", displayName: "Checkbox" }
+  });
+
+  indicatorShape = new formattingSettings.ItemDropdown({
+    name: "indicatorShape",
+    displayName: "Indicator shape",
+    displayNameKey: "Visual_IndicatorShape",
+    items: [
+      { value: "square", displayName: "Square", displayNameKey: "Visual_ShapeSquare" },
+      { value: "round", displayName: "Round", displayNameKey: "Visual_ShapeRound" }
+    ] as LocItem[],
+    value: { value: "square", displayName: "Square" }
+  });
+
+  indicatorPosition = new formattingSettings.ItemDropdown({
+    name: "indicatorPosition",
+    displayName: "Indicator position",
+    displayNameKey: "Visual_IndicatorPosition",
+    items: [
+      { value: "left", displayName: "Left", displayNameKey: "Visual_PosLeft" },
+      { value: "right", displayName: "Right", displayNameKey: "Visual_PosRight" },
+      { value: "center", displayName: "Center", displayNameKey: "Visual_PosCenter" }
+    ] as LocItem[],
+    value: { value: "left", displayName: "Left" }
+  });
+
+  wrapLabels = new formattingSettings.ToggleSwitch({
+    name: "wrapLabels",
+    displayName: "Wrap long labels",
+    displayNameKey: "Visual_WrapLabels",
+    value: false
+  });
+
   showCounts = new formattingSettings.ToggleSwitch({
     name: "showCounts",
     displayName: "Show counts / values",
@@ -292,6 +336,10 @@ class ItemsCardSettings extends FormattingSettingsCard {
     this.selectedColor,
     this.selectedFontColor,
     this.borderRadius,
+    this.indicator,
+    this.indicatorShape,
+    this.indicatorPosition,
+    this.wrapLabels,
     this.showCounts
   ];
 }

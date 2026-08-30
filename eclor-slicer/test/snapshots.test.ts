@@ -194,4 +194,41 @@ describe("render snapshots", () => {
     expect(target.querySelector(".es-footer")?.textContent).toContain("sélectionné");
     snapshot("08-locale-fr", target, 260, 380, "Locale fr-FR — recherche, actions, footer et badges localisés");
   });
+
+  test("09 — chiclet hiérarchie : sections par niveau, tous les éléments", () => {
+    const { visual, target } = makeVisual();
+    const dv = fixtureHierarchy();
+    (dv.metadata as { objects?: unknown }).objects = { slicerStyle: { layout: "chiclets", chicletColumns: 2 } };
+    visual.update(makeUpdateOptions(dv, 300, 560));
+    clickEl(itemByLabel(target, ".es-chiclet", "Europe"));
+    clickEl(itemByLabel(target, ".es-chiclet", "Tokyo"));
+    expect(target.querySelectorAll(".es-chiclet-section").length).toBe(3);
+    snapshot("09-chiclet-hierarchy", target, 300, 560, "Boutons avec toute la hiérarchie — une section par niveau, contexte parent, tri-état");
+  });
+
+  test("10 — indicateurs : toggle à droite + retour à la ligne", () => {
+    const { visual, target } = makeVisual();
+    const dv = buildSlicerDV(
+      [
+        {
+          name: "Segment",
+          column: "Segment",
+          table: "Dim",
+          values: [
+            "Grands comptes stratégiques internationaux",
+            "PME régionales",
+            "Distribution spécialisée",
+            "Ventes directes e-commerce"
+          ]
+        }
+      ],
+      { name: "CA", values: [820000, 340000, 210000, 560000], format: "#,##0 \"€\"" },
+      { items: { indicator: "toggle", indicatorPosition: "right", wrapLabels: true } }
+    );
+    visual.update(makeUpdateOptions(dv, 240, 340));
+    clickEl(itemByLabel(target, ".es-item", "Grands comptes"));
+    clickEl(itemByLabel(target, ".es-item", "e-commerce"));
+    expect(target.querySelectorAll(".es-toggle")).toHaveLength(4);
+    snapshot("10-toggle-wrap", target, 240, 340, "Indicateur toggle à droite + retour à la ligne des libellés longs");
+  });
 });

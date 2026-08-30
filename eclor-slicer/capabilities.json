@@ -366,6 +366,87 @@
           },
           "displayNameKey": "Visual_BorderRadius"
         },
+        "indicator": {
+          "displayName": "Selection indicator",
+          "displayNameKey": "Visual_Indicator",
+          "type": {
+            "enumeration": [
+              {
+                "value": "check",
+                "displayName": "Checkbox",
+                "displayNameKey": "Visual_IndicatorCheck"
+              },
+              {
+                "value": "toggle",
+                "displayName": "Toggle switch",
+                "displayNameKey": "Visual_IndicatorToggle"
+              },
+              {
+                "value": "tick",
+                "displayName": "Tick only",
+                "displayNameKey": "Visual_IndicatorTick"
+              },
+              {
+                "value": "dot",
+                "displayName": "Dot",
+                "displayNameKey": "Visual_IndicatorDot"
+              },
+              {
+                "value": "none",
+                "displayName": "None (background only)",
+                "displayNameKey": "Visual_IndicatorNone"
+              }
+            ]
+          }
+        },
+        "indicatorShape": {
+          "displayName": "Indicator shape",
+          "displayNameKey": "Visual_IndicatorShape",
+          "type": {
+            "enumeration": [
+              {
+                "value": "square",
+                "displayName": "Square",
+                "displayNameKey": "Visual_ShapeSquare"
+              },
+              {
+                "value": "round",
+                "displayName": "Round",
+                "displayNameKey": "Visual_ShapeRound"
+              }
+            ]
+          }
+        },
+        "indicatorPosition": {
+          "displayName": "Indicator position",
+          "displayNameKey": "Visual_IndicatorPosition",
+          "type": {
+            "enumeration": [
+              {
+                "value": "left",
+                "displayName": "Left",
+                "displayNameKey": "Visual_PosLeft"
+              },
+              {
+                "value": "right",
+                "displayName": "Right",
+                "displayNameKey": "Visual_PosRight"
+              },
+              {
+                "value": "center",
+                "displayName": "Center",
+                "displayNameKey": "Visual_PosCenter"
+              }
+            ]
+          }
+        },
+        "wrapLabels": {
+          "displayName": "Wrap long labels",
+          "displayNameKey": "Visual_WrapLabels",
+          "type": {
+            "bool": true
+          }
+        },
         "showCounts": {
           "displayName": "Show counts / values",
           "type": {

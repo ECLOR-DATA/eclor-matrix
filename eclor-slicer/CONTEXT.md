@@ -76,8 +76,10 @@ codebase **by design** (nothing builds markup strings).
 (grid of root-level buttons), `dropdown` (field + in-flow panel reusing the
 list body), `auto` (= list). The playbook §4.3.3 lesson applies: the user's
 layout pick is INTENT; the renderer routes to a small set of primitives.
-Chiclets deliberately render root level only in v1 — a chiclet tree is a UX
-lie (no indentation affordance on buttons).
+Chiclets with a hierarchy render EVERY element, grouped in one section per
+level (field-name header + button grid, parent shown as a muted prefix on
+each button) — the market pattern users expect from hierarchy-capable button
+slicers; indentation on buttons stays a UX lie we avoid.
 
 The dropdown panel is **in-flow**, not an overlay: the visual lives in a
 sandboxed iframe and cannot spill outside its viewport, so the open state
@@ -153,3 +155,18 @@ cert-audit-r1) :
   → libération explicite du filtre persisté (LIF-01).
 - **ARIA** : conteneur `group`/`radiogroup` (pas listbox), caret décoratif
   `aria-hidden`, état porté par `aria-expanded` sur l'item.
+
+## 13. Options v1.2 — indicateurs, wrap, boutons hiérarchiques (2026-08-30)
+
+Demandes produit intégrées :
+- **Indicateur de sélection paramétrable** (carte Items) : case (carrée ou
+  ronde), interrupteur toggle, coche seule, pastille, ou aucun (le fond
+  porte l'état). Emplacement gauche / droite / centré (flex order + variantes
+  CSS `es-pos-*`). L'état on/partial reste porté par les classes de la ligne,
+  jamais dupliqué dans l'indicateur. Mode single + case = look radio conservé.
+- **Retour à la ligne des libellés** (`wrapLabels`) pour les hiérarchies aux
+  libellés longs — incompatible virtualisation à hauteur uniforme : si la
+  phase 2 virtualise, wrap la désactivera (à documenter alors).
+- **Chiclets hiérarchiques** : `nodesByLevel` (modèle pur, search-aware) fait
+  des sections par niveau ; la sélection reste le même Set tri-état, un clic
+  sur un bouton profond applique le tuple du chemin complet.

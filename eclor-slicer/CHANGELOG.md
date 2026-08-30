@@ -3,6 +3,14 @@
 All notable changes to Eclor Slicer are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow the pbiviz `X.Y.Z.W` scheme.
 
+## [1.2.0.0] — 2026-08-30
+
+### Added (demandes produit)
+- **Indicateur de sélection paramétrable** (carte Éléments) : case à cocher, **interrupteur toggle**, coche seule, pastille ou aucun ; **forme** carrée/ronde ; **emplacement** gauche / droite / centré. Tri-état respecté par chaque variante (toggle mi-course, tiret, pastille semi).
+- **Retour à la ligne des libellés** (option) — les libellés longs des hiérarchies passent sur plusieurs lignes au lieu de l'ellipse.
+- **Boutons chiclets avec toute la hiérarchie** : une section par niveau (en-tête = nom du champ), chaque élément de chaque niveau devient un bouton avec son parent en préfixe ; tri-état visible (branche partiellement couverte = teinte + bordure accent) ; un clic sur un bouton profond filtre le chemin complet ; recherche et cap de rendu respectés (`nodesByLevel` pur et testé).
+- 4 tests + 2 snapshots (09 chiclets hiérarchiques, 10 toggle+wrap) — 134 tests au total.
+
 ## [1.1.0.0] — 2026-08-30
 
 ### Added

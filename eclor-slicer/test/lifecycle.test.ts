@@ -252,6 +252,58 @@ describe("layouts", () => {
     expect(target.querySelectorAll("button.es-chiclet")).toHaveLength(4);
   });
 
+  test("chiclet hierarchy: one section per level, every element as a button, tri-state", () => {
+    const { visual, target, host } = makeVisual();
+    const dv = twoLevelFixture();
+    (dv.metadata as { objects?: unknown }).objects = { slicerStyle: { layout: "chiclets" } };
+    visual.update(makeUpdateOptions(dv, 400, 500));
+    const sections = target.querySelectorAll(".es-chiclet-section");
+    expect(sections).toHaveLength(2);
+    const headers = Array.from(target.querySelectorAll(".es-chiclet-section-label")).map((e) => e.textContent);
+    expect(headers).toEqual(["Country", "Product"]);
+    // 3 countries + 8 country×product combos, ALL rendered as buttons.
+    expect(sections[0].querySelectorAll(".es-chiclet")).toHaveLength(3);
+    expect(sections[1].querySelectorAll(".es-chiclet")).toHaveLength(8);
+    // Level-1 buttons carry their parent as context.
+    expect(sections[1].querySelector(".es-chiclet-ctx")?.textContent).toBe("France · ");
+    // Clicking a level-1 button applies a tuple filter on the full path.
+    click(sections[1].querySelectorAll(".es-chiclet")[0]); // France · Alpha
+    const f = host.applied[0].filter as { filterType: number; values: { value: unknown }[][] };
+    expect(f.filterType).toBe(6);
+    expect(f.values).toEqual([[{ value: "France" }, { value: "Alpha" }]]);
+    // Parent button shows the partial state.
+    const france = Array.from(target.querySelectorAll(".es-chiclet")).find((b) =>
+      b.classList.contains("es-partial")
+    );
+    expect(france?.textContent).toContain("France");
+  });
+
+  test("selection indicator options: toggle / none / position / wrap", () => {
+    const mk = (items: Record<string, unknown>) => {
+      const { visual, target } = makeVisual();
+      visual.update(makeUpdateOptions(oneLevelFixture(undefined, { items })));
+      return target;
+    };
+    const toggled = mk({ indicator: "toggle" });
+    expect(toggled.querySelectorAll(".es-item .es-toggle")).toHaveLength(4);
+    expect(toggled.querySelector(".es-check")).toBeNull();
+
+    const none = mk({ indicator: "none" });
+    expect(none.querySelector(".es-check, .es-toggle, .es-tick, .es-dot")).toBeNull();
+
+    const dotRight = mk({ indicator: "dot", indicatorPosition: "right" });
+    expect(dotRight.querySelector(".es-body")?.classList.contains("es-pos-right")).toBe(true);
+    expect(dotRight.querySelectorAll(".es-dot")).toHaveLength(4);
+
+    const roundCheck = mk({ indicator: "check", indicatorShape: "round" });
+    expect(roundCheck.querySelectorAll(".es-check.es-round")).toHaveLength(4);
+
+    const wrapped = mk({ wrapLabels: true, indicatorPosition: "center" });
+    const body = wrapped.querySelector(".es-body");
+    expect(body?.classList.contains("es-wrap")).toBe(true);
+    expect(body?.classList.contains("es-pos-center")).toBe(true);
+  });
+
   test("dropdown layout: closed field, opens on click, item click filters", () => {
     const { visual, target, host } = makeVisual();
     visual.update(makeUpdateOptions(oneLevelFixture(undefined, { slicerStyle: { layout: "dropdown" } })));

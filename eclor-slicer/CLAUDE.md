@@ -91,8 +91,8 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 - The jest stub replaces `powerbi-visuals-api` with an empty object — code
   reading runtime enums (e.g. `powerbi.FilterAction`) must go through the
   guarded `filterAction()` helper in visual.ts.
-- `chiclets` layout renders root-level items only (documented v1 limitation);
-  `dropdown` + hierarchy reuses the tree body inside the popover.
+- `chiclets` + hierarchy renders every element in per-level sections
+  (nodesByLevel); `dropdown` + hierarchy reuses the tree body in the popover.
 - Screenshots: `npm run snapshots` needs `npm i --no-save playwright-core`
   once per machine (kept out of committed devDependencies on purpose).
 

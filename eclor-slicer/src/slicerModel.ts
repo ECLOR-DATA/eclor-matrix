@@ -323,6 +323,23 @@ export function selectedLeafTuples(tree: SlicerTree, selected: ReadonlySet<strin
   return tuples;
 }
 
+/** All nodes grouped by level, search-aware (a node survives when its
+ *  subtree matches, so ancestors stay reachable) — feeds the "buttons with
+ *  every hierarchy element" chiclet layout. */
+export function nodesByLevel(tree: SlicerTree, searchText: string): SlicerNode[][] {
+  const needle = normalizeSearch(searchText.trim());
+  const out: SlicerNode[][] = Array.from({ length: Math.max(1, tree.levelCount) }, () => []);
+  const walk = (node: SlicerNode): void => {
+    for (const c of node.children) {
+      if (needle && !subtreeMatches(c, needle)) continue;
+      out[c.level].push(c);
+      walk(c);
+    }
+  };
+  walk(tree.root);
+  return out;
+}
+
 /** Keys of the currently visible ROOT-level items (search-aware) — the
  *  population "Select all" and "Invert" operate on. */
 export function visibleRootKeys(tree: SlicerTree, searchText: string): string[] {

@@ -79,5 +79,19 @@
   "Visual_UnitsBillions": "Milliards",
   "Visual_Decimals": "Décimales",
   "Visual_CountFiltered": "{0} sur {1} éléments",
-  "Visual_ClearLevel": "Effacer {0}"
+  "Visual_ClearLevel": "Effacer {0}",
+  "Visual_Indicator": "Indicateur de sélection",
+  "Visual_IndicatorCheck": "Case à cocher",
+  "Visual_IndicatorToggle": "Interrupteur (toggle)",
+  "Visual_IndicatorTick": "Coche seule",
+  "Visual_IndicatorDot": "Pastille",
+  "Visual_IndicatorNone": "Aucun (fond seul)",
+  "Visual_IndicatorShape": "Forme de l'indicateur",
+  "Visual_ShapeSquare": "Carré",
+  "Visual_ShapeRound": "Rond",
+  "Visual_IndicatorPosition": "Emplacement de l'indicateur",
+  "Visual_PosLeft": "Gauche",
+  "Visual_PosRight": "Droite",
+  "Visual_PosCenter": "Centre",
+  "Visual_WrapLabels": "Retour à la ligne des libellés"
 }

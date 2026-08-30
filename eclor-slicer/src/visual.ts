@@ -15,7 +15,9 @@ import { VisualFormattingSettingsModel } from "./settings";
 import { formatActualLabel, safeHex, safeHexOrEmpty } from "./format";
 import {
   buildTree,
+  checkState,
   flattenVisible,
+  nodesByLevel,
   invertSelection,
   normalizeSelection,
   pathKey,
@@ -23,6 +25,7 @@ import {
   selectedNodesInOrder,
   toggleNode,
   visibleRootKeys,
+  CheckState,
   RawValue,
   SlicerNode,
   SlicerTree,
@@ -635,12 +638,39 @@ export class Visual implements IVisual {
     }
 
     if (layout === "chiclets") {
-      body.classList.add("es-chiclet-grid");
+      // Buttons carry EVERY hierarchy element, grouped in one section per
+      // level (market pattern: level headers + button grids). Flat data is
+      // simply the single level-0 section without a header.
       const cols = Math.max(1, Math.min(8, Number(this.getSettings().slicerStyle.chicletColumns.value) || 3));
+      body.classList.add("es-chiclet-body");
       body.style.setProperty("--es-chiclet-cols", String(cols));
-      // Chiclets read best flat — render root level only.
-      for (const it of toRender) {
-        if (it.depth === 0) body.appendChild(this.buildChiclet(input, it));
+      const levels = nodesByLevel(input.tree, this.searchText);
+      let budget = MAX_RENDER_ITEMS;
+      for (let lvl = 0; lvl < levels.length && budget > 0; lvl++) {
+        const levelNodes = levels[lvl];
+        if (levelNodes.length === 0) continue;
+        const section = document.createElement("div");
+        section.className = "es-chiclet-section";
+        if (input.tree.levelCount > 1) {
+          const secLabel = document.createElement("div");
+          secLabel.className = "es-chiclet-section-label";
+          secLabel.textContent = input.fieldNames[lvl] || "";
+          section.appendChild(secLabel);
+        }
+        const grid = document.createElement("div");
+        grid.className = "es-chiclet-grid";
+        for (const node of levelNodes.slice(0, budget)) {
+          grid.appendChild(this.buildChicletNode(input, node));
+        }
+        budget -= Math.min(levelNodes.length, budget);
+        section.appendChild(grid);
+        body.appendChild(section);
+      }
+      if (body.childElementCount === 0) {
+        const noRes = document.createElement("div");
+        noRes.className = "es-no-results";
+        noRes.textContent = this.str("Visual_NoResults", "No matching items");
+        body.appendChild(noRes);
       }
       return body;
     }
@@ -649,6 +679,11 @@ export class Visual implements IVisual {
     // checkbox/radio children need a group/radiogroup container, not a
     // listbox (which expects role=option) — audit A11Y-01.
     body.setAttribute("role", this.isMulti() ? "group" : "radiogroup");
+    const s = this.getSettings();
+    if (s.items.wrapLabels.value) body.classList.add("es-wrap");
+    const pos = String(s.items.indicatorPosition.value.value);
+    if (pos === "right") body.classList.add("es-pos-right");
+    else if (pos === "center") body.classList.add("es-pos-center");
     for (const it of toRender) {
       body.appendChild(this.buildItem(input, it));
     }
@@ -693,10 +728,8 @@ export class Visual implements IVisual {
       el.appendChild(exp);
     }
 
-    const check = document.createElement("span");
-    check.className = this.isMulti() ? "es-check" : "es-radio";
-    check.setAttribute("aria-hidden", "true");
-    el.appendChild(check);
+    const indicator = this.buildIndicator(it.state);
+    if (indicator) el.appendChild(indicator);
 
     el.appendChild(this.buildLabelSpan(it.node.label || this.blankLabel()));
 
@@ -710,30 +743,6 @@ export class Visual implements IVisual {
     const ariaValue = s.items.showCounts.value ? `, ${this.itemValueText(input, it)}` : "";
     el.setAttribute("aria-label", `${it.node.label || this.blankLabel()}${ariaValue}`);
     return el;
-  }
-
-  private buildChiclet(input: RenderInput, it: VisibleItem): HTMLElement {
-    const s = this.getSettings();
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "es-chiclet";
-    b.dataset.key = it.node.key;
-    b.setAttribute("aria-pressed", it.state === "on" ? "true" : "false");
-    if (it.state === "on") b.classList.add("es-on");
-    const labelText = it.node.label || this.blankLabel();
-    b.appendChild(this.buildLabelSpan(labelText));
-    if (s.items.showCounts.value) {
-      const valueText = this.itemValueText(input, it);
-      const count = document.createElement("span");
-      count.className = "es-count";
-      count.textContent = valueText;
-      b.appendChild(count);
-      // Native tooltip recovers the full text when the label truncates.
-      b.title = `${labelText} — ${valueText}`;
-    } else {
-      b.title = labelText;
-    }
-    return b;
   }
 
   /** Label span with the searched substring emphasised (design P3.1) —
@@ -755,6 +764,74 @@ export class Visual implements IVisual {
     span.appendChild(match);
     span.append(text.slice(idx + needle.length));
     return span;
+  }
+
+  /** Selection indicator per the Items card: checkbox (square/round),
+   *  toggle switch, tick only, dot, or none (background carries the state).
+   *  Single mode with the default checkbox keeps the classic radio look. */
+  private buildIndicator(state: CheckState): HTMLSpanElement | null {
+    const s = this.getSettings();
+    const type = String(s.items.indicator.value.value);
+    if (type === "none") return null;
+    const shape = String(s.items.indicatorShape.value.value);
+    const span = document.createElement("span");
+    span.setAttribute("aria-hidden", "true");
+    if (type === "check") {
+      span.className = !this.isMulti() ? "es-radio" : "es-check";
+      if (shape === "round" && this.isMulti()) span.classList.add("es-round");
+    } else if (type === "toggle") {
+      span.className = "es-toggle";
+    } else if (type === "tick") {
+      span.className = "es-tick";
+    } else {
+      span.className = "es-dot";
+      if (shape === "square") span.classList.add("es-squared");
+    }
+    void state; // state is painted via the item's .es-on/.es-partial classes
+    return span;
+  }
+
+  /** Chiclet built straight from a node (level sections need nodes the
+   *  flattened visible list doesn't expose when collapsed). */
+  private buildChicletNode(input: RenderInput, node: SlicerNode): HTMLElement {
+    const s = this.getSettings();
+    const state = checkState(node, this.selectedKeys);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "es-chiclet";
+    b.dataset.key = node.key;
+    b.setAttribute("aria-pressed", state === "on" ? "true" : "false");
+    if (state === "on") b.classList.add("es-on");
+    if (state === "partial") b.classList.add("es-partial");
+    const labelText = node.label || this.blankLabel();
+    const labelWrap = document.createElement("span");
+    labelWrap.className = "es-chiclet-lab";
+    if (node.level > 0 && node.parent && node.parent.level >= 0) {
+      const ctx = document.createElement("span");
+      ctx.className = "es-chiclet-ctx";
+      ctx.textContent = `${node.parent.label || this.blankLabel()} · `;
+      labelWrap.appendChild(ctx);
+    }
+    labelWrap.appendChild(this.buildLabelSpan(labelText));
+    b.appendChild(labelWrap);
+    const fullPath = node.rawPath
+      .map((_, i) => {
+        let anc: SlicerNode | null = node;
+        for (let up = node.level; up > i; up--) anc = anc && anc.parent;
+        return anc ? anc.label || this.blankLabel() : "";
+      })
+      .join(" / ");
+    if (s.items.showCounts.value) {
+      const valueText = this.itemValueText(input, { node } as VisibleItem);
+      const count = document.createElement("span");
+      count.className = "es-count";
+      count.textContent = valueText;
+      b.appendChild(count);
+      b.title = `${fullPath} — ${valueText}`;
+    } else {
+      b.title = fullPath;
+    }
+    return b;
   }
 
   private itemValueText(input: RenderInput, it: VisibleItem): string {

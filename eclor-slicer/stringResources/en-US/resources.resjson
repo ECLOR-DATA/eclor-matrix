@@ -79,5 +79,19 @@
   "Visual_UnitsBillions": "Billions",
   "Visual_Decimals": "Decimal places",
   "Visual_CountFiltered": "{0} of {1} items",
-  "Visual_ClearLevel": "Clear {0}"
+  "Visual_ClearLevel": "Clear {0}",
+  "Visual_Indicator": "Selection indicator",
+  "Visual_IndicatorCheck": "Checkbox",
+  "Visual_IndicatorToggle": "Toggle switch",
+  "Visual_IndicatorTick": "Tick only",
+  "Visual_IndicatorDot": "Dot",
+  "Visual_IndicatorNone": "None (background only)",
+  "Visual_IndicatorShape": "Indicator shape",
+  "Visual_ShapeSquare": "Square",
+  "Visual_ShapeRound": "Round",
+  "Visual_IndicatorPosition": "Indicator position",
+  "Visual_PosLeft": "Left",
+  "Visual_PosRight": "Right",
+  "Visual_PosCenter": "Center",
+  "Visual_WrapLabels": "Wrap long labels"
 }

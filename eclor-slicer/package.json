@@ -1,7 +1,7 @@
 {
   "name": "eclor-slicer",
-  "version": "1.0.0",
-  "description": "Eclor Slicer — Power BI custom visual. All-in-one slicer: list, chiclets, dropdown and hierarchy modes with search, single/multi select, select all / invert / clear and removable filter-recap badges.",
+  "version": "1.0.1",
+  "description": "Eclor Slicer \u2014 Power BI custom visual. All-in-one slicer: list, chiclets, dropdown and hierarchy modes with search, single/multi select, select all / invert / clear and removable filter-recap badges.",
   "license": "MIT",
   "scripts": {
     "pbiviz": "pbiviz",
@@ -14,10 +14,8 @@
   },
   "dependencies": {
     "powerbi-visuals-api": "~5.11.0",
-    "powerbi-visuals-utils-dataviewutils": "^6.1.0",
     "powerbi-visuals-utils-formattingmodel": "6.1.1",
-    "powerbi-visuals-utils-formattingutils": "^6.1.2",
-    "powerbi-visuals-utils-tooltiputils": "6.0.4"
+    "powerbi-visuals-utils-formattingutils": "^6.1.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

@@ -5,14 +5,16 @@
       "displayNameKey": "Visual_Field",
       "name": "field",
       "kind": "Grouping",
-      "description": "One or more columns to filter by. Bind 2+ columns to get a hierarchy tree (order defines the levels, top → bottom)."
+      "description": "One or more columns to filter by. Bind 2+ columns to get a hierarchy tree (order defines the levels, top → bottom).",
+      "descriptionKey": "Visual_Field_Desc"
     },
     {
       "displayName": "Values",
       "displayNameKey": "Visual_Values",
       "name": "values",
       "kind": "Measure",
-      "description": "Optional. A measure displayed next to each item (e.g. sales amount or row count)."
+      "description": "Optional. A measure displayed next to each item (e.g. sales amount or row count).",
+      "descriptionKey": "Visual_Values_Desc"
     }
   ],
   "dataViewMappings": [
@@ -72,32 +74,38 @@
             "enumeration": [
               {
                 "value": "multi",
-                "displayName": "Multiple"
+                "displayName": "Multiple",
+                "displayNameKey": "Visual_ModeMulti"
               },
               {
                 "value": "single",
-                "displayName": "Single"
+                "displayName": "Single",
+                "displayNameKey": "Visual_ModeSingle"
               }
             ]
-          }
+          },
+          "displayNameKey": "Visual_SelectionMode"
         },
         "showSelectAll": {
           "displayName": "Show \"Select all\"",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowSelectAll"
         },
         "showInvert": {
           "displayName": "Show \"Invert\"",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowInvert"
         },
         "showClear": {
           "displayName": "Show \"Clear\"",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowClear"
         }
       }
     },
@@ -111,28 +119,34 @@
             "enumeration": [
               {
                 "value": "auto",
-                "displayName": "Auto"
+                "displayName": "Auto",
+                "displayNameKey": "Visual_LayoutAuto"
               },
               {
                 "value": "list",
-                "displayName": "Vertical list"
+                "displayName": "Vertical list",
+                "displayNameKey": "Visual_LayoutList"
               },
               {
                 "value": "chiclets",
-                "displayName": "Chiclet buttons"
+                "displayName": "Chiclet buttons",
+                "displayNameKey": "Visual_LayoutChiclets"
               },
               {
                 "value": "dropdown",
-                "displayName": "Dropdown"
+                "displayName": "Dropdown",
+                "displayNameKey": "Visual_LayoutDropdown"
               }
             ]
-          }
+          },
+          "displayNameKey": "Visual_Layout"
         },
         "chicletColumns": {
           "displayName": "Chiclet columns",
           "type": {
             "numeric": true
-          }
+          },
+          "displayNameKey": "Visual_ChicletColumns"
         },
         "textSize": {
           "displayName": "Text size",
@@ -140,7 +154,8 @@
             "formatting": {
               "fontSize": true
             }
-          }
+          },
+          "displayNameKey": "Visual_TextSize"
         },
         "density": {
           "displayName": "Item density",
@@ -148,18 +163,22 @@
             "enumeration": [
               {
                 "value": "compact",
-                "displayName": "Compact"
+                "displayName": "Compact",
+                "displayNameKey": "Visual_DensityCompact"
               },
               {
                 "value": "normal",
-                "displayName": "Normal"
+                "displayName": "Normal",
+                "displayNameKey": "Visual_DensityNormal"
               },
               {
                 "value": "comfortable",
-                "displayName": "Comfortable"
+                "displayName": "Comfortable",
+                "displayNameKey": "Visual_DensityComfortable"
               }
             ]
-          }
+          },
+          "displayNameKey": "Visual_Density"
         }
       }
     },
@@ -171,19 +190,22 @@
           "displayName": "Show header",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowHeader"
         },
         "title": {
           "displayName": "Title",
           "type": {
             "text": true
-          }
+          },
+          "displayNameKey": "Visual_Title"
         },
         "bold": {
           "displayName": "Bold",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_Bold"
         },
         "fontColor": {
           "displayName": "Font color",
@@ -193,7 +215,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_FontColor"
         },
         "backColor": {
           "displayName": "Background color",
@@ -203,7 +226,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_BackColor"
         }
       }
     },
@@ -215,13 +239,15 @@
           "displayName": "Show search box",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowSearch"
         },
         "placeholder": {
           "displayName": "Placeholder text",
           "type": {
             "text": true
-          }
+          },
+          "displayNameKey": "Visual_Placeholder"
         }
       }
     },
@@ -233,7 +259,8 @@
           "displayName": "Show badges",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowChips"
         },
         "position": {
           "displayName": "Position",
@@ -241,20 +268,24 @@
             "enumeration": [
               {
                 "value": "top",
-                "displayName": "Top"
+                "displayName": "Top",
+                "displayNameKey": "Visual_PositionTop"
               },
               {
                 "value": "bottom",
-                "displayName": "Bottom"
+                "displayName": "Bottom",
+                "displayNameKey": "Visual_PositionBottom"
               }
             ]
-          }
+          },
+          "displayNameKey": "Visual_Position"
         },
         "maxChips": {
           "displayName": "Max visible badges",
           "type": {
             "numeric": true
-          }
+          },
+          "displayNameKey": "Visual_MaxChips"
         },
         "chipColor": {
           "displayName": "Badge color",
@@ -264,7 +295,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_ChipColor"
         },
         "chipTextColor": {
           "displayName": "Badge text color",
@@ -274,7 +306,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_ChipTextColor"
         }
       }
     },
@@ -290,7 +323,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_FontColor"
         },
         "backColor": {
           "displayName": "Background color",
@@ -300,7 +334,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_BackColor"
         },
         "selectedColor": {
           "displayName": "Selected background",
@@ -310,7 +345,8 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_SelectedColor"
         },
         "selectedFontColor": {
           "displayName": "Selected font color",
@@ -320,19 +356,22 @@
                 "color": true
               }
             }
-          }
+          },
+          "displayNameKey": "Visual_SelectedFontColor"
         },
         "borderRadius": {
           "displayName": "Border radius (px)",
           "type": {
             "numeric": true
-          }
+          },
+          "displayNameKey": "Visual_BorderRadius"
         },
         "showCounts": {
           "displayName": "Show counts / values",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ShowCounts"
         }
       }
     },
@@ -344,13 +383,15 @@
           "displayName": "Expand all by default",
           "type": {
             "bool": true
-          }
+          },
+          "displayNameKey": "Visual_ExpandAll"
         },
         "indent": {
           "displayName": "Indent per level (px)",
           "type": {
             "numeric": true
-          }
+          },
+          "displayNameKey": "Visual_Indent"
         }
       }
     },
@@ -364,32 +405,39 @@
             "enumeration": [
               {
                 "value": "auto",
-                "displayName": "Auto"
+                "displayName": "Auto",
+                "displayNameKey": "Visual_UnitsAuto"
               },
               {
                 "value": "none",
-                "displayName": "None"
+                "displayName": "None",
+                "displayNameKey": "Visual_UnitsNone"
               },
               {
                 "value": "thousands",
-                "displayName": "Thousands"
+                "displayName": "Thousands",
+                "displayNameKey": "Visual_UnitsThousands"
               },
               {
                 "value": "millions",
-                "displayName": "Millions"
+                "displayName": "Millions",
+                "displayNameKey": "Visual_UnitsMillions"
               },
               {
                 "value": "billions",
-                "displayName": "Billions"
+                "displayName": "Billions",
+                "displayNameKey": "Visual_UnitsBillions"
               }
             ]
-          }
+          },
+          "displayNameKey": "Visual_DisplayUnits"
         },
         "decimals": {
           "displayName": "Decimal places",
           "type": {
             "numeric": true
-          }
+          },
+          "displayNameKey": "Visual_Decimals"
         }
       }
     }

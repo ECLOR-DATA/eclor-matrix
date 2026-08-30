@@ -85,4 +85,44 @@ describe("capabilities ↔ settings sync", () => {
       expect(fr[key as string]).toBeTruthy();
     }
   });
+
+  test("every capability PROPERTY and enum member is localizable (audit I18N-01 regression)", () => {
+    for (const [objName, obj] of Object.entries<{ properties: Record<string, unknown> }>(capabilities.objects)) {
+      if (objName === "general") continue;
+      for (const [propName, prop] of Object.entries(obj.properties)) {
+        const p = prop as { displayNameKey?: string; type?: { enumeration?: { value: string; displayNameKey?: string }[] } };
+        expect(`${objName}.${propName}:${p.displayNameKey}`).not.toContain("undefined");
+        expect(en[p.displayNameKey as string]).toBeTruthy();
+        expect(fr[p.displayNameKey as string]).toBeTruthy();
+        for (const member of p.type?.enumeration ?? []) {
+          expect(`${objName}.${propName}.${member.value}:${member.displayNameKey}`).not.toContain("undefined");
+          expect(en[member.displayNameKey as string]).toBeTruthy();
+          expect(fr[member.displayNameKey as string]).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  test("every settings slice and dropdown item carries a displayNameKey (audit I18N-01 regression)", () => {
+    const model = new VisualFormattingSettingsModel();
+    for (const card of model.cards) {
+      for (const slice of card.slices ?? []) {
+        const s = slice as { name: string; displayNameKey?: string; items?: { displayNameKey?: string }[] };
+        expect(`${card.name}.${s.name}:${s.displayNameKey}`).not.toContain("undefined");
+        expect(en[s.displayNameKey as string]).toBeTruthy();
+        for (const item of s.items ?? []) {
+          expect(en[item.displayNameKey as string]).toBeTruthy();
+          expect(fr[item.displayNameKey as string]).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  test("dataRoles carry localized descriptions (audit I18N-02 regression)", () => {
+    for (const role of capabilities.dataRoles) {
+      expect(en[role.displayNameKey]).toBeTruthy();
+      expect(en[role.descriptionKey]).toBeTruthy();
+      expect(fr[role.descriptionKey]).toBeTruthy();
+    }
+  });
 });

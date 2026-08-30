@@ -9,7 +9,8 @@
 import * as fs from "fs";
 import * as path from "path";
 
-import { makeVisual, makeUpdateOptions, oneLevelFixture, twoLevelFixture, buildSlicerDV } from "./_harness";
+import { makeMockHost, makeVisual, makeUpdateOptions, buildSlicerDV } from "./_harness";
+import { Visual } from "../src/visual";
 
 const WRITE = process.env.RENDER_SNAPSHOTS === "1";
 const OUT_DIR = path.resolve(__dirname, "../tools/snapshots");
@@ -104,7 +105,9 @@ describe("render snapshots", () => {
     clickEl(itemByLabel(target, ".es-item", "France"));
     clickEl(itemByLabel(target, ".es-item", "Espagne"));
     clickEl(itemByLabel(target, ".es-item", "Portugal"));
-    expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(3);
+    // Width 260 → one-line chip cap = floor(260/90) = 2 chips + "+1".
+    expect(target.querySelectorAll(".es-chip[data-chip-key]")).toHaveLength(2);
+    expect(target.querySelector(".es-chip-more")?.textContent).toBe("+1");
     snapshot("01-list-selection", target, 260, 380, "Liste verticale — multi-sélection, badges retirables, valeurs formatées");
   });
 
@@ -159,5 +162,36 @@ describe("render snapshots", () => {
     expect(target.querySelectorAll(".es-radio")).not.toHaveLength(0);
     expect(target.querySelectorAll(".es-item.es-on")).toHaveLength(1);
     snapshot("06-single-select", target, 260, 380, "Sélection unique — radios, boutons Tout/Inverser masqués");
+  });
+
+  test("07 — high-contrast mode (Night-sky-like palette)", () => {
+    const { visual, target, host } = makeVisual();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const palette = host.colorPalette as any;
+    palette.isHighContrast = true;
+    palette.foreground = { value: "#ffffff" };
+    palette.background = { value: "#0d1117" };
+    palette.hyperlink = { value: "#75b6e7" };
+    visual.update(makeUpdateOptions(fixtureCountries(), 260, 380));
+    clickEl(itemByLabel(target, ".es-item", "France"));
+    clickEl(itemByLabel(target, ".es-item", "Espagne"));
+    expect(target.style.getPropertyValue("--es-selected-bg")).toBe("#75b6e7");
+    snapshot("07-high-contrast", target, 260, 380, "Mode high-contrast — tous les tokens écrasés par la palette hôte");
+  });
+
+  test("08 — locale fr-FR (chaînes localisées)", () => {
+    const frDict = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, "../stringResources/fr-FR/resources.resjson"), "utf8")
+    ) as Record<string, string>;
+    const target = document.createElement("div");
+    document.body.appendChild(target);
+    const host = makeMockHost();
+    host.createLocalizationManager = () => ({ getDisplayName: (k: string) => frDict[k] ?? k });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const visual = new Visual({ host, element: target } as any);
+    visual.update(makeUpdateOptions(fixtureCountries(), 260, 380));
+    clickEl(itemByLabel(target, ".es-item", "France"));
+    expect(target.querySelector(".es-footer")?.textContent).toContain("sélectionné");
+    snapshot("08-locale-fr", target, 260, 380, "Locale fr-FR — recherche, actions, footer et badges localisés");
   });
 });

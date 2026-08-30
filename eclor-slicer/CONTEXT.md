@@ -125,3 +125,31 @@ headless Chromium at 2× DPI. Pixel-true because the DOM and CSS are the
 production artefacts — only jsdom's layout is fake, and Chromium redoes
 layout. This is the design-review loop's input; PBI Desktop lanes stay for
 the cert audit.
+
+## 12. Round-2 decisions (2026-08-30, boucle design/QA/audit)
+
+Issues du premier cycle multi-agents (design-review-r1, qa-hardening-r1,
+cert-audit-r1) :
+
+- **Dérogation capabilities assumée (audit CAP-01)** : pas de
+  `supportsHighlight`, `supportsMultiVisualSelection` ni bloc `tooltips` —
+  un slicer n'a pas de data points à surligner ni à infobuller ; le filtrage
+  passe par applyJsonFilter (§2). Ne pas « corriger » : c'est intentionnel.
+- **Gris informatif AA** : `--es-muted #5E6E68` (5.38:1). `#8A9994` survit en
+  `--es-muted-soft` pour le décoratif pur (loupe, caret fantôme). Tout gris
+  porteur de sens passe par `--es-muted`.
+- **Sélection calme en liste** (`--es-selected-soft-bg` + barre inset 3px +
+  case remplie émeraude) ; le plein-émeraude reste sur les chiclets (état
+  bouton légitime). En HC les deux tokens pointent sur `hyperlink`.
+- **Chips** : masquées en mode single (redondantes), TOUJOURS sous le champ
+  en mode dropdown, cap auto une-ligne `min(maxChips, ⌊largeur/90⌋)`,
+  contexte parent (`Paris` → `France · Paris`) + title = chemin complet.
+- **Footer unifié** : recherche → « X of Y items » ; sinon plat « X / Y
+  selected », hiérarchie « X selected · Y values », vide « N items ».
+- **Valeur de mesure lazy-init** (`value: null`, QA BUG-1) : une mesure 100 %
+  non numérique retombe sur les compteurs, jamais un « 0.0 » trompeur.
+- **Écho de filtre durci** (audit LIF-02) : le compteur `pendingApplies` ne
+  se consomme que sur un update porteur de `jsonFilters` ; retrait du champ
+  → libération explicite du filtre persisté (LIF-01).
+- **ARIA** : conteneur `group`/`radiogroup` (pas listbox), caret décoratif
+  `aria-hidden`, état porté par `aria-expanded` sur l'item.

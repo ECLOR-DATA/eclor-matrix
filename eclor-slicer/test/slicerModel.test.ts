@@ -61,10 +61,12 @@ describe("buildTree", () => {
     expect(node(tree, "").count).toBe(2);
   });
 
-  test("NaN / Infinity measures are ignored in sums", () => {
+  test("NaN / Infinity measures are ignored in sums; all-invalid stays null", () => {
     const tree = buildTree([["A", "A", "B"]], [NaN, 5, Infinity]);
     expect(node(tree, "A").value).toBe(5);
-    expect(node(tree, "B").value).toBe(0);
+    // B only saw non-numeric values → null (renderer falls back to count),
+    // never a misleading 0 (QA hardening BUG-1).
+    expect(node(tree, "B").value).toBeNull();
   });
 
   test("non-adjacent duplicate branches merge (host sort not assumed)", () => {

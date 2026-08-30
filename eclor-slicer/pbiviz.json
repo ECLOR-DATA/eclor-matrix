@@ -4,7 +4,7 @@
     "displayName": "Eclor Slicer",
     "guid": "eclorSlicerECLOR2026",
     "visualClassName": "Visual",
-    "version": "1.0.0.0",
+    "version": "1.0.1.0",
     "description": "Eclor Slicer — all-in-one slicer: vertical list, chiclet buttons, compact dropdown and hierarchy tree in a single visual, with built-in search, single/multi select, select all / invert / clear actions and removable selection badges that recap the active filter.",
     "supportUrl": "https://github.com/ECLOR-DATA/eclor-slicer/issues",
     "gitHubUrl": "https://github.com/ECLOR-DATA/eclor-slicer"

@@ -50,7 +50,10 @@ export function buildTree(levels: RawValue[][], measure?: (number | null)[]): Sl
     parent: null,
     children: [],
     count: 0,
-    value: measure ? 0 : null
+    // Lazy-init (`?? 0` in the accumulator): a measure that never yields a
+    // numeric value leaves `value: null`, so renderers fall back to counts
+    // instead of showing a misleading formatted 0 (QA hardening BUG-1).
+    value: null
   };
   const levelCount = levels.length;
   const rowCount = levelCount > 0 ? levels[0].length : 0;
@@ -76,7 +79,7 @@ export function buildTree(levels: RawValue[][], measure?: (number | null)[]): Sl
           parent: node,
           children: [],
           count: 0,
-          value: measure ? 0 : null
+          value: null
         };
         child.key = pathKey(child.rawPath);
         node.children.push(child);

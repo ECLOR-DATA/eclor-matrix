@@ -3,6 +3,29 @@
 All notable changes to Eclor Slicer are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow the pbiviz `X.Y.Z.W` scheme.
 
+## [1.0.1.0] — 2026-08-30
+
+Round 2 — intégration de la boucle multi-agents (revue design, durcissement QA, audit cert statique).
+
+### Fixed
+- **i18n du volet Format** (audit I18N-01, major) : `displayNameKey` sur chaque propriété, slice et membre d'énumération (capabilities + formatting model), descriptions des dataRoles localisées ; 80 clés en/fr en miroir strict, verrouillées par tests.
+- **High-contrast** (audit HC-01, major) : fond du popover dropdown tokenisé (`--es-popover-bg`), ombre neutralisée, bordure de chips en HC — plus aucune couleur hors du chemin `applyCssVars`.
+- Mesure 100 % non numérique → retombe sur les compteurs au lieu d'un « 0.0 » (QA BUG-1, lazy-init des valeurs de nœuds).
+- Retrait du champ → libération explicite du filtre persisté (plus de filtre orphelin) et purge complète de l'état (audit LIF-01) ; compteur d'écho consommé uniquement sur les updates porteurs de `jsonFilters` (LIF-02).
+- ARIA : conteneurs `group`/`radiogroup`, caret décoratif `aria-hidden`, état `aria-expanded` porté par l'item, focus non-couleur-seule sur la recherche (audit A11Y-01/02/03).
+
+### Changed (revue design R1)
+- Gris informatif AA `#5E6E68` (5.38:1) partout ; `#8A9994` réservé au décoratif.
+- Sélection « calme » en liste : teinte douce + barre accent 3 px + case remplie émeraude ; plein-émeraude conservé sur les chiclets.
+- Chiclets sur 2 lignes (le label ne perd plus contre sa valeur), bordure visible + ombre de levage, plus de bold au clic, tooltip natif.
+- Chips : une seule ligne (cap auto ⌊largeur/90⌋), contexte parent sur les nœuds profonds, title = chemin complet, « Tout effacer » en bordure pleine + × ; masquées en mode single ; sous le champ en mode dropdown.
+- Footer unifié : « X of Y items » en recherche, « X / Y selected » à plat, « X selected · Y values » en hiérarchie.
+- Surlignage du terme cherché, carets 16 px lisibles, rotation du caret dropdown, grille 8 px, focus 2 px solid, cases 14 px, micro-transitions, scrollbar fine.
+- Suppression de 2 dépendances jamais importées (dataviewutils, tooltiputils).
+
+### Added
+- 34 tests (129 au total, 8 suites) : hardening QA adversarial + régressions i18n/capabilities ; snapshots high-contrast et fr-FR.
+
 ## [1.0.0.0] — 2026-08-30
 
 ### Added

@@ -1,14 +1,18 @@
 // Eclor Slicer — container, list/chiclet/dropdown/tree, chips and a11y styles.
 // Default look mirrors the ECLOR "eclor — Light" report theme (same tokens as
-// eclor-matrix, CONTEXT.md §11 there): Arial 11, #091612 ink, #E5E7E6 hairlines,
-// #1EF5B1 emerald accent, #8A9994 muted. Every colour flows through CSS custom
-// properties set from visual.ts so high-contrast mode overrides in one place.
+// eclor-matrix): Arial 11, #091612 ink, #E5E7E6 hairlines, #1EF5B1 emerald
+// accent. Informational grey is #5E6E68 (5.38:1, WCAG AA); the softer #8A9994
+// is decorative-only (design review R1 P1.1). Every colour flows through CSS
+// custom properties set from visual.ts (applyCssVars) so high-contrast mode
+// overrides all of them in one place — never hard-code a colour outside the
+// token block below (audit HC-01).
 
 .eclor-slicer-root {
   --es-fg: #091612;
   --es-bg: transparent;
   --es-item-bg: transparent;
   --es-selected-bg: #1ef5b1;
+  --es-selected-soft-bg: #d9fdf1;
   --es-selected-fg: #091612;
   --es-hover-bg: rgba(30, 245, 177, 0.14);
   --es-chip-bg: #d9fdf1;
@@ -16,8 +20,14 @@
   --es-header-fg: #091612;
   --es-header-bg: transparent;
   --es-border: #e5e7e6;
-  --es-muted: #8a9994;
+  --es-chiclet-border: #d6dad8;
+  --es-muted: #5e6e68;
+  --es-muted-soft: #8a9994;
   --es-focus: #091612;
+  --es-popover-bg: #ffffff;
+  --es-popover-shadow: 0 4px 14px rgba(9, 22, 18, 0.12);
+  --es-chip-border: transparent;
+  --es-btn-disabled: #b3bdb9;
   --es-font-size: 11px;
   --es-pad-y: 4px;
   --es-radius: 6px;
@@ -68,6 +78,8 @@
 }
 
 // -------------------------------------------------------------------- header
+// 8px horizontal grid throughout (design P2.9): header/search/chips/footer
+// all start their content 8px from the edge; items at 4px margin + 4px pad.
 
 .es-header {
   display: flex;
@@ -75,7 +87,7 @@
   justify-content: space-between;
   gap: 8px;
   flex: 0 0 auto;
-  padding: 4px 6px;
+  padding: 4px 8px;
   color: var(--es-header-fg);
   background: var(--es-header-bg);
   border-bottom: 1px solid var(--es-border);
@@ -100,25 +112,32 @@
 }
 
 .es-btn {
-  padding: 2px 7px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
   border-radius: calc(var(--es-radius) / 1.5);
   color: var(--es-muted);
   line-height: 1.5;
   white-space: nowrap;
+  transition: background-color 0.08s ease, border-color 0.08s ease;
 
   &:hover {
     color: var(--es-fg);
     background: var(--es-hover-bg);
+    border-color: var(--es-border);
   }
 
+  // Explicit light grey instead of stacked opacity on an already-grey
+  // token (design P1.2) — reads as disabled, stays visible.
   &:disabled {
-    opacity: 0.4;
+    opacity: 1;
+    color: var(--es-btn-disabled);
     cursor: default;
     background: none;
+    border-color: transparent;
   }
 
   &:focus-visible {
-    outline: 1px dashed var(--es-focus);
+    outline: 2px solid var(--es-focus);
     outline-offset: 1px;
   }
 }
@@ -130,14 +149,18 @@
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
-  margin: 5px 6px 2px;
+  margin: 6px 8px 2px;
   padding: 3px 8px;
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
 
+  // Border tint alone is colour-only signalling (audit A11Y-03) — add the
+  // same focus outline the rest of the visual uses.
   &:focus-within {
     border-color: var(--es-selected-bg);
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
   }
 }
 
@@ -145,7 +168,7 @@
   flex: 0 0 auto;
   width: 10px;
   height: 10px;
-  border: 1.5px solid var(--es-muted);
+  border: 1.5px solid var(--es-muted-soft);
   border-radius: 50%;
   position: relative;
 
@@ -156,7 +179,7 @@
     top: 8px;
     width: 5px;
     height: 1.5px;
-    background: var(--es-muted);
+    background: var(--es-muted-soft);
     transform: rotate(45deg);
     transform-origin: 0 0;
   }
@@ -188,7 +211,8 @@
   }
 
   &:focus-visible {
-    outline: 1px dashed var(--es-focus);
+    outline: 2px solid var(--es-focus);
+    outline-offset: 1px;
   }
 }
 
@@ -200,11 +224,14 @@
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
-  padding: 5px 6px 3px;
+  padding: 6px 8px 4px;
 }
 
 .es-chips-hint {
   color: var(--es-muted);
+  font-style: italic;
+  line-height: 1.6;
+  padding: 2px 0;
 }
 
 .es-chip {
@@ -213,10 +240,17 @@
   gap: 5px;
   max-width: 100%;
   padding: 2px 7px;
+  border: 1px solid var(--es-chip-border);
   border-radius: 999px;
   background: var(--es-chip-bg);
   color: var(--es-chip-fg);
   line-height: 1.6;
+  transition: filter 0.08s ease;
+
+  .es-chip-path {
+    color: var(--es-muted);
+    white-space: nowrap;
+  }
 
   .es-chip-label {
     overflow: hidden;
@@ -240,15 +274,22 @@
   }
 
   &:focus-visible {
-    outline: 1px dashed var(--es-focus);
+    outline: 2px solid var(--es-focus);
     outline-offset: 1px;
   }
 }
 
+// Solid hairline + × prefix: an action, not a disabled ghost (design P2.5).
 .es-chip-clear {
   background: transparent;
-  border: 1px dashed var(--es-border);
+  border: 1px solid var(--es-border);
   color: var(--es-muted);
+
+  &::before {
+    content: "×";
+    margin-right: 4px;
+    opacity: 0.7;
+  }
 
   &:hover {
     color: var(--es-fg);
@@ -270,6 +311,17 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 3px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--es-chiclet-border) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--es-chiclet-border);
+    border-radius: 3px;
+  }
 }
 
 .es-no-results,
@@ -285,19 +337,23 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: var(--es-pad-y) 8px;
+  padding: var(--es-pad-y) 8px var(--es-pad-y) 4px;
   margin: 0 4px;
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
   cursor: pointer;
   user-select: none;
+  transition: background-color 0.08s ease;
 
   &:hover {
     background: var(--es-hover-bg);
   }
 
+  // Calm selection (design P2.1): soft tint + inset accent bar + filled
+  // check — the state reads clearly without shouting across the page.
   &.es-on {
-    background: var(--es-selected-bg);
+    background: var(--es-selected-soft-bg);
+    box-shadow: inset 3px 0 0 var(--es-selected-bg);
     color: var(--es-selected-fg);
 
     .es-count {
@@ -307,8 +363,8 @@
   }
 
   &:focus-visible {
-    outline: 1px dashed var(--es-focus);
-    outline-offset: -1px;
+    outline: 2px solid var(--es-focus);
+    outline-offset: -2px;
   }
 }
 
@@ -318,6 +374,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.es-match {
+  font-weight: 700;
 }
 
 .es-count {
@@ -331,8 +391,8 @@
 .es-check,
 .es-radio {
   flex: 0 0 auto;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border: 1.5px solid var(--es-muted);
   background: transparent;
   position: relative;
@@ -346,9 +406,11 @@
   border-radius: 50%;
 }
 
+// Filled glyph carries the selected state (design P2.1).
 .es-item.es-on .es-check,
 .es-item.es-on .es-radio {
-  border-color: var(--es-selected-fg);
+  border-color: var(--es-selected-bg);
+  background: var(--es-selected-bg);
 }
 
 .es-item.es-on .es-check::after {
@@ -356,8 +418,8 @@
   position: absolute;
   left: 2px;
   top: 4px;
-  width: 6px;
-  height: 3px;
+  width: 7px;
+  height: 4px;
   border-left: 2px solid var(--es-selected-fg);
   border-bottom: 2px solid var(--es-selected-fg);
   transform: rotate(-45deg) translateY(-1px);
@@ -366,8 +428,8 @@
 .es-item.es-on .es-radio::after {
   content: "";
   position: absolute;
-  left: 2px;
-  top: 2px;
+  left: 3px;
+  top: 3px;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -381,19 +443,21 @@
     content: "";
     position: absolute;
     left: 2px;
-    top: 4px;
-    width: 5px;
+    top: 5px;
+    width: 7px;
     height: 2px;
     background: var(--es-fg);
   }
 }
 
 // tree caret ----------------------------------------------------------------
+// Expand/collapse is THE hierarchy interaction: 16px hit zone, AA-visible
+// chevron (design P2.2). Leaf carets stay as ghosts to keep rows aligned.
 
 .es-caret {
   flex: 0 0 auto;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   position: relative;
   cursor: pointer;
 }
@@ -402,11 +466,11 @@
 .es-caret-open::after {
   content: "";
   position: absolute;
-  left: 4px;
-  top: 3px;
-  border-left: 4px solid var(--es-muted);
-  border-top: 3px solid transparent;
-  border-bottom: 3px solid transparent;
+  left: 5px;
+  top: 4px;
+  border-left: 5px solid var(--es-muted);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
   transition: transform 0.1s ease;
 }
 
@@ -426,24 +490,34 @@
   display: grid;
   grid-template-columns: repeat(var(--es-chiclet-cols, 3), minmax(0, 1fr));
   gap: 5px;
-  padding: 5px 6px;
+  padding: 6px 8px;
   align-content: start;
 }
 
+// Two-line chiclet: the label owns the width, the value sits under it in a
+// smaller size — labels never lose to their own metadata (design P1.3).
 .es-chiclet {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 1px;
   padding: calc(var(--es-pad-y) + 2px) 6px;
-  border: 1px solid var(--es-border);
+  border: 1px solid var(--es-chiclet-border);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
+  box-shadow: 0 1px 2px rgba(9, 22, 18, 0.07);
   min-width: 0;
+  transition: background-color 0.08s ease, border-color 0.08s ease;
 
   .es-label {
     flex: 0 1 auto;
+    max-width: 100%;
     text-align: center;
+  }
+
+  .es-count {
+    font-size: calc(var(--es-font-size) - 1px);
   }
 
   &:hover {
@@ -451,11 +525,17 @@
     border-color: var(--es-selected-bg);
   }
 
+  &:active {
+    box-shadow: none;
+    transform: translateY(0.5px);
+  }
+
+  // No bold on selection — bold reflows the label and makes the grid jump
+  // on click (design P2.4); the emerald fill is signal enough.
   &.es-on {
     background: var(--es-selected-bg);
     border-color: var(--es-selected-bg);
     color: var(--es-selected-fg);
-    font-weight: 700;
 
     .es-count {
       color: var(--es-selected-fg);
@@ -464,7 +544,7 @@
   }
 
   &:focus-visible {
-    outline: 1px dashed var(--es-focus);
+    outline: 2px solid var(--es-focus);
     outline-offset: 1px;
   }
 }
@@ -477,7 +557,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 5px 6px;
+  padding: 6px 8px;
 }
 
 .es-dd-field {
@@ -487,10 +567,11 @@
   gap: 8px;
   width: 100%;
   padding: calc(var(--es-pad-y) + 2px) 10px;
-  border: 1px solid var(--es-border);
+  border: 1px solid var(--es-chiclet-border);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
   text-align: left;
+  transition: border-color 0.08s ease;
 
   &:hover {
     border-color: var(--es-selected-bg);
@@ -498,10 +579,14 @@
 
   &[aria-expanded="true"] {
     border-color: var(--es-selected-bg);
+
+    .es-dd-caret {
+      transform: rotate(180deg);
+    }
   }
 
   &:focus-visible {
-    outline: 1px dashed var(--es-focus);
+    outline: 2px solid var(--es-focus);
     outline-offset: 1px;
   }
 }
@@ -522,6 +607,7 @@
   border-top: 5px solid var(--es-muted);
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
+  transition: transform 0.12s ease;
 }
 
 // In-flow panel: the visual owns its whole viewport, so the open dropdown
@@ -535,12 +621,12 @@
   flex: 1 1 auto;
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
-  background: #ffffff;
-  box-shadow: 0 4px 14px rgba(9, 22, 18, 0.12);
+  background: var(--es-popover-bg);
+  box-shadow: var(--es-popover-shadow);
   overflow: hidden;
 
   .es-search {
-    margin: 5px 6px 2px;
+    margin: 6px 8px 2px;
   }
 }
 

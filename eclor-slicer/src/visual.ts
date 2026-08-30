@@ -165,12 +165,21 @@ export class Visual implements IVisual {
       }
 
       if (parsed.tree.leafCount === 0 && parsed.fieldNames.length === 0) {
-        // User emptied the buckets — drop caches, let the host paint its
-        // native landing page overlay (supportsLandingPage: true).
+        // User emptied the buckets — drop caches AND release any persisted
+        // filter (audit LIF-01: an orphaned filter would keep constraining
+        // the page with no visible slicer to clear it), then let the host
+        // paint its native landing page overlay (supportsLandingPage: true).
+        if (this.selectedKeys.size > 0 && this.allowInteractions) {
+          this.host.applyJsonFilter(null as unknown as powerbi.IFilter, "general", "filter", filterAction(false));
+        }
         this.lastValidRenderInput = null;
         this.selectedKeys = new Set();
         this.expandedKeys = new Set();
         this.searchText = "";
+        this.dropdownOpen = false;
+        this.focusKey = null;
+        this.pendingApplies = 0;
+        this.expandAllApplied = false;
         this.target.replaceChildren();
         eventService?.renderingFinished(options);
         return;
@@ -226,11 +235,13 @@ export class Visual implements IVisual {
    *  all round-trip. Our own applyJsonFilter echoes are skipped by counter. */
   private syncSelectionWithHost(options: VisualUpdateOptions, tree: SlicerTree): void {
     const jsonFilters = (options as unknown as { jsonFilters?: unknown[] }).jsonFilters;
+    // Updates that carry no jsonFilters at all (resize, format change on
+    // some hosts) must not consume the echo counter (audit LIF-02).
+    if (jsonFilters === undefined) return;
     if (this.pendingApplies > 0) {
       this.pendingApplies--;
       return;
     }
-    if (jsonFilters === undefined) return;
     if (jsonFilters.length === 0) {
       if (this.selectedKeys.size > 0) this.selectedKeys = new Set();
       return;
@@ -328,15 +339,22 @@ export class Visual implements IVisual {
       st.setProperty("--es-bg", this.hcBackground);
       st.setProperty("--es-item-bg", this.hcBackground);
       st.setProperty("--es-selected-bg", this.hcHyperlink);
+      st.setProperty("--es-selected-soft-bg", this.hcHyperlink);
       st.setProperty("--es-selected-fg", this.hcBackground);
       st.setProperty("--es-hover-bg", this.hcBackground);
       st.setProperty("--es-chip-bg", this.hcBackground);
       st.setProperty("--es-chip-fg", this.hcForeground);
+      st.setProperty("--es-chip-border", this.hcForeground);
       st.setProperty("--es-header-fg", this.hcForeground);
       st.setProperty("--es-header-bg", this.hcBackground);
       st.setProperty("--es-border", this.hcForeground);
+      st.setProperty("--es-chiclet-border", this.hcForeground);
       st.setProperty("--es-muted", this.hcForeground);
+      st.setProperty("--es-muted-soft", this.hcForeground);
       st.setProperty("--es-focus", this.hcHyperlink);
+      st.setProperty("--es-popover-bg", this.hcBackground);
+      st.setProperty("--es-popover-shadow", "none");
+      st.setProperty("--es-btn-disabled", this.hcForeground);
       return;
     }
 
@@ -347,6 +365,10 @@ export class Visual implements IVisual {
     setOr("--es-bg", "", "transparent");
     setOr("--es-item-bg", String(s.items.backColor.value.value ?? ""), "transparent");
     setOr("--es-selected-bg", String(s.items.selectedColor.value.value ?? ""), "#1ef5b1");
+    // Soft selected background derives from the user pick when set (design
+    // P2.1: calm rows, accent carried by the inset bar + filled check).
+    const userSelected = safeHexOrEmpty(String(s.items.selectedColor.value.value ?? ""));
+    st.setProperty("--es-selected-soft-bg", userSelected || "#d9fdf1");
     setOr("--es-selected-fg", String(s.items.selectedFontColor.value.value ?? ""), "#091612");
     st.setProperty("--es-hover-bg", "rgba(30, 245, 177, 0.14)");
     setOr("--es-chip-bg", String(s.chips.chipColor.value.value ?? ""), "#d9fdf1");
@@ -354,8 +376,16 @@ export class Visual implements IVisual {
     setOr("--es-header-fg", String(s.slicerHeader.fontColor.value.value ?? ""), "#091612");
     setOr("--es-header-bg", String(s.slicerHeader.backColor.value.value ?? ""), "transparent");
     st.setProperty("--es-border", "#e5e7e6");
-    st.setProperty("--es-muted", "#8a9994");
+    st.setProperty("--es-chiclet-border", "#d6dad8");
+    // AA-compliant informational grey (5.38:1 on white); the softer #8A9994
+    // is reserved for purely decorative glyphs (design P1.1).
+    st.setProperty("--es-muted", "#5e6e68");
+    st.setProperty("--es-muted-soft", "#8a9994");
     st.setProperty("--es-focus", "#091612");
+    st.setProperty("--es-popover-bg", "#ffffff");
+    st.setProperty("--es-popover-shadow", "0 4px 14px rgba(9, 22, 18, 0.12)");
+    st.setProperty("--es-chip-border", "transparent");
+    st.setProperty("--es-btn-disabled", "#b3bdb9");
   }
 
   private renderFromInput(input: RenderInput): void {
@@ -367,8 +397,12 @@ export class Visual implements IVisual {
     if (s.slicerHeader.show.value) frag.appendChild(this.buildHeader(input));
     if (s.search.show.value && layout !== "dropdown") frag.appendChild(this.buildSearch());
 
-    const chipsTop = String(s.chips.position.value.value) !== "bottom";
-    if (s.chips.show.value && chipsTop) frag.appendChild(this.buildChips(input));
+    // Chips are redundant noise in single mode (one row already shows the
+    // state), and in dropdown mode they must sit BELOW the master field,
+    // never above it (design P1.5).
+    const chipsWanted = s.chips.show.value && this.isMulti();
+    const chipsTop = String(s.chips.position.value.value) !== "bottom" && layout !== "dropdown";
+    if (chipsWanted && chipsTop) frag.appendChild(this.buildChips(input));
 
     if (layout === "dropdown") {
       frag.appendChild(this.buildDropdown(input));
@@ -376,7 +410,7 @@ export class Visual implements IVisual {
       frag.appendChild(this.buildBody(input, layout));
     }
 
-    if (s.chips.show.value && !chipsTop) frag.appendChild(this.buildChips(input));
+    if (chipsWanted && !chipsTop) frag.appendChild(this.buildChips(input));
     frag.appendChild(this.buildFooter(input));
 
     this.target.setAttribute("role", "group");
@@ -440,6 +474,9 @@ export class Visual implements IVisual {
     inputEl.type = "text";
     inputEl.className = "es-search-input";
     inputEl.value = this.searchText;
+    // Mirror into the attribute too: the live DOM only needs the property,
+    // but serialised snapshots (screenshot pipeline) read the attribute.
+    inputEl.setAttribute("value", this.searchText);
     inputEl.placeholder = (s.search.placeholder.value || "").trim() || this.str("Visual_SearchPlaceholder", "Search…");
     inputEl.setAttribute("aria-label", this.str("Visual_Search", "Search"));
     wrap.appendChild(inputEl);
@@ -462,23 +499,45 @@ export class Visual implements IVisual {
     const nodes = selectedNodesInOrder(input.tree, this.selectedKeys);
     if (nodes.length === 0) {
       row.classList.add("es-chips-empty");
-      const hint = document.createElement("span");
-      hint.className = "es-chips-hint";
-      hint.textContent = this.str("Visual_NoFilter", "No filter");
-      row.appendChild(hint);
+      // While searching, the footer's "X of Y" is the useful signal — an
+      // orphan "No filter" label would just add noise (design P2.10).
+      if (!this.searchText.trim()) {
+        const hint = document.createElement("span");
+        hint.className = "es-chips-hint";
+        hint.textContent = this.str("Visual_NoFilter", "No filter");
+        row.appendChild(hint);
+      }
       return row;
     }
-    const maxChips = Math.max(1, Math.min(30, Number(s.chips.maxChips.value) || 6));
+    // Effective cap = user setting ∩ what roughly fits on ONE line (~90px a
+    // chip) — keeps the recap to a single row in narrow slicers (P1.5).
+    const userMax = Math.max(1, Math.min(30, Number(s.chips.maxChips.value) || 6));
+    const fitMax = Math.max(1, Math.floor(input.width / 90));
+    const maxChips = Math.min(userMax, fitMax);
     const shown = nodes.slice(0, maxChips);
     for (const n of shown) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "es-chip";
       chip.dataset.chipKey = n.key;
+      const pathLabels = n.rawPath.map((_, i) => {
+        let anc: typeof n | null = n;
+        for (let up = n.level; up > i; up--) anc = anc && anc.parent;
+        return anc ? anc.label || this.blankLabel() : "";
+      });
+      chip.title = pathLabels.join(" / ");
       chip.setAttribute(
         "aria-label",
-        this.template("Visual_RemoveFilter", "Remove filter {0}", n.label || this.blankLabel())
+        this.template("Visual_RemoveFilter", "Remove filter {0}", chip.title)
       );
+      // Deep nodes get their parent as context — "Paris" alone is ambiguous
+      // in a multi-country model (design P2.6).
+      if (n.level > 0 && n.parent && n.parent.level >= 0) {
+        const pathSpan = document.createElement("span");
+        pathSpan.className = "es-chip-path";
+        pathSpan.textContent = `${n.parent.label || this.blankLabel()} · `;
+        chip.appendChild(pathSpan);
+      }
       const label = document.createElement("span");
       label.className = "es-chip-label";
       label.textContent = n.label || this.blankLabel();
@@ -538,8 +597,9 @@ export class Visual implements IVisual {
     }
 
     body.classList.add("es-list");
-    body.setAttribute("role", "listbox");
-    body.setAttribute("aria-multiselectable", String(this.isMulti()));
+    // checkbox/radio children need a group/radiogroup container, not a
+    // listbox (which expects role=option) — audit A11Y-01.
+    body.setAttribute("role", this.isMulti() ? "group" : "radiogroup");
     for (const it of toRender) {
       body.appendChild(this.buildItem(input, it));
     }
@@ -569,18 +629,17 @@ export class Visual implements IVisual {
     el.style.paddingLeft = `calc(${it.depth} * var(--es-indent) + 6px)`;
 
     if (input.tree.levelCount > 1) {
+      // The caret is decorative for AT — the expansion state lives on the
+      // item itself as aria-expanded (audit A11Y-02); ←/→ toggle it.
       const exp = document.createElement("span");
       exp.className = "es-caret";
+      exp.setAttribute("aria-hidden", "true");
       if (it.hasChildren) {
         exp.classList.add(it.expanded ? "es-caret-open" : "es-caret-closed");
         exp.dataset.expKey = it.node.key;
-        exp.setAttribute(
-          "aria-label",
-          it.expanded ? this.str("Visual_Collapse", "Collapse") : this.str("Visual_Expand", "Expand")
-        );
+        el.setAttribute("aria-expanded", String(it.expanded));
       } else {
         exp.classList.add("es-caret-leaf");
-        exp.setAttribute("aria-hidden", "true");
       }
       el.appendChild(exp);
     }
@@ -590,10 +649,7 @@ export class Visual implements IVisual {
     check.setAttribute("aria-hidden", "true");
     el.appendChild(check);
 
-    const label = document.createElement("span");
-    label.className = "es-label";
-    label.textContent = it.node.label || this.blankLabel();
-    el.appendChild(label);
+    el.appendChild(this.buildLabelSpan(it.node.label || this.blankLabel()));
 
     if (s.items.showCounts.value) {
       const count = document.createElement("span");
@@ -615,17 +671,41 @@ export class Visual implements IVisual {
     b.dataset.key = it.node.key;
     b.setAttribute("aria-pressed", it.state === "on" ? "true" : "false");
     if (it.state === "on") b.classList.add("es-on");
-    const label = document.createElement("span");
-    label.className = "es-label";
-    label.textContent = it.node.label || this.blankLabel();
-    b.appendChild(label);
+    const labelText = it.node.label || this.blankLabel();
+    b.appendChild(this.buildLabelSpan(labelText));
     if (s.items.showCounts.value) {
+      const valueText = this.itemValueText(input, it);
       const count = document.createElement("span");
       count.className = "es-count";
-      count.textContent = this.itemValueText(input, it);
+      count.textContent = valueText;
       b.appendChild(count);
+      // Native tooltip recovers the full text when the label truncates.
+      b.title = `${labelText} — ${valueText}`;
+    } else {
+      b.title = labelText;
     }
     return b;
+  }
+
+  /** Label span with the searched substring emphasised (design P3.1) —
+   *  100% createElement/textContent, no markup strings. Accent-different
+   *  matches simply skip the emphasis. */
+  private buildLabelSpan(text: string): HTMLSpanElement {
+    const span = document.createElement("span");
+    span.className = "es-label";
+    const needle = this.searchText.trim().toLowerCase();
+    const idx = needle ? text.toLowerCase().indexOf(needle) : -1;
+    if (idx < 0) {
+      span.textContent = text;
+      return span;
+    }
+    span.append(text.slice(0, idx));
+    const match = document.createElement("span");
+    match.className = "es-match";
+    match.textContent = text.slice(idx, idx + needle.length);
+    span.appendChild(match);
+    span.append(text.slice(idx + needle.length));
+    return span;
   }
 
   private itemValueText(input: RenderInput, it: VisibleItem): string {
@@ -686,17 +766,24 @@ export class Visual implements IVisual {
     return wrap;
   }
 
+  /** One grammar per state (design P2.7 / P1.4): active search shows the
+   *  narrowed population ("3 of 47 items"), otherwise selection counts. */
   private buildFooter(input: RenderInput): HTMLElement {
     const footer = document.createElement("div");
     footer.className = "es-footer";
-    const leaves = selectedLeafTuples(input.tree, this.selectedKeys).length;
     const rootTotal = input.tree.root.children.length;
+    if (this.searchText.trim()) {
+      const visible = visibleRootKeys(input.tree, this.searchText).length;
+      footer.textContent = this.template("Visual_CountFiltered", "{0} of {1} items", visible, rootTotal);
+      return footer;
+    }
+    const leaves = selectedLeafTuples(input.tree, this.selectedKeys).length;
     const selectedRoots = selectedNodesInOrder(input.tree, this.selectedKeys).length;
     footer.textContent =
       this.selectedKeys.size === 0
         ? this.template("Visual_CountAll", "{0} items", rootTotal)
         : input.tree.levelCount > 1
-          ? this.template("Visual_CountSelectedLeaves", "{0} selected · {1} rows", selectedRoots, leaves)
+          ? this.template("Visual_CountSelectedLeaves", "{0} selected · {1} values", selectedRoots, leaves)
           : this.template("Visual_CountSelected", "{0} / {1} selected", leaves, rootTotal);
     return footer;
   }

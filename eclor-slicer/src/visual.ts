@@ -11,7 +11,7 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 
-import { VisualFormattingSettingsModel } from "./settings";
+import { readPersistedFx, readRowFills, VisualFormattingSettingsModel } from "./settings";
 import { formatActualLabel, safeHex, safeHexOrEmpty } from "./format";
 import {
   buildTree,
@@ -45,12 +45,19 @@ const MAX_RENDER_ITEMS = 2000;
 
 type LayoutMode = "list" | "chiclets" | "dropdown";
 
+interface ItemFill {
+  font: string | null;
+  back: string | null;
+}
+
 interface RenderInput {
   tree: SlicerTree;
   targets: FilterTarget[];
   fieldNames: string[];
   measureFormat: string;
   hasMeasure: boolean;
+  /** Per-item fx RULE results (flat lists), keyed by node key. */
+  itemFills: Map<string, ItemFill>;
   width: number;
   height: number;
 }
@@ -61,6 +68,7 @@ interface ParseResult {
   fieldNames: string[];
   measureFormat: string;
   hasMeasure: boolean;
+  itemFills: Map<string, ItemFill>;
 }
 
 /** FilterAction enum with a runtime fallback — the jest stub replaces the
@@ -133,6 +141,7 @@ export class Visual implements IVisual {
         VisualFormattingSettingsModel,
         dataView
       );
+      this.patchFxSlices(dataView);
 
       // Host-level capabilities can flip without a fresh instance.
       this.locale = this.host.locale || "en-US";
@@ -213,7 +222,8 @@ export class Visual implements IVisual {
         targets: [],
         fieldNames: [],
         measureFormat: "",
-        hasMeasure: false
+        hasMeasure: false,
+        itemFills: new Map()
       };
     }
 
@@ -224,12 +234,31 @@ export class Visual implements IVisual {
     const tree = buildTree(levels, measure);
     const targets = fieldCats.map((c) => extractFilterTarget(c.source));
     const fieldNames = fieldCats.map((c) => c.source.displayName || "");
+
+    // fx RULE results land per-row on the first category's objects — map the
+    // first occurrence of each level-0 value to its fills (flat-list per-item
+    // conditional colours; ChicletSlicer parity). Skipped in high contrast.
+    const itemFills = new Map<string, ItemFill>();
+    const rowFonts = readRowFills(dv, "items", "fontColor");
+    const rowBacks = readRowFills(dv, "items", "backColor");
+    if (rowFonts.length > 0 || rowBacks.length > 0) {
+      const rows = levels[0].length;
+      for (let r = 0; r < rows; r++) {
+        const key = pathKey([levels[0][r] ?? null]);
+        if (itemFills.has(key)) continue;
+        const font = rowFonts[r] ?? null;
+        const back = rowBacks[r] ?? null;
+        if (font || back) itemFills.set(key, { font, back });
+      }
+    }
+
     return {
       tree,
       targets,
       fieldNames,
       measureFormat: measureCol?.source?.format || "",
-      hasMeasure: !!measureCol
+      hasMeasure: !!measureCol,
+      itemFills
     };
   }
 
@@ -274,6 +303,24 @@ export class Visual implements IVisual {
 
   private getSettings(): VisualFormattingSettingsModel {
     return this.formattingSettings ?? new VisualFormattingSettingsModel();
+  }
+
+  /** fx-enabled colour slices may persist outside metadata.objects — patch
+   *  every one through the §6.9 cascade so the pane and the render agree. */
+  private patchFxSlices(dv: DataView | undefined): void {
+    const fs = this.getSettings();
+    const patch = (slice: { value: { value?: string } }, obj: string, prop: string): void => {
+      const v = readPersistedFx(dv, obj, prop);
+      if (v) slice.value = { value: v };
+    };
+    patch(fs.items.fontColor, "items", "fontColor");
+    patch(fs.items.backColor, "items", "backColor");
+    patch(fs.items.selectedColor, "items", "selectedColor");
+    patch(fs.items.selectedFontColor, "items", "selectedFontColor");
+    patch(fs.slicerHeader.fontColor, "slicerHeader", "fontColor");
+    patch(fs.slicerHeader.backColor, "slicerHeader", "backColor");
+    patch(fs.chips.chipColor, "chips", "chipColor");
+    patch(fs.chips.chipTextColor, "chips", "chipTextColor");
   }
 
   public getFormattingModel(): powerbi.visuals.FormattingModel {
@@ -334,6 +381,30 @@ export class Visual implements IVisual {
     const padY = density === "compact" ? 2 : density === "comfortable" ? 8 : 4;
     st.setProperty("--es-font-size", `${textSize}px`);
     st.setProperty("--es-pad-y", `${padY}px`);
+    st.setProperty("--es-inner-pad", `${Math.max(0, Math.min(24, Number(s.slicerStyle.innerPadding.value) || 0))}px`);
+    st.setProperty("--es-item-gap", `${Math.max(0, Math.min(12, Number(s.slicerStyle.itemSpacing.value) || 0))}px`);
+
+    // Per-zone typography (FontControl on Items / Header, bold on Chips).
+    const fontVars = (
+      prefix: string,
+      font: {
+        fontFamily: { value: string };
+        fontSize: { value: number };
+        bold?: { value: boolean };
+        italic?: { value: boolean };
+        underline?: { value: boolean };
+      },
+      fallbackSize: number
+    ): void => {
+      st.setProperty(`--es-${prefix}-font-family`, font.fontFamily.value || "inherit");
+      st.setProperty(`--es-${prefix}-font-size`, `${Math.max(8, Math.min(32, Number(font.fontSize.value) || fallbackSize))}px`);
+      st.setProperty(`--es-${prefix}-weight`, font.bold?.value ? "700" : "400");
+      st.setProperty(`--es-${prefix}-style`, font.italic?.value ? "italic" : "normal");
+      st.setProperty(`--es-${prefix}-deco`, font.underline?.value ? "underline" : "none");
+    };
+    fontVars("item", s.items.font, textSize);
+    fontVars("header", s.slicerHeader.font, textSize);
+    st.setProperty("--es-chip-weight", s.chips.bold.value ? "700" : "400");
     st.setProperty("--es-radius", `${Math.max(0, Math.min(24, Number(s.items.borderRadius.value) || 0))}px`);
     st.setProperty("--es-indent", `${Math.max(0, Math.min(60, Number(s.hierarchy.indent.value) || 16))}px`);
 
@@ -432,7 +503,6 @@ export class Visual implements IVisual {
     const s = this.getSettings();
     const header = document.createElement("div");
     header.className = "es-header";
-    if (s.slicerHeader.bold.value) header.classList.add("es-bold");
 
     const title = document.createElement("div");
     title.className = "es-title";
@@ -451,6 +521,24 @@ export class Visual implements IVisual {
       b.title = label;
       return b;
     };
+    if (input.tree.levelCount > 1) {
+      // Hierarchy tree actions: expand / collapse every branch in one click.
+      const mkTreeBtn = (action: string, label: string, dir: "down" | "up"): HTMLButtonElement => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "es-btn es-btn-tree";
+        b.dataset.action = action;
+        b.title = label;
+        b.setAttribute("aria-label", label);
+        const glyph = document.createElement("span");
+        glyph.className = `es-tree-glyph es-tree-${dir}`;
+        glyph.setAttribute("aria-hidden", "true");
+        b.appendChild(glyph);
+        return b;
+      };
+      actions.appendChild(mkTreeBtn("expandTree", this.str("Visual_ExpandAllBtn", "Expand all"), "down"));
+      actions.appendChild(mkTreeBtn("collapseTree", this.str("Visual_CollapseAllBtn", "Collapse all"), "up"));
+    }
     if (String(s.selection.selectionMode.value.value) === "multi") {
       if (s.selection.showSelectAll.value) {
         actions.appendChild(mkBtn("selectAll", this.str("Visual_SelectAll", "All"), "es-btn-all"));
@@ -742,7 +830,18 @@ export class Visual implements IVisual {
 
     const ariaValue = s.items.showCounts.value ? `, ${this.itemValueText(input, it)}` : "";
     el.setAttribute("aria-label", `${it.node.label || this.blankLabel()}${ariaValue}`);
+    this.applyItemFill(el, input, it.node, it.state);
     return el;
+  }
+
+  /** Per-item fx RULE colours — never in high contrast, and the selected
+   *  state's theme colours always win so selection stays visible. */
+  private applyItemFill(el: HTMLElement, input: RenderInput, node: SlicerNode, state: CheckState): void {
+    if (this.isHighContrast || state === "on") return;
+    const fill = input.itemFills.get(node.key);
+    if (!fill) return;
+    if (fill.back) el.style.backgroundColor = safeHex(fill.back, "");
+    if (fill.font) el.style.color = safeHex(fill.font, "");
   }
 
   /** Label span with the searched substring emphasised (design P3.1) —
@@ -831,6 +930,7 @@ export class Visual implements IVisual {
     } else {
       b.title = fullPath;
     }
+    this.applyItemFill(b, input, node, state);
     return b;
   }
 
@@ -996,7 +1096,7 @@ export class Visual implements IVisual {
     if (expander?.dataset.expKey) {
       const key = expander.dataset.expKey;
       if (this.expandedKeys.has(key)) this.expandedKeys.delete(key);
-      else this.expandedKeys.add(key);
+      else this.expandNode(key);
       this.focusKey = key;
       this.rerender();
       e.stopPropagation();
@@ -1075,6 +1175,25 @@ export class Visual implements IVisual {
         this.rerender();
         break;
       }
+      case "expandTree": {
+        if (!input) return;
+        const walk = (node: SlicerNode): void => {
+          for (const c of node.children) {
+            if (c.children.length > 0) {
+              this.expandedKeys.add(c.key);
+              walk(c);
+            }
+          }
+        };
+        walk(input.tree.root);
+        this.rerender();
+        break;
+      }
+      case "collapseTree": {
+        this.expandedKeys = new Set();
+        this.rerender();
+        break;
+      }
     }
   }
 
@@ -1135,7 +1254,7 @@ export class Visual implements IVisual {
       case "ArrowRight": {
         const key = item.dataset.key;
         if (key && !this.expandedKeys.has(key) && this.hasChildrenFor(key)) {
-          this.expandedKeys.add(key);
+          this.expandNode(key);
           this.focusKey = key;
           this.rerender();
         }
@@ -1175,6 +1294,21 @@ export class Visual implements IVisual {
         break;
     }
   };
+
+  /** Expand a node; in accordion mode (hierarchy.singleExpand) opening a
+   *  branch closes its siblings so one path per level stays open. */
+  private expandNode(key: string): void {
+    const input = this.lastValidRenderInput;
+    if (input && this.getSettings().hierarchy.singleExpand.value) {
+      const node = this.findNode(input.tree, key);
+      if (node?.parent) {
+        for (const sibling of node.parent.children) {
+          if (sibling !== node) this.expandedKeys.delete(sibling.key);
+        }
+      }
+    }
+    this.expandedKeys.add(key);
+  }
 
   private hasChildrenFor(key: string): boolean {
     const input = this.lastValidRenderInput;

@@ -231,4 +231,39 @@ describe("render snapshots", () => {
     expect(target.querySelectorAll(".es-toggle")).toHaveLength(4);
     snapshot("10-toggle-wrap", target, 240, 340, "Indicateur toggle à droite + retour à la ligne des libellés longs");
   });
+
+  test("11 — typographie, marges et couleurs par règle (fx)", () => {
+    const { visual, target } = makeVisual();
+    const dv = fixtureCountries({
+      items: { fontFamily: "Georgia, serif", fontSize: 12, italic: true },
+      slicerHeader: { fontFamily: "Georgia, serif", fontSize: 13, underline: true },
+      slicerStyle: { innerPadding: 10, itemSpacing: 4 },
+      chips: { bold: true }
+    });
+    // Per-row fx RULE fills (e.g. « CA > 500k€ → fond ambre »).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv.categorical.categories[0] as any).objects = [
+      { items: { backColor: { solid: { color: "#FFF3C4" } } } },
+      { items: { backColor: { solid: { color: "#FFF3C4" } } } },
+      undefined,
+      undefined,
+      { items: { fontColor: { solid: { color: "#B00020" } } } }
+    ];
+    visual.update(makeUpdateOptions(dv, 260, 400));
+    clickEl(itemByLabel(target, ".es-item", "Espagne"));
+    expect(target.style.getPropertyValue("--es-item-style")).toBe("italic");
+    snapshot("11-typo-fx", target, 260, 400, "Typo par zone (Georgia, italique, souligné), marges, gras badges + couleurs conditionnelles par élément");
+  });
+
+  test("12 — interactions hiérarchie : tout développer + accordéon", () => {
+    const { visual, target } = makeVisual();
+    const dv = fixtureHierarchy();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv.metadata as any).objects = { hierarchy: { singleExpand: true }, items: { indicator: "toggle" } };
+    visual.update(makeUpdateOptions(dv, 280, 460));
+    clickEl(target.querySelector("[data-action='expandTree']"));
+    clickEl(itemByLabel(target, ".es-item", "Rome"));
+    expect(target.querySelectorAll(".es-toggle").length).toBeGreaterThan(0);
+    snapshot("12-tree-actions", target, 280, 460, "Boutons Tout développer / Tout réduire, mode accordéon, indicateur toggle (bulle centrée)");
+  });
 });

@@ -179,6 +179,20 @@
             ]
           },
           "displayNameKey": "Visual_Density"
+        },
+        "innerPadding": {
+          "displayName": "Inner padding (px)",
+          "displayNameKey": "Visual_InnerPadding",
+          "type": {
+            "numeric": true
+          }
+        },
+        "itemSpacing": {
+          "displayName": "Item spacing (px)",
+          "displayNameKey": "Visual_ItemSpacing",
+          "type": {
+            "numeric": true
+          }
         }
       }
     },
@@ -200,12 +214,44 @@
           },
           "displayNameKey": "Visual_Title"
         },
+        "fontFamily": {
+          "displayName": "Font family",
+          "displayNameKey": "Visual_FontFamily",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Font size",
+          "displayNameKey": "Visual_FontSize",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
         "bold": {
           "displayName": "Bold",
+          "displayNameKey": "Visual_Bold",
           "type": {
             "bool": true
-          },
-          "displayNameKey": "Visual_Bold"
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "displayNameKey": "Visual_Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "displayNameKey": "Visual_Underline",
+          "type": {
+            "bool": true
+          }
         },
         "fontColor": {
           "displayName": "Font color",
@@ -308,6 +354,13 @@
             }
           },
           "displayNameKey": "Visual_ChipTextColor"
+        },
+        "bold": {
+          "displayName": "Bold",
+          "displayNameKey": "Visual_Bold",
+          "type": {
+            "bool": true
+          }
         }
       }
     },
@@ -315,6 +368,45 @@
       "displayName": "Items",
       "displayNameKey": "Visual_Items",
       "properties": {
+        "fontFamily": {
+          "displayName": "Font family",
+          "displayNameKey": "Visual_FontFamily",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Font size",
+          "displayNameKey": "Visual_FontSize",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "displayNameKey": "Visual_Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "displayNameKey": "Visual_Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "displayNameKey": "Visual_Underline",
+          "type": {
+            "bool": true
+          }
+        },
         "fontColor": {
           "displayName": "Font color",
           "type": {
@@ -466,6 +558,13 @@
             "bool": true
           },
           "displayNameKey": "Visual_ExpandAll"
+        },
+        "singleExpand": {
+          "displayName": "Accordion (one branch open per level)",
+          "displayNameKey": "Visual_SingleExpand",
+          "type": {
+            "bool": true
+          }
         },
         "indent": {
           "displayName": "Indent per level (px)",

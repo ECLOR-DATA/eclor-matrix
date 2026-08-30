@@ -170,3 +170,17 @@ Demandes produit intégrées :
 - **Chiclets hiérarchiques** : `nodesByLevel` (modèle pur, search-aware) fait
   des sections par niveau ; la sélection reste le même Set tri-état, un clic
   sur un bouton profond applique le tuple du chemin complet.
+
+## 14. fx & typographie v1.3 (2026-08-30)
+
+- **fx partout** : `makeFxColorPicker` (wildcard + ConstantOrRule) sur les 8
+  couleurs ; `patchFxSlices` applique la cascade §6.9 après chaque populate.
+  Garde d'homogénéité STRICTE : le slot ligne-0 n'est promu en global que si
+  TOUTES les lignes portent le même fill — un résultat de règle épars ou
+  hétérogène reste par élément (`readRowFills` → `itemFills`, listes plates,
+  niveau 0). Sélection et high-contrast écrasent toujours les fills.
+- **FontControl par zone** (items/header) + bold badges ; les variables CSS
+  `--es-item-*`/`--es-header-*` restent le seul canal (HC intact).
+- **Accordéon** (`singleExpand`) : `expandNode` referme les sœurs — l'état
+  profond d'une branche refermée est conservé (réouverture = même sous-arbre).
+- Marges : `--es-inner-pad` (root) et `--es-item-gap` (items + gap chiclets).

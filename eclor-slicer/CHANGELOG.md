@@ -3,6 +3,19 @@
 All notable changes to Eclor Slicer are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow the pbiviz `X.Y.Z.W` scheme.
 
+## [1.3.0.0] — 2026-08-30
+
+### Added (demandes produit)
+- **Mise en forme conditionnelle (fx) sur toutes les couleurs** : les 8 sélecteurs de couleur (éléments, en-tête, badges) portent l'affordance fx (constante OU règle). Une règle produit des **couleurs par élément** (fond et/ou texte de chaque ligne/bouton selon la donnée, parité ChicletSlicer) ; une constante répartie sur toutes les lignes est promue en global via la cascade de persistance du playbook (§6.9), avec garde d'homogénéité stricte. L'état sélectionné et le mode high-contrast gardent toujours la main.
+- **Typographie par zone** : contrôle de police complet (famille, taille, gras, italique, souligné) sur les Éléments et l'En-tête ; gras sur les Badges. Le tout via `FontControl` natif du volet Format.
+- **Marges** : marge intérieure du visuel (0–24 px) et espacement entre éléments (0–12 px), appliqués aussi à la grille de chiclets.
+- **Interactions hiérarchie** : boutons « Tout développer » / « Tout réduire » dans l'en-tête (chevrons doubles, hiérarchie uniquement) ; **mode accordéon** (option) : ouvrir une branche referme ses sœurs au même niveau — clic et clavier (→).
+
+### Fixed
+- **Bulle du toggle centrée verticalement** (`top:50% + translateY`) — elle collait en haut.
+- Réintroduction assumée de `powerbi-visuals-utils-dataviewutils` (sélecteurs wildcard fx — l'usage qui manquait en 1.0.1.0).
+- 7 tests + 2 snapshots (11 typo/fx, 12 interactions arbre) — 141 tests au total.
+
 ## [1.2.0.0] — 2026-08-30
 
 ### Added (demandes produit)

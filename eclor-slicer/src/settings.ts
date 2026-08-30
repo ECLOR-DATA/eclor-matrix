@@ -1,10 +1,98 @@
 "use strict";
 
+import powerbi from "powerbi-visuals-api";
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
+import { dataViewWildcard } from "powerbi-visuals-utils-dataviewutils";
 
 import FormattingSettingsCard = formattingSettings.SimpleCard;
 import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
+
+/** ColorPicker with the fx (conditional formatting) affordance — wildcard
+ *  selector + ConstantOrRule instanceKind (playbook §3.3/§6.8). The enum is
+ *  read defensively because the jest stub ships no runtime (ConstantOrRule=3). */
+function makeFxColorPicker(opts: {
+  name: string;
+  displayName: string;
+  displayNameKey: string;
+  value: { value: string };
+}): formattingSettings.ColorPicker {
+  const cp = new formattingSettings.ColorPicker(opts);
+  cp.selector = dataViewWildcard.createDataViewWildcardSelector(
+    dataViewWildcard.DataViewWildcardMatchingOption.InstancesAndTotals
+  );
+  cp.instanceKind = ((powerbi as unknown as { VisualEnumerationInstanceKinds?: { ConstantOrRule: number } })
+    .VisualEnumerationInstanceKinds?.ConstantOrRule ?? 3) as powerbi.VisualEnumerationInstanceKinds;
+  return cp;
+}
+
+function extractFill(obj: unknown): string | null {
+  const o = obj as { solid?: { color?: unknown }; value?: unknown } | undefined;
+  const v = o?.solid?.color ?? o?.value;
+  return typeof v === "string" && /^#[0-9a-fA-F]{3,8}$/.test(v) ? v : null;
+}
+
+/** fx persistence cascade (playbook §4.2.1/§4.2.2/§6.9): a wildcard fx
+ *  constant/rule result may land on the first category row's objects, on
+ *  metadata.objects, or on values[i].source.objects — first valid fill wins.
+ *  populateFormattingSettingsModel only reads metadata.objects, so update()
+ *  patches every fx slice through this after populate. */
+export function readPersistedFx(dv: powerbi.DataView | undefined, objName: string, propName: string): string | null {
+  const cat0 = dv?.categorical?.categories?.[0] as { objects?: Record<string, Record<string, unknown>>[] } | undefined;
+  // The first-row slot only counts as a GLOBAL constant when every row that
+  // carries a fill agrees — heterogeneous fills are fx RULE results and stay
+  // per-item (readRowFills), never promoted to the global slice.
+  const rowCount = (dv?.categorical?.categories?.[0]?.values ?? []).length;
+  const rowFills = (cat0?.objects ?? []).map((o) => extractFill(o?.[objName]?.[propName])).filter((x) => x !== null);
+  const homogeneous = rowCount > 0 && rowFills.length === rowCount && rowFills.every((x) => x === rowFills[0]);
+  let v = homogeneous ? rowFills[0] : null;
+  if (v) return v;
+  v = extractFill((dv?.metadata?.objects as Record<string, Record<string, unknown>> | undefined)?.[objName]?.[propName]);
+  if (v) return v;
+  for (const grp of dv?.categorical?.values || []) {
+    v = extractFill(
+      (grp as { source?: { objects?: Record<string, Record<string, unknown>> } }).source?.objects?.[objName]?.[propName]
+    );
+    if (v) return v;
+  }
+  return null;
+}
+
+/** Per-row fills persisted by fx RULES on the first field's category rows —
+ *  feeds per-item conditional colours (flat lists; ChicletSlicer parity). */
+export function readRowFills(
+  dv: powerbi.DataView | undefined,
+  objName: string,
+  propName: string
+): (string | null)[] {
+  const cat0 = dv?.categorical?.categories?.[0] as { objects?: Record<string, Record<string, unknown>>[] } | undefined;
+  const objects = cat0?.objects;
+  if (!objects) return [];
+  return objects.map((o) => extractFill(o?.[objName]?.[propName]));
+}
+
+function makeFont(prefix: string, defaultSize: number, defaultBold: boolean): formattingSettings.FontControl {
+  return new formattingSettings.FontControl({
+    name: `${prefix}Font`,
+    displayName: "Font",
+    displayNameKey: "Visual_Font",
+    fontFamily: new formattingSettings.FontPicker({
+      name: "fontFamily",
+      value: "Arial, 'Segoe UI', wf_segoe-ui_normal, helvetica, sans-serif"
+    }),
+    fontSize: new formattingSettings.NumUpDown({
+      name: "fontSize",
+      value: defaultSize,
+      options: {
+        minValue: { type: 0, value: 8 },
+        maxValue: { type: 1, value: 32 }
+      }
+    }),
+    bold: new formattingSettings.ToggleSwitch({ name: "bold", value: defaultBold }),
+    italic: new formattingSettings.ToggleSwitch({ name: "italic", value: false }),
+    underline: new formattingSettings.ToggleSwitch({ name: "underline", value: false })
+  });
+}
 
 /** Localized dropdown item — the FormattingSettingsService resolves
  *  `displayNameKey` through the host localization manager; `displayName`
@@ -115,10 +203,39 @@ class StyleCardSettings extends FormattingSettingsCard {
     value: { value: "normal", displayName: "Normal" }
   });
 
+  innerPadding = new formattingSettings.NumUpDown({
+    name: "innerPadding",
+    displayName: "Inner padding (px)",
+    displayNameKey: "Visual_InnerPadding",
+    value: 0,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 24 }
+    }
+  });
+
+  itemSpacing = new formattingSettings.NumUpDown({
+    name: "itemSpacing",
+    displayName: "Item spacing (px)",
+    displayNameKey: "Visual_ItemSpacing",
+    value: 0,
+    options: {
+      minValue: { type: 0, value: 0 },
+      maxValue: { type: 1, value: 12 }
+    }
+  });
+
   name: string = "slicerStyle";
   displayName: string = "Style";
   displayNameKey: string = "Visual_Style";
-  slices: FormattingSettingsSlice[] = [this.layout, this.chicletColumns, this.textSize, this.density];
+  slices: FormattingSettingsSlice[] = [
+    this.layout,
+    this.chicletColumns,
+    this.textSize,
+    this.density,
+    this.innerPadding,
+    this.itemSpacing
+  ];
 }
 
 class HeaderCardSettings extends FormattingSettingsCard {
@@ -137,21 +254,16 @@ class HeaderCardSettings extends FormattingSettingsCard {
     placeholder: "Field name"
   });
 
-  bold = new formattingSettings.ToggleSwitch({
-    name: "bold",
-    displayName: "Bold",
-    displayNameKey: "Visual_Bold",
-    value: true
-  });
+  font = makeFont("header", 11, true);
 
-  fontColor = new formattingSettings.ColorPicker({
+  fontColor = makeFxColorPicker({
     name: "fontColor",
     displayName: "Font color",
     displayNameKey: "Visual_FontColor",
     value: { value: "" }
   });
 
-  backColor = new formattingSettings.ColorPicker({
+  backColor = makeFxColorPicker({
     name: "backColor",
     displayName: "Background color",
     displayNameKey: "Visual_BackColor",
@@ -161,7 +273,7 @@ class HeaderCardSettings extends FormattingSettingsCard {
   name: string = "slicerHeader";
   displayName: string = "Header";
   displayNameKey: string = "Visual_Header";
-  slices: FormattingSettingsSlice[] = [this.show, this.title, this.bold, this.fontColor, this.backColor];
+  slices: FormattingSettingsSlice[] = [this.show, this.title, this.font, this.fontColor, this.backColor];
 }
 
 class SearchCardSettings extends FormattingSettingsCard {
@@ -216,49 +328,65 @@ class ChipsCardSettings extends FormattingSettingsCard {
     }
   });
 
-  chipColor = new formattingSettings.ColorPicker({
+  chipColor = makeFxColorPicker({
     name: "chipColor",
     displayName: "Badge color",
     displayNameKey: "Visual_ChipColor",
     value: { value: "" }
   });
 
-  chipTextColor = new formattingSettings.ColorPicker({
+  chipTextColor = makeFxColorPicker({
     name: "chipTextColor",
     displayName: "Badge text color",
     displayNameKey: "Visual_ChipTextColor",
     value: { value: "" }
   });
 
+  bold = new formattingSettings.ToggleSwitch({
+    name: "bold",
+    displayName: "Bold",
+    displayNameKey: "Visual_Bold",
+    value: false
+  });
+
   name: string = "chips";
   displayName: string = "Selection badges";
   displayNameKey: string = "Visual_Chips";
-  slices: FormattingSettingsSlice[] = [this.show, this.position, this.maxChips, this.chipColor, this.chipTextColor];
+  slices: FormattingSettingsSlice[] = [
+    this.show,
+    this.position,
+    this.maxChips,
+    this.chipColor,
+    this.chipTextColor,
+    this.bold
+  ];
 }
 
 class ItemsCardSettings extends FormattingSettingsCard {
-  fontColor = new formattingSettings.ColorPicker({
+  font = makeFont("items", 11, false);
+
+  fontColor = makeFxColorPicker({
     name: "fontColor",
     displayName: "Font color",
     displayNameKey: "Visual_FontColor",
     value: { value: "" }
   });
 
-  backColor = new formattingSettings.ColorPicker({
+  backColor = makeFxColorPicker({
     name: "backColor",
     displayName: "Background color",
     displayNameKey: "Visual_BackColor",
     value: { value: "" }
   });
 
-  selectedColor = new formattingSettings.ColorPicker({
+  selectedColor = makeFxColorPicker({
     name: "selectedColor",
     displayName: "Selected background",
     displayNameKey: "Visual_SelectedColor",
     value: { value: "" }
   });
 
-  selectedFontColor = new formattingSettings.ColorPicker({
+  selectedFontColor = makeFxColorPicker({
     name: "selectedFontColor",
     displayName: "Selected font color",
     displayNameKey: "Visual_SelectedFontColor",
@@ -331,6 +459,7 @@ class ItemsCardSettings extends FormattingSettingsCard {
   displayName: string = "Items";
   displayNameKey: string = "Visual_Items";
   slices: FormattingSettingsSlice[] = [
+    this.font,
     this.fontColor,
     this.backColor,
     this.selectedColor,
@@ -352,6 +481,13 @@ class HierarchyCardSettings extends FormattingSettingsCard {
     value: false
   });
 
+  singleExpand = new formattingSettings.ToggleSwitch({
+    name: "singleExpand",
+    displayName: "Accordion (one branch open per level)",
+    displayNameKey: "Visual_SingleExpand",
+    value: false
+  });
+
   indent = new formattingSettings.NumUpDown({
     name: "indent",
     displayName: "Indent per level (px)",
@@ -366,7 +502,7 @@ class HierarchyCardSettings extends FormattingSettingsCard {
   name: string = "hierarchy";
   displayName: string = "Hierarchy";
   displayNameKey: string = "Visual_Hierarchy";
-  slices: FormattingSettingsSlice[] = [this.expandAll, this.indent];
+  slices: FormattingSettingsSlice[] = [this.expandAll, this.singleExpand, this.indent];
 }
 
 class ValuesFormatCardSettings extends FormattingSettingsCard {

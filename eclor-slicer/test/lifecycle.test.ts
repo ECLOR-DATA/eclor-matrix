@@ -315,6 +315,91 @@ describe("layouts", () => {
   });
 });
 
+describe("v1.3: fx colours, typography, margins, tree interactions", () => {
+  test("fx persistence cascade patches slices from category-row objects", () => {
+    const { visual, target } = makeVisual();
+    const dv = oneLevelFixture();
+    // fx constant distributed on EVERY category row (playbook §4.2.1 slot 1);
+    // a sparse/heterogeneous set would be RULE output and stays per-item.
+    const constant = { items: { selectedColor: { solid: { color: "#123456" } } } };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv.categorical.categories[0] as any).objects = [constant, constant, constant, constant];
+    visual.update(makeUpdateOptions(dv));
+    expect(target.style.getPropertyValue("--es-selected-bg")).toBe("#123456");
+  });
+
+  test("per-item fx RULE fills colour individual rows (not selected, not HC)", () => {
+    const { visual, target } = makeVisual();
+    const dv = oneLevelFixture();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv.categorical.categories[0] as any).objects = [
+      undefined,
+      { items: { backColor: { solid: { color: "#ffcc00" } }, fontColor: { solid: { color: "#112233" } } } }
+    ];
+    visual.update(makeUpdateOptions(dv));
+    const items = target.querySelectorAll<HTMLElement>(".es-item");
+    expect(items[1].style.backgroundColor).not.toBe("");
+    expect(items[0].style.backgroundColor).toBe("");
+    click(items[1]);
+    // Selected: theme selection wins over the rule fill.
+    const selected = target.querySelector<HTMLElement>(".es-item.es-on");
+    expect(selected?.style.backgroundColor).toBe("");
+  });
+
+  test("typography and margin settings flow into CSS variables", () => {
+    const { visual, target } = makeVisual();
+    visual.update(
+      makeUpdateOptions(
+        oneLevelFixture(undefined, {
+          items: { fontFamily: "Georgia", fontSize: 14, bold: true, italic: true, underline: true },
+          slicerStyle: { innerPadding: 12, itemSpacing: 6 },
+          chips: { bold: true }
+        })
+      )
+    );
+    const st = target.style;
+    expect(st.getPropertyValue("--es-item-font-family")).toBe("Georgia");
+    expect(st.getPropertyValue("--es-item-font-size")).toBe("14px");
+    expect(st.getPropertyValue("--es-item-weight")).toBe("700");
+    expect(st.getPropertyValue("--es-item-style")).toBe("italic");
+    expect(st.getPropertyValue("--es-item-deco")).toBe("underline");
+    expect(st.getPropertyValue("--es-inner-pad")).toBe("12px");
+    expect(st.getPropertyValue("--es-item-gap")).toBe("6px");
+    expect(st.getPropertyValue("--es-chip-weight")).toBe("700");
+  });
+
+  test("expand-all / collapse-all header buttons (hierarchy only)", () => {
+    const { visual, target } = makeVisual();
+    visual.update(makeUpdateOptions(twoLevelFixture()));
+    expect(target.querySelector('[data-action="expandTree"]')).not.toBeNull();
+    click(target.querySelector('[data-action="expandTree"]'));
+    expect(target.querySelectorAll(".es-item")).toHaveLength(11); // 3 + 8
+    click(target.querySelector('[data-action="collapseTree"]'));
+    expect(target.querySelectorAll(".es-item")).toHaveLength(3);
+    // Flat data → no tree buttons.
+    const flat = makeVisual();
+    flat.visual.update(makeUpdateOptions(oneLevelFixture()));
+    expect(flat.target.querySelector('[data-action="expandTree"]')).toBeNull();
+  });
+
+  test("accordion mode: expanding a branch closes its siblings", () => {
+    const { visual, target } = makeVisual();
+    const dv = twoLevelFixture();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv.metadata as any).objects = { hierarchy: { singleExpand: true } };
+    visual.update(makeUpdateOptions(dv));
+    const expanderOf = (label: string) => {
+      const item = Array.from(target.querySelectorAll(".es-item")).find((e) => e.textContent?.includes(label));
+      return item?.querySelector("[data-exp-key]") ?? null;
+    };
+    click(expanderOf("France"));
+    expect(target.querySelectorAll(".es-item")).toHaveLength(6); // 3 + France's 3
+    click(expanderOf("Germany"));
+    // France closed automatically: 3 roots + Germany's 2.
+    expect(target.querySelectorAll(".es-item")).toHaveLength(5);
+  });
+});
+
 describe("a11y contract", () => {
   test("every item is keyboard-reachable with a role and aria-checked", () => {
     const { visual, target } = makeVisual();

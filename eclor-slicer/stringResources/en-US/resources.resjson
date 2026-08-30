@@ -93,5 +93,15 @@
   "Visual_PosLeft": "Left",
   "Visual_PosRight": "Right",
   "Visual_PosCenter": "Center",
-  "Visual_WrapLabels": "Wrap long labels"
+  "Visual_WrapLabels": "Wrap long labels",
+  "Visual_Font": "Text",
+  "Visual_FontFamily": "Font family",
+  "Visual_FontSize": "Font size",
+  "Visual_Italic": "Italic",
+  "Visual_Underline": "Underline",
+  "Visual_InnerPadding": "Inner padding (px)",
+  "Visual_ItemSpacing": "Item spacing (px)",
+  "Visual_SingleExpand": "Accordion (one branch open per level)",
+  "Visual_ExpandAllBtn": "Expand all",
+  "Visual_CollapseAllBtn": "Collapse all"
 }

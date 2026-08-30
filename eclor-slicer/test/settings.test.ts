@@ -54,7 +54,24 @@ describe("capabilities ↔ settings sync", () => {
     for (const card of model.cards) {
       const capObject = capabilities.objects[card.name];
       expect(capObject).toBeTruthy();
-      const sliceNames = (card.slices ?? []).map((s) => (s as { name: string }).name);
+      // Composite slices (FontControl) persist through their SUB-slices'
+      // property names, not their own name — expand them.
+      const sliceNames = (card.slices ?? []).flatMap((s) => {
+        const fc = s as { name: string; fontFamily?: { name: string }; fontSize?: { name: string } };
+        if (fc.fontFamily && fc.fontSize) {
+          const sub = s as unknown as {
+            fontFamily: { name: string };
+            fontSize: { name: string };
+            bold?: { name: string };
+            italic?: { name: string };
+            underline?: { name: string };
+          };
+          return [sub.fontFamily, sub.fontSize, sub.bold, sub.italic, sub.underline]
+            .filter((x): x is { name: string } => !!x)
+            .map((x) => x.name);
+        }
+        return [fc.name];
+      });
       for (const sliceName of sliceNames) {
         expect(Object.keys(capObject.properties)).toContain(sliceName);
       }

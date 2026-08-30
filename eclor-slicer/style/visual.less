@@ -40,6 +40,7 @@
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  padding: var(--es-inner-pad, 0);
   font-family: Arial, "Segoe UI", wf_segoe-ui_normal, helvetica, sans-serif;
   font-size: var(--es-font-size);
   color: var(--es-fg);
@@ -91,10 +92,6 @@
   color: var(--es-header-fg);
   background: var(--es-header-bg);
   border-bottom: 1px solid var(--es-border);
-
-  &.es-bold .es-title {
-    font-weight: 700;
-  }
 }
 
 .es-title {
@@ -102,6 +99,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  font-family: var(--es-header-font-family, inherit);
+  font-size: var(--es-header-font-size, inherit);
+  font-weight: var(--es-header-weight, 700);
+  font-style: var(--es-header-style, normal);
+  text-decoration: var(--es-header-deco, none);
 }
 
 .es-actions {
@@ -139,6 +141,49 @@
   &:focus-visible {
     outline: 2px solid var(--es-focus);
     outline-offset: 1px;
+  }
+}
+
+.es-btn-tree {
+  padding: 2px 5px;
+}
+
+// Double chevron pointing down (expand all) / up (collapse all).
+.es-tree-glyph {
+  display: block;
+  width: 10px;
+  height: 11px;
+  position: relative;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+  }
+
+  &.es-tree-down::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+
+  &.es-tree-down::after {
+    top: 4px;
+    transform: rotate(45deg);
+  }
+
+  &.es-tree-up::before {
+    top: 3px;
+    transform: rotate(-135deg);
+  }
+
+  &.es-tree-up::after {
+    top: 7px;
+    transform: rotate(-135deg);
   }
 }
 
@@ -244,6 +289,7 @@
   border-radius: 999px;
   background: var(--es-chip-bg);
   color: var(--es-chip-fg);
+  font-weight: var(--es-chip-weight, 400);
   line-height: 1.6;
   transition: filter 0.08s ease;
 
@@ -385,7 +431,12 @@
   align-items: center;
   gap: 6px;
   padding: var(--es-pad-y) 8px var(--es-pad-y) 4px;
-  margin: 0 4px;
+  margin: 0 4px var(--es-item-gap, 0);
+  font-family: var(--es-item-font-family, inherit);
+  font-size: var(--es-item-font-size, inherit);
+  font-weight: var(--es-item-weight, 400);
+  font-style: var(--es-item-style, normal);
+  text-decoration: var(--es-item-deco, none);
   border-radius: var(--es-radius);
   background: var(--es-item-bg);
   overflow: hidden;
@@ -525,15 +576,18 @@
   position: relative;
   transition: background-color 0.1s ease, border-color 0.1s ease;
 
+  // top:50% + translateY keeps the knob dead-centred whatever the pill's
+  // border/box rounding does (reported: knob sat high).
   &::after {
     content: "";
     position: absolute;
     left: 1px;
-    top: 1px;
+    top: 50%;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--es-muted);
+    transform: translateY(-50%);
     transition: transform 0.1s ease, background-color 0.1s ease;
   }
 }
@@ -543,13 +597,13 @@
   background: var(--es-selected-bg);
 
   &::after {
-    transform: translateX(11px);
+    transform: translateY(-50%) translateX(11px);
     background: var(--es-selected-fg);
   }
 }
 
 .es-item.es-partial .es-toggle::after {
-  transform: translateX(5px);
+  transform: translateY(-50%) translateX(5px);
   background: var(--es-fg);
 }
 
@@ -707,7 +761,7 @@
 .es-chiclet-grid {
   display: grid;
   grid-template-columns: repeat(var(--es-chiclet-cols, 3), minmax(0, 1fr));
-  gap: 5px;
+  gap: calc(5px + var(--es-item-gap, 0px));
   padding: 6px 8px;
   align-content: start;
 }
@@ -720,6 +774,11 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
+  font-family: var(--es-item-font-family, inherit);
+  font-size: var(--es-item-font-size, inherit);
+  font-weight: var(--es-item-weight, 400);
+  font-style: var(--es-item-style, normal);
+  text-decoration: var(--es-item-deco, none);
   padding: calc(var(--es-pad-y) + 2px) 6px;
   border: 1px solid var(--es-chiclet-border);
   border-radius: var(--es-radius);

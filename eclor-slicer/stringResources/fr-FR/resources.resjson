@@ -93,5 +93,15 @@
   "Visual_PosLeft": "Gauche",
   "Visual_PosRight": "Droite",
   "Visual_PosCenter": "Centre",
-  "Visual_WrapLabels": "Retour à la ligne des libellés"
+  "Visual_WrapLabels": "Retour à la ligne des libellés",
+  "Visual_Font": "Texte",
+  "Visual_FontFamily": "Police",
+  "Visual_FontSize": "Taille de police",
+  "Visual_Italic": "Italique",
+  "Visual_Underline": "Souligné",
+  "Visual_InnerPadding": "Marge intérieure (px)",
+  "Visual_ItemSpacing": "Espacement des éléments (px)",
+  "Visual_SingleExpand": "Accordéon (une branche ouverte par niveau)",
+  "Visual_ExpandAllBtn": "Tout développer",
+  "Visual_CollapseAllBtn": "Tout réduire"
 }

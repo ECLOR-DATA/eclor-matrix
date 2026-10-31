@@ -3,31 +3,31 @@
   "project": {
     "name": "eclorMatrix",
     "guid": "eclorMatrixECLOR2026",
-    "version": "1.11.1.0",
-    "commit": "762d9e0",
+    "version": "1.11.6.0",
+    "commit": "9d068af",
     "branch": "main"
   },
   "run": {
-    "iteration": 1,
-    "mode": "full",
-    "startedAt": "2026-10-31T10:40:00+01:00",
+    "iteration": 2,
+    "mode": "incremental",
+    "startedAt": "2026-10-31T12:15:00+01:00",
     "lanesRun": [
       "S",
       "D"
     ],
     "environment": {
-      "pbiDesktop": "E:\\bin\\PBIDesktop.exe (Oct 2026 build, update available) — opened only after the Microsoft sign-in prompt was dismissed (not signed in)",
+      "pbiDesktop": "E:\binPBIDesktop.exe — no sign-in prompt this run (opened from Recent)",
       "browsers": [
         "msedge",
         "chrome"
       ],
-      "testReport": "audit/test-report/test-report.pbip (rebuilt by audit/tools/build-test-report.mjs: demo base + IBCS measures PY/Plan + hostile scenario tables, 13 pages, private visual 1.11.1.0 embedded)",
+      "testReport": "audit/test-report/test-report.pbip rebuilt with 1.11.6.0 (same 13 pages)",
       "docDrift": "none — submission-testing page fetched 2026-10-31 matches references/checklist.md (min/max conditions case already covered by CAP-07)"
     },
     "coverage": {
-      "pass": 46,
-      "fail": 6,
-      "warn": 5,
+      "pass": 47,
+      "fail": 4,
+      "warn": 6,
       "blocked": 3,
       "manual": 24,
       "na": 3
@@ -43,13 +43,14 @@
       "lane": "D",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "fixed",
       "expected": "Cell values stay readable and faithful (native matrix shows full values; at minimum a non-zero value never renders as 0 and a negative never loses its sign)",
       "actual": "Nulls page: Alpha 320,000 → '0M', Echo 275,000 → '0M', Variance -18,000 → '0M'. Huge 10k page: every row '0M' (total 50M). Nominal 3rd instance: 355,000 → '0M'. The scale is chosen from computeMaxAbs over ALL rows (grand total included) and applied to every measure column with 0 decimals",
       "evidence": [
         "audit/screens/D-p08-nulls.png",
         "audit/screens/D-p12-huge10k.png",
-        "audit/screens/D-p11-multi.png"
+        "audit/screens/D-p11-multi.png",
+        "audit/screens/it2-D-p08-nulls.png (it2: PASS)"
       ],
       "repro": [
         "Open audit/test-report, page 'Nulls' (Values card left at defaults: display units Auto, decimals 0)",
@@ -74,14 +75,15 @@
       "lane": "D",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "fixed",
       "expected": "Every measure column carries its measure name (as on the IBCS pages, where the flat header path is used)",
       "actual": "Header empty over the first value column on Interactions ('Actual'), Formats ('Total Actual'), Nulls / Negatives / Hostile labels / Huge 10k ('Sum of Actual'), One row and Two rows. Second and later measures are labelled. The IBCS template pages are unaffected because templates force the flat header",
       "evidence": [
         "audit/screens/D-p06-interactions.png",
         "audit/screens/D-p07-formats.png",
         "audit/screens/D-p08-nulls.png",
-        "audit/screens/D-p11-multi.png"
+        "audit/screens/D-p11-multi.png",
+        "audit/screens/it2-D-p11-multi.png (it2: PASS)"
       ],
       "repro": [
         "Open page 'Formats' (3 measures, no column field)",
@@ -105,13 +107,14 @@
       "lane": "D",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "fixed",
       "expected": "Visual chrome never overlaps data (Microsoft: elements positioned in accord with the rest of the visual)",
       "actual": "The absolutely-positioned toolbar (top:4px; right:4px) covers the last column header on every page ('ΔPL %' clipped on the four IBCS pages) and the first data cell when the grid is narrow: One row shows Total '5' instead of 500K, Two rows '7' instead of 750K, Tiny '6' instead of 6M",
       "evidence": [
         "audit/screens/D-p11-multi.png",
         "audit/screens/D-p01-ibcs-t01.png",
-        "audit/screens/D-p13-tiny.png"
+        "audit/screens/D-p13-tiny.png",
+        "audit/screens/it2-D-p11-multi.png (it2: PASS)"
       ],
       "repro": [
         "Open page 'Multi-instance'",
@@ -135,13 +138,14 @@
       "lane": "D",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "fixed",
       "expected": "Out-of-the-box layout matches the native matrix (row subtotals at the bottom; with 'Top', the subtotal values sit on the group row itself)",
       "actual": "Every page shows 'Total' as the first row. On 'Nominal' (Segment > Country) each segment shows a blank group row, then a 'Total' row, then its countries — two rows per group for one piece of information. On IBCS T04 the result bar is drawn before the cascade it closes",
       "evidence": [
         "audit/screens/D-p05-nominal.png",
         "audit/screens/D-p04-ibcs-t04.png",
-        "audit/screens/D-p01-ibcs-t01.png"
+        "audit/screens/D-p01-ibcs-t01.png",
+        "audit/screens/it2-D-p05-nominal.png (it2: PASS)"
       ],
       "repro": [
         "Open page 'Nominal'",
@@ -166,12 +170,13 @@
       "lane": "D",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "fixed",
       "expected": "Bar length is proportional to the value on every row, or totals use their own scale",
       "actual": "T02: Total ΔPY -9,742,264 is drawn exactly as long as France -3,513,983 (the domain is computed over detail rows only, totals are clamped to 100 %)",
       "evidence": [
         "audit/screens/D-p02-ibcs-t02.png",
-        "audit/screens/ibcs/T02-barres-et-pins.png"
+        "audit/screens/ibcs/T02-barres-et-pins.png",
+        "audit/screens/it2-D-p02-ibcs-t02.png (it2: PASS)"
       ],
       "repro": [
         "Open page 'IBCS T02'",
@@ -194,7 +199,7 @@
       "lane": "S",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "persisting",
       "expected": "A matrix-specific 20×20 RGBA icon (CLAUDE.md gotcha: replace before Stage B)",
       "actual": "assets/icon.png is 20×20 RGBA but byte-identical to eclor-waterfall/assets/icon.png (md5 99a8a60f…)",
       "evidence": [
@@ -219,7 +224,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "persisting",
       "expected": "Microsoft case 'Check min/max dataViewMapping conditions': each bucket's cardinality intent encoded",
       "actual": "dataViewMappings[0].conditions is absent — every role (including comments) accepts unlimited fields",
       "evidence": [
@@ -241,7 +246,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "persisting",
       "expected": "Every interactive feature reachable from the keyboard",
       "actual": "Column grips are aria-hidden spans without tabindex; no keyboard path or Format-pane equivalent for individual widths",
       "evidence": [
@@ -265,7 +270,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "FAIL",
-      "status": "new",
+      "status": "persisting",
       "expected": "Each group's cascade connects to its own subtotal bar",
       "actual": "waterfallStarts keeps one running cursor across groups while subtotal bars start at 0, so group N's detail bars start where group N-1 ended (single-level schemes such as the T04 page are correct)",
       "evidence": [
@@ -290,7 +295,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "persisting",
       "expected": "Aeration columns keep the hierarchical header",
       "actual": "buildRenderColumns returns a flat header as soon as gap columns are on, even without calc columns",
       "evidence": [
@@ -313,7 +318,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "persisting",
       "expected": "Per project policy — eclor-waterfall shipped certified with English slice labels BY DESIGN, but eclor-matrix CLAUDE.md does not document that posture",
       "actual": "12 displayNameKey for 105 cards/slices; a French Desktop shows French card titles over English options",
       "evidence": [
@@ -339,7 +344,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "persisting",
       "expected": "Checklist expects the four cert flags; Microsoft only requires that selections in other visuals filter this one",
       "actual": "Flag absent; the host therefore filters the matrix on cross-selection (GEN-04 verified working — same behaviour as the native matrix)",
       "evidence": [
@@ -363,7 +368,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "persisting",
       "expected": "User-facing runtime strings go through the localization manager (36 other chrome strings do)",
       "actual": "'Drag to resize · double-click to reset' is a literal",
       "evidence": [
@@ -385,7 +390,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "persisting",
       "expected": "Playbook §4.3.2 role-iteration test: the same measure in Values + Tooltips (+ Comments) renders once in the grid and once in the tooltip",
       "actual": "lifecycle.test.ts covers tooltip-only measures, not a measure carrying values AND tooltips/comments roles",
       "evidence": [
@@ -408,7 +413,7 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "persisting",
       "expected": "certification matches the build that will be submitted",
       "actual": "origin/certification = 81796d4 (1.6.0.0); main = 762d9e0 (1.11.1.0). Not blocking before submission",
       "evidence": [
@@ -422,6 +427,31 @@
       ],
       "fixHint": "Fast-forward certification once the audit loop reaches READY",
       "firstSeenIteration": 1
+    },
+    {
+      "id": "GEN-26-b",
+      "testId": "GEN-26",
+      "title": "K-scaled values above 999K render without a group separator",
+      "lane": "D",
+      "severity": "minor",
+      "verdict": "WARN",
+      "status": "new",
+      "expected": "Scaled values stay easy to read (\"5,630K\" or \"5.6M\")",
+      "actual": "Columns resolved to thousands show \"5630K\", \"1555K\", \"1020K\"; unscaled General-format numbers show \"7352\" (the latter matches the host formatter for a General column)",
+      "evidence": [
+        "audit/screens/it2-D-p11-multi.png",
+        "audit/screens/it2-D-p08-nulls.png",
+        "audit/screens/it2-D-p12-huge10k.png"
+      ],
+      "repro": [
+        "Page Multi-instance, Nominal (3rd instance): Total row"
+      ],
+      "suspectedArea": [
+        "src/visual.ts:cellUnits",
+        "src/format.ts:formatActualLabel (single-pattern path, no model format)"
+      ],
+      "fixHint": "When auto resolves to a unit for a measure without a model format, give the formatter a grouped pattern (#,0) or allow one decimal at the next unit",
+      "firstSeenIteration": 2
     }
   ],
   "manualQueue": [
@@ -633,5 +663,11 @@
       "blocking": false
     }
   ],
-  "fixedSinceLastRun": []
+  "fixedSinceLastRun": [
+    "GEN-25-a",
+    "GEN-26-a",
+    "GEN-15-a",
+    "GEN-25-c",
+    "GEN-25-b"
+  ]
 }

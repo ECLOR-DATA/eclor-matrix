@@ -466,7 +466,8 @@ class SubTotalsCardSettings extends FormattingSettingsCard {
       { value: "Top", displayName: "Top" },
       { value: "Bottom", displayName: "Bottom" }
     ],
-    value: { value: "Top", displayName: "Top" }
+    // Native matrix parity — must match the capabilities defaultValue.
+    value: { value: "Bottom", displayName: "Bottom" }
   });
 
   name: string = "subTotals";

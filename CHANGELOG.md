@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.6.0] — 2026-10-31
+
+### Fixed
+
+- **Row subtotals defaulted to "Top"** (audit GEN-25-b): every report opened with the grand total as its first row, hierarchies showed a blank group row followed by a separate "Total" row, and the T04 result bar came before the cascade it closes. The default is now "Bottom" (native matrix parity) in `capabilities.json` and the Format pane together; the six subtotal switch mappings are untouched. Reports that explicitly saved "Top" keep it — that layout still renders the subtotal as its own row under the group header.
+
 ## [1.11.5.0] — 2026-10-31
 
 ### Fixed

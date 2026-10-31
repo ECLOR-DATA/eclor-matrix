@@ -1179,7 +1179,7 @@
           "objectName": "subTotals",
           "propertyName": "rowSubtotalsType"
         },
-        "defaultValue": "Top"
+        "defaultValue": "Bottom"
       }
     }
   },

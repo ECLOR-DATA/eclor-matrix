@@ -6,6 +6,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { buildSimpleMatrixDV, makeUpdateOptions, makeVisual } from "./_harness";
+import { VisualFormattingSettingsModel } from "../src/settings";
 
 /** Column tree: 2 year groups × (Actual, Note[comments]) — 4 leaves. */
 function buildTreeDVWithComments() {
@@ -261,6 +262,14 @@ describe("capabilities.json shape guard (load-bearing blocks)", () => {
       expect(st[k].propertyIdentifier.objectName).toBe("subTotals");
       expect(cap.objects.subTotals.properties[st[k].propertyIdentifier.propertyName]).toBeDefined();
     }
+  });
+
+  // Audit GEN-25-b: "Top" put the grand total first and a blank group row
+  // above a separate Total row — the native matrix defaults to Bottom.
+  test("row subtotals default to Bottom in capabilities AND the Format pane", () => {
+    expect(cap.subtotals.matrix.rowSubtotalsType.defaultValue).toBe("Bottom");
+    const model = new VisualFormattingSettingsModel();
+    expect(model.subTotals.rowSubtotalsType.value).toMatchObject({ value: "Bottom" });
   });
 
   test("no privileges (certification) and comments role declared as Measure", () => {

@@ -11,14 +11,27 @@
     "iteration": 1,
     "mode": "full",
     "startedAt": "2026-10-31T10:40:00+01:00",
-    "lanesRun": ["S", "D"],
+    "lanesRun": [
+      "S",
+      "D"
+    ],
     "environment": {
       "pbiDesktop": "E:\\bin\\PBIDesktop.exe (Oct 2026 build, update available) — opened only after the Microsoft sign-in prompt was dismissed (not signed in)",
-      "browsers": ["msedge", "chrome"],
+      "browsers": [
+        "msedge",
+        "chrome"
+      ],
       "testReport": "audit/test-report/test-report.pbip (rebuilt by audit/tools/build-test-report.mjs: demo base + IBCS measures PY/Plan + hostile scenario tables, 13 pages, private visual 1.11.1.0 embedded)",
       "docDrift": "none — submission-testing page fetched 2026-10-31 matches references/checklist.md (min/max conditions case already covered by CAP-07)"
     },
-    "coverage": { "pass": 46, "fail": 6, "warn": 5, "blocked": 3, "manual": 24, "na": 3 }
+    "coverage": {
+      "pass": 46,
+      "fail": 6,
+      "warn": 5,
+      "blocked": 3,
+      "manual": 24,
+      "na": 3
+    }
   },
   "verdict": "NOT_READY",
   "blockers": 0,
@@ -42,9 +55,17 @@
         "Open audit/test-report, page 'Nulls' (Values card left at defaults: display units Auto, decimals 0)",
         "Read the Sum of Actual / Sum of Variance cells"
       ],
-      "suspectedArea": ["src/visual.ts:fillTbody (dataMaxAbs = computeMaxAbs(parsed.rows))", "src/visual.ts:buildLeafCell → formatActualLabel", "src/format.ts:getDisplayScale"],
+      "suspectedArea": [
+        "src/visual.ts:fillTbody (dataMaxAbs = computeMaxAbs(parsed.rows))",
+        "src/visual.ts:buildLeafCell → formatActualLabel",
+        "src/format.ts:getDisplayScale"
+      ],
       "fixHint": "In a grid, 'auto' units must not rescale cells to a magnitude where they round to 0 — default to no scaling (native matrix parity) or derive the scale per column without the totals and keep enough decimals",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "e8f3264",
+      "fixedInVersion": "1.11.3.0",
+      "fixNote": "Auto units resolve per column from detail rows (pickAutoUnits: largest unit no non-zero value falls below) for measures without a model format; format.ts untouched. Residual: calc columns still use the grid-wide path; unformatted full numbers render without grouping (\"2500000\") — host formatter behaviour."
     },
     {
       "id": "GEN-25-a",
@@ -62,10 +83,20 @@
         "audit/screens/D-p08-nulls.png",
         "audit/screens/D-p11-multi.png"
       ],
-      "repro": ["Open page 'Formats' (3 measures, no column field)", "Look at the header above the first value column"],
-      "suspectedArea": ["src/matrixModel.ts:nodeLabel", "src/matrixModel.ts:pruneColumnTree (same levelSourceIndex !== undefined test)"],
+      "repro": [
+        "Open page 'Formats' (3 measures, no column field)",
+        "Look at the header above the first value column"
+      ],
+      "suspectedArea": [
+        "src/matrixModel.ts:nodeLabel",
+        "src/matrixModel.ts:pruneColumnTree (same levelSourceIndex !== undefined test)"
+      ],
       "fixHint": "The host omits levelSourceIndex when it is 0 — treat a measure-level leaf with undefined levelSourceIndex as measure 0 (and add a harness case where the first measure node has no levelSourceIndex)",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "befe921",
+      "fixedInVersion": "1.11.2.0",
+      "fixNote": "Root cause confirmed: host omits levelSourceIndex 0; value-less non-subtotal node = measure 0 in nodeLabel/flattenColumns/pruneColumnTree. Also fixes measure 0 being split from its column group path."
     },
     {
       "id": "GEN-15-a",
@@ -82,10 +113,20 @@
         "audit/screens/D-p01-ibcs-t01.png",
         "audit/screens/D-p13-tiny.png"
       ],
-      "repro": ["Open page 'Multi-instance'", "Read the Total row of 'One row' and 'Two rows'"],
-      "suspectedArea": ["style/visual.less:.em-toolbar", "src/visual.ts:renderChrome"],
+      "repro": [
+        "Open page 'Multi-instance'",
+        "Read the Total row of 'One row' and 'Two rows'"
+      ],
+      "suspectedArea": [
+        "style/visual.less:.em-toolbar",
+        "src/visual.ts:renderChrome"
+      ],
       "fixHint": "Reserve space for the toolbar (or reveal it only on hover/focus and outside the cell area) so it never sits on top of header or value text",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "c0b6a95",
+      "fixedInVersion": "1.11.4.0",
+      "fixNote": "Toolbar docked in the empty sticky header corner (floating fallback only without a header row). jest checks DOM placement only — auditor must re-test the overlap in lane D."
     },
     {
       "id": "GEN-25-b",
@@ -97,11 +138,26 @@
       "status": "new",
       "expected": "Out-of-the-box layout matches the native matrix (row subtotals at the bottom; with 'Top', the subtotal values sit on the group row itself)",
       "actual": "Every page shows 'Total' as the first row. On 'Nominal' (Segment > Country) each segment shows a blank group row, then a 'Total' row, then its countries — two rows per group for one piece of information. On IBCS T04 the result bar is drawn before the cascade it closes",
-      "evidence": ["audit/screens/D-p05-nominal.png", "audit/screens/D-p04-ibcs-t04.png", "audit/screens/D-p01-ibcs-t01.png"],
-      "repro": ["Open page 'Nominal'", "Observe the Channel Partners group: blank row, 'Total' row, then countries"],
-      "suspectedArea": ["capabilities.json:subtotals.matrix.rowSubtotalsType.defaultValue", "src/settings.ts:SubTotalsCardSettings.rowSubtotalsType", "src/matrixModel.ts:flattenRows"],
+      "evidence": [
+        "audit/screens/D-p05-nominal.png",
+        "audit/screens/D-p04-ibcs-t04.png",
+        "audit/screens/D-p01-ibcs-t01.png"
+      ],
+      "repro": [
+        "Open page 'Nominal'",
+        "Observe the Channel Partners group: blank row, 'Total' row, then countries"
+      ],
+      "suspectedArea": [
+        "capabilities.json:subtotals.matrix.rowSubtotalsType.defaultValue",
+        "src/settings.ts:SubTotalsCardSettings.rowSubtotalsType",
+        "src/matrixModel.ts:flattenRows"
+      ],
       "fixHint": "Default rowSubtotalsType to 'Bottom' in capabilities AND settings together (keep all six switch mappings — CLAUDE.md), and for 'Top' fold the subtotal values onto the group header row",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "be98376",
+      "fixedInVersion": "1.11.6.0",
+      "fixNote": "Default Top -> Bottom in capabilities + settings (six mappings untouched). NOT done: folding Top subtotals onto the group row — an explicit Top still shows blank group row + Total row."
     },
     {
       "id": "GEN-25-c",
@@ -113,11 +169,23 @@
       "status": "new",
       "expected": "Bar length is proportional to the value on every row, or totals use their own scale",
       "actual": "T02: Total ΔPY -9,742,264 is drawn exactly as long as France -3,513,983 (the domain is computed over detail rows only, totals are clamped to 100 %)",
-      "evidence": ["audit/screens/D-p02-ibcs-t02.png", "audit/screens/ibcs/T02-barres-et-pins.png"],
-      "repro": ["Open page 'IBCS T02'", "Compare the Total ΔPY bar with the France ΔPY bar"],
-      "suspectedArea": ["src/visual.ts:computeCalcDomains"],
+      "evidence": [
+        "audit/screens/D-p02-ibcs-t02.png",
+        "audit/screens/ibcs/T02-barres-et-pins.png"
+      ],
+      "repro": [
+        "Open page 'IBCS T02'",
+        "Compare the Total ΔPY bar with the France ΔPY bar"
+      ],
+      "suspectedArea": [
+        "src/visual.ts:computeCalcDomains"
+      ],
       "fixHint": "Include subtotal rows in the bar/pin domain, or give totals a separate scale",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "e88b810",
+      "fixedInVersion": "1.11.5.0",
+      "fixNote": "Subtotal rows now enter the bar/pin |max| domain (shared scale, not a separate total scale). CONTEXT §15 updated."
     },
     {
       "id": "MAN-05-a",
@@ -129,11 +197,20 @@
       "status": "new",
       "expected": "A matrix-specific 20×20 RGBA icon (CLAUDE.md gotcha: replace before Stage B)",
       "actual": "assets/icon.png is 20×20 RGBA but byte-identical to eclor-waterfall/assets/icon.png (md5 99a8a60f…)",
-      "evidence": ["audit/evidence/static-it1.txt", "md5sum assets/icon.png ../eclor-waterfall/assets/icon.png"],
-      "repro": ["md5sum assets/icon.png ../eclor-waterfall/assets/icon.png"],
-      "suspectedArea": ["assets/icon.png"],
+      "evidence": [
+        "audit/evidence/static-it1.txt",
+        "md5sum assets/icon.png ../eclor-waterfall/assets/icon.png"
+      ],
+      "repro": [
+        "md5sum assets/icon.png ../eclor-waterfall/assets/icon.png"
+      ],
+      "suspectedArea": [
+        "assets/icon.png"
+      ],
       "fixHint": "Design is the user's call — needs a matrix glyph in the ECLOR style; the fixer should not invent branding",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "needs-decision",
+      "fixNote": "Branding asset: the user must supply or approve a matrix glyph (20x20 RGBA). Recommendation: a 3x3 grid glyph in ECLOR ink #091612 with the emerald #1EF5B1 header band."
     },
     {
       "id": "CAP-07-a",
@@ -145,9 +222,15 @@
       "status": "new",
       "expected": "Microsoft case 'Check min/max dataViewMapping conditions': each bucket's cardinality intent encoded",
       "actual": "dataViewMappings[0].conditions is absent — every role (including comments) accepts unlimited fields",
-      "evidence": ["audit/evidence/static-it1.txt"],
-      "repro": ["node -e \"console.log(require('./capabilities.json').dataViewMappings[0].conditions)\""],
-      "suspectedArea": ["capabilities.json:dataViewMappings[0]"],
+      "evidence": [
+        "audit/evidence/static-it1.txt"
+      ],
+      "repro": [
+        "node -e \"console.log(require('./capabilities.json').dataViewMappings[0].conditions)\""
+      ],
+      "suspectedArea": [
+        "capabilities.json:dataViewMappings[0]"
+      ],
       "fixHint": "Declare explicit conditions matching the intended cardinality (single mapping only — never a second mapping, CLAUDE.md)",
       "firstSeenIteration": 1
     },
@@ -161,9 +244,17 @@
       "status": "new",
       "expected": "Every interactive feature reachable from the keyboard",
       "actual": "Column grips are aria-hidden spans without tabindex; no keyboard path or Format-pane equivalent for individual widths",
-      "evidence": ["src/visual.ts:makeGrip (aria-hidden, no tabindex)"],
-      "repro": ["Columns widths → Custom", "Try to resize a column without a mouse"],
-      "suspectedArea": ["src/visual.ts:makeGrip", "src/visual.ts:handleGripDown"],
+      "evidence": [
+        "src/visual.ts:makeGrip (aria-hidden, no tabindex)"
+      ],
+      "repro": [
+        "Columns widths → Custom",
+        "Try to resize a column without a mouse"
+      ],
+      "suspectedArea": [
+        "src/visual.ts:makeGrip",
+        "src/visual.ts:handleGripDown"
+      ],
       "fixHint": "Make the grip focusable with arrow-key resizing, or expose per-column widths elsewhere",
       "firstSeenIteration": 1
     },
@@ -177,9 +268,18 @@
       "status": "new",
       "expected": "Each group's cascade connects to its own subtotal bar",
       "actual": "waterfallStarts keeps one running cursor across groups while subtotal bars start at 0, so group N's detail bars start where group N-1 ended (single-level schemes such as the T04 page are correct)",
-      "evidence": ["src/ibcs.ts:waterfallStarts", "code review 2026-10-31 (PR 1)"],
-      "repro": ["T04 template, Rows = Segment > Country", "Compare the second segment's last detail bar end with its subtotal bar end"],
-      "suspectedArea": ["src/ibcs.ts:waterfallStarts", "src/visual.ts:computeCalcDomains"],
+      "evidence": [
+        "src/ibcs.ts:waterfallStarts",
+        "code review 2026-10-31 (PR 1)"
+      ],
+      "repro": [
+        "T04 template, Rows = Segment > Country",
+        "Compare the second segment's last detail bar end with its subtotal bar end"
+      ],
+      "suspectedArea": [
+        "src/ibcs.ts:waterfallStarts",
+        "src/visual.ts:computeCalcDomains"
+      ],
       "fixHint": "Reset or rebase the cursor at each group boundary so the cascade and subtotal agree",
       "firstSeenIteration": 1
     },
@@ -193,9 +293,16 @@
       "status": "new",
       "expected": "Aeration columns keep the hierarchical header",
       "actual": "buildRenderColumns returns a flat header as soon as gap columns are on, even without calc columns",
-      "evidence": ["src/visual.ts:buildRenderColumns (calcDefs.length === 0 && !gapsOn)"],
-      "repro": ["Columns = Year > Quarter, 2 measures", "Grid & borders → Blank column between groups ON"],
-      "suspectedArea": ["src/visual.ts:buildRenderColumns"],
+      "evidence": [
+        "src/visual.ts:buildRenderColumns (calcDefs.length === 0 && !gapsOn)"
+      ],
+      "repro": [
+        "Columns = Year > Quarter, 2 measures",
+        "Grid & borders → Blank column between groups ON"
+      ],
+      "suspectedArea": [
+        "src/visual.ts:buildRenderColumns"
+      ],
       "fixHint": "Insert gap cells into the tree header rows instead of switching to the flat header",
       "firstSeenIteration": 1
     },
@@ -209,11 +316,21 @@
       "status": "new",
       "expected": "Per project policy — eclor-waterfall shipped certified with English slice labels BY DESIGN, but eclor-matrix CLAUDE.md does not document that posture",
       "actual": "12 displayNameKey for 105 cards/slices; a French Desktop shows French card titles over English options",
-      "evidence": ["src/settings.ts", "audit/evidence/static-it1.txt"],
-      "repro": ["grep -c displayNameKey src/settings.ts"],
-      "suspectedArea": ["src/settings.ts", "CLAUDE.md"],
+      "evidence": [
+        "src/settings.ts",
+        "audit/evidence/static-it1.txt"
+      ],
+      "repro": [
+        "grep -c displayNameKey src/settings.ts"
+      ],
+      "suspectedArea": [
+        "src/settings.ts",
+        "CLAUDE.md"
+      ],
       "fixHint": "Decision needed: adopt the waterfall posture (document it in CLAUDE.md) or add keys + fr/en strings for every slice",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "needs-decision",
+      "fixNote": "Recommendation: adopt the eclor-waterfall posture (card titles localized, options English by design) and record it in CLAUDE.md — 93 keys x 2 locales is a large surface for little reviewer value."
     },
     {
       "id": "CAP-02-a",
@@ -225,11 +342,19 @@
       "status": "new",
       "expected": "Checklist expects the four cert flags; Microsoft only requires that selections in other visuals filter this one",
       "actual": "Flag absent; the host therefore filters the matrix on cross-selection (GEN-04 verified working — same behaviour as the native matrix)",
-      "evidence": ["audit/screens/GEN-04-bar-select-government.png"],
-      "repro": ["Interactions page: click 'Government' in the bar chart"],
-      "suspectedArea": ["capabilities.json"],
+      "evidence": [
+        "audit/screens/GEN-04-bar-select-government.png"
+      ],
+      "repro": [
+        "Interactions page: click 'Government' in the bar chart"
+      ],
+      "suspectedArea": [
+        "capabilities.json"
+      ],
       "fixHint": "Decision needed: keep filter semantics (document why) or implement highlight rendering before declaring the flag",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "needs-decision",
+      "fixNote": "Recommendation: keep filter semantics (native matrix behaviour, GEN-04 verified) and document the posture in CLAUDE.md; declaring supportsHighlight would require rendering highlight values in every cell."
     },
     {
       "id": "I18N-03-a",
@@ -241,9 +366,15 @@
       "status": "new",
       "expected": "User-facing runtime strings go through the localization manager (36 other chrome strings do)",
       "actual": "'Drag to resize · double-click to reset' is a literal",
-      "evidence": ["src/visual.ts:makeGrip"],
-      "repro": ["French Desktop, Column widths → Custom, hover a grip"],
-      "suspectedArea": ["src/visual.ts:makeGrip"],
+      "evidence": [
+        "src/visual.ts:makeGrip"
+      ],
+      "repro": [
+        "French Desktop, Column widths → Custom, hover a grip"
+      ],
+      "suspectedArea": [
+        "src/visual.ts:makeGrip"
+      ],
       "fixHint": "Route through this.localize with en/fr resjson keys",
       "firstSeenIteration": 1
     },
@@ -257,9 +388,16 @@
       "status": "new",
       "expected": "Playbook §4.3.2 role-iteration test: the same measure in Values + Tooltips (+ Comments) renders once in the grid and once in the tooltip",
       "actual": "lifecycle.test.ts covers tooltip-only measures, not a measure carrying values AND tooltips/comments roles",
-      "evidence": ["test/lifecycle.test.ts:43"],
-      "repro": ["grep for a values+tooltips dual-role fixture in test/"],
-      "suspectedArea": ["test/lifecycle.test.ts", "src/visual.ts:parseMatrix (isAuxOnly)"],
+      "evidence": [
+        "test/lifecycle.test.ts:43"
+      ],
+      "repro": [
+        "grep for a values+tooltips dual-role fixture in test/"
+      ],
+      "suspectedArea": [
+        "test/lifecycle.test.ts",
+        "src/visual.ts:parseMatrix (isAuxOnly)"
+      ],
       "fixHint": "Add the dual-role fixture; also add one where the first measure node has no levelSourceIndex (see GEN-25-a)",
       "firstSeenIteration": 1
     },
@@ -273,35 +411,227 @@
       "status": "new",
       "expected": "certification matches the build that will be submitted",
       "actual": "origin/certification = 81796d4 (1.6.0.0); main = 762d9e0 (1.11.1.0). Not blocking before submission",
-      "evidence": ["git ls-remote --heads origin certification"],
-      "repro": ["git log --oneline -1 origin/certification"],
-      "suspectedArea": ["git branch certification"],
+      "evidence": [
+        "git ls-remote --heads origin certification"
+      ],
+      "repro": [
+        "git log --oneline -1 origin/certification"
+      ],
+      "suspectedArea": [
+        "git branch certification"
+      ],
       "fixHint": "Fast-forward certification once the audit loop reaches READY",
       "firstSeenIteration": 1
     }
   ],
   "manualQueue": [
-    { "id": "B-SETUP", "title": "Browser lane setup", "steps": ["Sign in to Power BI Desktop (the audit skipped the sign-in prompt)", "Publish audit/test-report to a test workspace", "Run: node ~/.claude/skills/pbiviz-cert-audit/scripts/browser-harness.mjs --login (from audit/)", "Put the published report URL in audit/browser.config.json"], "expected": "Lane B can run GEN-01/02/05-12/20/22 and BROW-01..03 automatically", "blocking": false },
-    { "id": "GEN-01", "title": "Stacked column (Category+Value) → Eclor Matrix → back", "steps": ["Insert a stacked column chart with Category + Actual", "Switch the visual type to Eclor Matrix, then back"], "expected": "No error either way", "blocking": false },
-    { "id": "GEN-02", "title": "Gauge (3 measures) → Eclor Matrix → back", "steps": ["Insert a gauge with Actual, PY, Plan", "Switch to Eclor Matrix, then back"], "expected": "No error", "blocking": false },
-    { "id": "GEN-05", "title": "Remove all fields in different orders", "steps": ["Page Nominal: remove Year, then Segment, then Country, then Actual", "Undo, repeat with Actual first"], "expected": "Clean empty state, no error icon", "blocking": false },
-    { "id": "GEN-06", "title": "Format pane with every bucket configuration", "steps": ["Open Format pane with: no field, rows only, values only, rows+values, +columns, +tooltips, +comments"], "expected": "Pane renders each time", "blocking": false },
-    { "id": "GEN-07", "title": "Visual/page/report filters → tooltips", "steps": ["Interactions page: add a visual filter Country=France", "Hover the France row"], "expected": "Tooltip shows the filtered value", "blocking": false },
-    { "id": "GEN-08", "title": "Slicer → tooltips", "steps": ["Tick 'Paseo' in the Product slicer", "Hover a matrix row"], "expected": "Tooltip shows the filtered value", "blocking": false },
-    { "id": "GEN-09", "title": "Cross-filter from another visual → tooltips", "steps": ["Click 'Government' in the bar chart", "Hover a matrix row"], "expected": "Tooltip shows the filtered value", "blocking": false },
-    { "id": "GEN-11", "title": "Ctrl / Alt / Shift + click", "steps": ["Ctrl+click two rows, Shift+click a third, Alt+click", "Press Esc"], "expected": "Multi-select works, Esc clears, nothing unexpected", "blocking": false },
-    { "id": "GEN-12", "title": "View modes", "steps": ["View → Actual size / Fit to page / Fit to width", "Click a row in each mode"], "expected": "The clicked row is the one selected", "blocking": false },
-    { "id": "GEN-13", "title": "Resize the visual", "steps": ["Drag the Nominal visual corner to 30 % then back to full"], "expected": "Reflows, scrollbars only when needed", "blocking": false },
-    { "id": "GEN-16", "title": "Pin to dashboard", "steps": ["Service: pin the T01 visual to a dashboard"], "expected": "Tile renders correctly", "blocking": false },
-    { "id": "GEN-20", "title": "Reading view vs edit view", "steps": ["Service: open the report in reading view, test selection, expand/collapse, ✎ editor"], "expected": "All functions work in both", "blocking": false },
-    { "id": "GEN-22", "title": "Property pane torture", "steps": ["Toggle every card on/off", "Type garbage formulas in calculated columns ('[[', '1/0', 9000 chars)", "Set every number box to min and max"], "expected": "No crash; invalid formulas skipped", "blocking": false },
-    { "id": "GEN-23", "title": "Save and reopen", "steps": ["Set a template, custom rows, column widths, row frames", "Save, close, reopen"], "expected": "Everything persisted", "blocking": false },
-    { "id": "GEN-24", "title": "Switch pages and return — settings", "steps": ["Change formats on page Nominal", "Go to another page and back"], "expected": "Settings unchanged", "blocking": false },
-    { "id": "GEN-28", "title": "Tooltip numeric auto-format on/off", "steps": ["Toggle the tooltip auto-format option", "Hover cells"], "expected": "Values correct in both states", "blocking": false },
-    { "id": "LIF-04", "title": "Landing page", "steps": ["Insert a fresh Eclor Matrix with no field"], "expected": "Host landing page, no conflicting onboarding", "blocking": false },
-    { "id": "HC-02", "title": "Windows contrast theme", "steps": ["Windows Settings → Accessibility → Contrast themes → Night sky", "Screenshot pages T02 and Nominal"], "expected": "Legible, HC colours only, focus ring visible", "blocking": false },
-    { "id": "DESK-02", "title": "Import → save → open → publish", "steps": ["Publish the test report from Desktop", "Open it in the service"], "expected": "Identical rendering", "blocking": false },
-    { "id": "DESK-03", "title": "Model format precision 0 ↔ 3 decimals", "steps": ["Change the Actual measure format to 0 then 3 decimals"], "expected": "Cells follow (note GEN-26-a: auto units currently override this)", "blocking": false }
+    {
+      "id": "B-SETUP",
+      "title": "Browser lane setup",
+      "steps": [
+        "Sign in to Power BI Desktop (the audit skipped the sign-in prompt)",
+        "Publish audit/test-report to a test workspace",
+        "Run: node ~/.claude/skills/pbiviz-cert-audit/scripts/browser-harness.mjs --login (from audit/)",
+        "Put the published report URL in audit/browser.config.json"
+      ],
+      "expected": "Lane B can run GEN-01/02/05-12/20/22 and BROW-01..03 automatically",
+      "blocking": false
+    },
+    {
+      "id": "GEN-01",
+      "title": "Stacked column (Category+Value) → Eclor Matrix → back",
+      "steps": [
+        "Insert a stacked column chart with Category + Actual",
+        "Switch the visual type to Eclor Matrix, then back"
+      ],
+      "expected": "No error either way",
+      "blocking": false
+    },
+    {
+      "id": "GEN-02",
+      "title": "Gauge (3 measures) → Eclor Matrix → back",
+      "steps": [
+        "Insert a gauge with Actual, PY, Plan",
+        "Switch to Eclor Matrix, then back"
+      ],
+      "expected": "No error",
+      "blocking": false
+    },
+    {
+      "id": "GEN-05",
+      "title": "Remove all fields in different orders",
+      "steps": [
+        "Page Nominal: remove Year, then Segment, then Country, then Actual",
+        "Undo, repeat with Actual first"
+      ],
+      "expected": "Clean empty state, no error icon",
+      "blocking": false
+    },
+    {
+      "id": "GEN-06",
+      "title": "Format pane with every bucket configuration",
+      "steps": [
+        "Open Format pane with: no field, rows only, values only, rows+values, +columns, +tooltips, +comments"
+      ],
+      "expected": "Pane renders each time",
+      "blocking": false
+    },
+    {
+      "id": "GEN-07",
+      "title": "Visual/page/report filters → tooltips",
+      "steps": [
+        "Interactions page: add a visual filter Country=France",
+        "Hover the France row"
+      ],
+      "expected": "Tooltip shows the filtered value",
+      "blocking": false
+    },
+    {
+      "id": "GEN-08",
+      "title": "Slicer → tooltips",
+      "steps": [
+        "Tick 'Paseo' in the Product slicer",
+        "Hover a matrix row"
+      ],
+      "expected": "Tooltip shows the filtered value",
+      "blocking": false
+    },
+    {
+      "id": "GEN-09",
+      "title": "Cross-filter from another visual → tooltips",
+      "steps": [
+        "Click 'Government' in the bar chart",
+        "Hover a matrix row"
+      ],
+      "expected": "Tooltip shows the filtered value",
+      "blocking": false
+    },
+    {
+      "id": "GEN-11",
+      "title": "Ctrl / Alt / Shift + click",
+      "steps": [
+        "Ctrl+click two rows, Shift+click a third, Alt+click",
+        "Press Esc"
+      ],
+      "expected": "Multi-select works, Esc clears, nothing unexpected",
+      "blocking": false
+    },
+    {
+      "id": "GEN-12",
+      "title": "View modes",
+      "steps": [
+        "View → Actual size / Fit to page / Fit to width",
+        "Click a row in each mode"
+      ],
+      "expected": "The clicked row is the one selected",
+      "blocking": false
+    },
+    {
+      "id": "GEN-13",
+      "title": "Resize the visual",
+      "steps": [
+        "Drag the Nominal visual corner to 30 % then back to full"
+      ],
+      "expected": "Reflows, scrollbars only when needed",
+      "blocking": false
+    },
+    {
+      "id": "GEN-16",
+      "title": "Pin to dashboard",
+      "steps": [
+        "Service: pin the T01 visual to a dashboard"
+      ],
+      "expected": "Tile renders correctly",
+      "blocking": false
+    },
+    {
+      "id": "GEN-20",
+      "title": "Reading view vs edit view",
+      "steps": [
+        "Service: open the report in reading view, test selection, expand/collapse, ✎ editor"
+      ],
+      "expected": "All functions work in both",
+      "blocking": false
+    },
+    {
+      "id": "GEN-22",
+      "title": "Property pane torture",
+      "steps": [
+        "Toggle every card on/off",
+        "Type garbage formulas in calculated columns ('[[', '1/0', 9000 chars)",
+        "Set every number box to min and max"
+      ],
+      "expected": "No crash; invalid formulas skipped",
+      "blocking": false
+    },
+    {
+      "id": "GEN-23",
+      "title": "Save and reopen",
+      "steps": [
+        "Set a template, custom rows, column widths, row frames",
+        "Save, close, reopen"
+      ],
+      "expected": "Everything persisted",
+      "blocking": false
+    },
+    {
+      "id": "GEN-24",
+      "title": "Switch pages and return — settings",
+      "steps": [
+        "Change formats on page Nominal",
+        "Go to another page and back"
+      ],
+      "expected": "Settings unchanged",
+      "blocking": false
+    },
+    {
+      "id": "GEN-28",
+      "title": "Tooltip numeric auto-format on/off",
+      "steps": [
+        "Toggle the tooltip auto-format option",
+        "Hover cells"
+      ],
+      "expected": "Values correct in both states",
+      "blocking": false
+    },
+    {
+      "id": "LIF-04",
+      "title": "Landing page",
+      "steps": [
+        "Insert a fresh Eclor Matrix with no field"
+      ],
+      "expected": "Host landing page, no conflicting onboarding",
+      "blocking": false
+    },
+    {
+      "id": "HC-02",
+      "title": "Windows contrast theme",
+      "steps": [
+        "Windows Settings → Accessibility → Contrast themes → Night sky",
+        "Screenshot pages T02 and Nominal"
+      ],
+      "expected": "Legible, HC colours only, focus ring visible",
+      "blocking": false
+    },
+    {
+      "id": "DESK-02",
+      "title": "Import → save → open → publish",
+      "steps": [
+        "Publish the test report from Desktop",
+        "Open it in the service"
+      ],
+      "expected": "Identical rendering",
+      "blocking": false
+    },
+    {
+      "id": "DESK-03",
+      "title": "Model format precision 0 ↔ 3 decimals",
+      "steps": [
+        "Change the Actual measure format to 0 then 3 decimals"
+      ],
+      "expected": "Cells follow (note GEN-26-a: auto units currently override this)",
+      "blocking": false
+    }
   ],
   "fixedSinceLastRun": []
 }

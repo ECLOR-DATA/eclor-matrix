@@ -10,6 +10,9 @@ annotation __PBI_TimeIntelligenceEnabled = 0
 
 annotation PBI_ProTooling = ["DevMode"]
 
+ref table _MEASURES
+ref table FACT_ECLOR_FINANCIALS
+ref table DIM_TIME
 ref table Nominal
 ref table Nulls
 ref table Negatives
@@ -18,4 +21,3 @@ ref table OneRow
 ref table TwoRows
 ref table Huge10k
 ref table KPI
-

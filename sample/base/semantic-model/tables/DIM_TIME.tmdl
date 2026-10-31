@@ -1,0 +1,291 @@
+table DIM_TIME
+	lineageTag: 542fc55f-b210-43c1-bf85-dd90d3b0a791
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 8fcc80c5-b7ae-4e96-b36b-b0dd35a444ba
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 6047b27d-0925-40d1-ba48-e4c7489880aa
+		summarizeBy: none
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthNumber
+		dataType: int64
+		formatString: 0
+		lineageTag: dd635f4a-64e9-44f8-bf2a-b5ea2fbb8ea7
+		summarizeBy: none
+		sourceColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthName
+		dataType: string
+		lineageTag: 4d65dcb4-0853-485d-902b-63100db9ac2d
+		summarizeBy: none
+		sourceColumn: MonthName
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthShort
+		dataType: string
+		lineageTag: 71c6d512-169c-463b-aa47-d3d3c70c866a
+		summarizeBy: none
+		sourceColumn: MonthShort
+
+		annotation SummarizationSetBy = Automatic
+
+	column Day
+		dataType: int64
+		formatString: 0
+		lineageTag: f01ffeda-2819-4f4c-b7b7-fde52d5f847d
+		summarizeBy: none
+		sourceColumn: Day
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonthNumber
+		dataType: int64
+		formatString: 0
+		lineageTag: 4d349922-8c30-45de-9545-cd2ce64d6ec9
+		summarizeBy: none
+		sourceColumn: YearMonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth
+		dataType: string
+		lineageTag: d49f1e06-dd13-485a-882a-4c801a30b426
+		summarizeBy: none
+		sourceColumn: YearMonth
+		sortByColumn: YearMonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarterNumber
+		dataType: int64
+		formatString: 0
+		lineageTag: 973897da-edfb-4f71-8102-2c9039bfc5aa
+		summarizeBy: none
+		sourceColumn: QuarterNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: string
+		lineageTag: 71163508-96b6-44f5-b7b3-48c37bfd7100
+		summarizeBy: none
+		sourceColumn: Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearQuarter
+		dataType: string
+		lineageTag: c01f9170-12eb-4d39-9cd0-c86958d41af4
+		summarizeBy: none
+		sourceColumn: YearQuarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekDayNumber
+		dataType: int64
+		formatString: 0
+		lineageTag: 1bafa01b-7c48-4276-b3f1-805e22782cb0
+		summarizeBy: none
+		sourceColumn: WeekDayNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekDayName
+		dataType: string
+		lineageTag: 279573e5-825f-4d2a-8f84-cc1b6d1e1ffa
+		summarizeBy: none
+		sourceColumn: WeekDayName
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekDayShort
+		dataType: string
+		lineageTag: 5b948bea-7cc9-4887-b82a-7e601204d59c
+		summarizeBy: none
+		sourceColumn: WeekDayShort
+
+		annotation SummarizationSetBy = Automatic
+
+	column ISOWeek
+		dataType: int64
+		formatString: 0
+		lineageTag: f1ed207f-edf6-4970-b867-e889d6eb2691
+		summarizeBy: none
+		sourceColumn: ISOWeek
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalYear
+		dataType: int64
+		formatString: 0
+		lineageTag: dfb4cb78-40d5-43e1-bcb3-5afe3711ba83
+		summarizeBy: none
+		sourceColumn: FiscalYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalMonthNumber
+		dataType: int64
+		formatString: 0
+		lineageTag: 6e3292b5-9fbb-4fb7-b811-062bdde56565
+		summarizeBy: none
+		sourceColumn: FiscalMonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalQuarter
+		dataType: string
+		lineageTag: 7265d1a0-9109-4897-97b3-1c455591a37e
+		summarizeBy: none
+		sourceColumn: FiscalQuarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsWeekend
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 8208419c-e825-4f05-b742-77fd656e3605
+		summarizeBy: none
+		sourceColumn: IsWeekend
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsToday
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 5efa3013-f5dc-4f99-b754-75a4ee3bf8eb
+		summarizeBy: none
+		sourceColumn: IsToday
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsCurrentMonth
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 8bd97b35-0268-46d4-9910-10868ffb1e73
+		summarizeBy: none
+		sourceColumn: IsCurrentMonth
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsCurrentYear
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 0fd6ff81-2ca2-4441-8195-3c2e3cf5d8ce
+		summarizeBy: none
+		sourceColumn: IsCurrentYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsYTD
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: bc308db6-dadb-4b53-a575-07477a1d7c3b
+		summarizeBy: none
+		sourceColumn: IsYTD
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 485f4094-d74a-4951-a842-34ed68e5c09c
+		summarizeBy: none
+		sourceColumn: MonthOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 8b0774b5-a317-4d3a-868e-c8de23216bb8
+		summarizeBy: none
+		sourceColumn: YearOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column DateKey
+		dataType: int64
+		formatString: 0
+		lineageTag: 294a2f3e-b919-4940-96fb-c9a88b9674b9
+		summarizeBy: none
+		sourceColumn: DateKey
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DIM_TIME = m
+		mode: import
+		source =
+				let
+				    // ============ PARAMETERS ============
+				    StartDate     = #date(2025, 1, 1),
+				    EndDate       = #date(2026, 12, 31),
+				    FiscalStartMonth = 1,   // 1 = January, 4 = April, etc.
+				    Today         = Date.From(DateTime.LocalNow()),
+				
+				    // ============ BASE CALENDAR ============
+				    DayCount      = Duration.Days(EndDate - StartDate) + 1,
+				    Source        = List.Dates(StartDate, DayCount, #duration(1, 0, 0, 0)),
+				    ToTable       = Table.FromList(Source, Splitter.SplitByNothing(), {"Date"}, null, ExtraValues.Error),
+				    TypedDate     = Table.TransformColumnTypes(ToTable, {{"Date", type date}}),
+				
+				    // ============ YEAR / MONTH / DAY ============
+				    AddYear        = Table.AddColumn(TypedDate, "Year",          each Date.Year([Date]),  Int64.Type),
+				    AddMonthNo     = Table.AddColumn(AddYear,   "MonthNumber",   each Date.Month([Date]), Int64.Type),
+				    AddMonthName   = Table.AddColumn(AddMonthNo,"MonthName",     each Date.MonthName([Date], "en-US"), type text),
+				    AddMonthShort  = Table.AddColumn(AddMonthName,"MonthShort",  each Text.Start(Date.MonthName([Date], "en-US"), 3), type text),
+				    AddDay         = Table.AddColumn(AddMonthShort,"Day",        each Date.Day([Date]),   Int64.Type),
+				
+				    // ============ YEAR-MONTH / YEAR-QUARTER ============
+				    AddYearMonthNo = Table.AddColumn(AddDay,        "YearMonthNumber", each Date.Year([Date]) * 100 + Date.Month([Date]), Int64.Type),
+				    AddYearMonth   = Table.AddColumn(AddYearMonthNo,"YearMonth",       each Date.ToText([Date], "yyyy-MM"), type text),
+				    AddQuarterNo   = Table.AddColumn(AddYearMonth,  "QuarterNumber",   each Date.QuarterOfYear([Date]), Int64.Type),
+				    AddQuarter     = Table.AddColumn(AddQuarterNo,  "Quarter",         each "Q" & Text.From(Date.QuarterOfYear([Date])), type text),
+				    AddYearQuarter = Table.AddColumn(AddQuarter,    "YearQuarter",     each Text.From(Date.Year([Date])) & "-Q" & Text.From(Date.QuarterOfYear([Date])), type text),
+				
+				    // ============ WEEK ============
+				    AddWeekDayNo   = Table.AddColumn(AddYearQuarter,"WeekDayNumber", each Date.DayOfWeek([Date], Day.Monday) + 1, Int64.Type),
+				    AddWeekDay     = Table.AddColumn(AddWeekDayNo,  "WeekDayName",   each Date.DayOfWeekName([Date], "en-US"), type text),
+				    AddWeekDayShort= Table.AddColumn(AddWeekDay,    "WeekDayShort",  each Text.Start(Date.DayOfWeekName([Date], "en-US"), 3), type text),
+				    AddISOWeek     = Table.AddColumn(AddWeekDayShort,"ISOWeek",      each Date.WeekOfYear([Date], Day.Monday), Int64.Type),
+				
+				    // ============ FISCAL YEAR ============
+				    AddFiscalYear  = Table.AddColumn(AddISOWeek, "FiscalYear", each
+				        if Date.Month([Date]) >= FiscalStartMonth then Date.Year([Date]) + (if FiscalStartMonth = 1 then 0 else 1)
+				        else Date.Year([Date]) + (if FiscalStartMonth = 1 then 0 else 0), Int64.Type),
+				    AddFiscalMonth = Table.AddColumn(AddFiscalYear, "FiscalMonthNumber", each
+				        Number.Mod(Date.Month([Date]) - FiscalStartMonth + 12, 12) + 1, Int64.Type),
+				    AddFiscalQtr   = Table.AddColumn(AddFiscalMonth,"FiscalQuarter", each
+				        "Q" & Text.From(Number.RoundUp([FiscalMonthNumber] / 3)), type text),
+				
+				    // ============ FLAGS ============
+				    AddIsWeekend   = Table.AddColumn(AddFiscalQtr,  "IsWeekend",     each Date.DayOfWeek([Date], Day.Monday) >= 5, type logical),
+				    AddIsToday     = Table.AddColumn(AddIsWeekend,  "IsToday",       each [Date] = Today, type logical),
+				    AddIsCurrentMonth = Table.AddColumn(AddIsToday, "IsCurrentMonth",each Date.Year([Date]) = Date.Year(Today) and Date.Month([Date]) = Date.Month(Today), type logical),
+				    AddIsCurrentYear  = Table.AddColumn(AddIsCurrentMonth,"IsCurrentYear", each Date.Year([Date]) = Date.Year(Today), type logical),
+				    AddIsYTD       = Table.AddColumn(AddIsCurrentYear,"IsYTD",       each Date.Year([Date]) = Date.Year(Today) and [Date] <= Today, type logical),
+				
+				    // ============ RELATIVE OFFSETS ============
+				    AddMonthOffset = Table.AddColumn(AddIsYTD,      "MonthOffset",   each (Date.Year([Date]) - Date.Year(Today)) * 12 + (Date.Month([Date]) - Date.Month(Today)), Int64.Type),
+				    AddYearOffset  = Table.AddColumn(AddMonthOffset,"YearOffset",    each Date.Year([Date]) - Date.Year(Today), Int64.Type),
+				
+				    // ============ DATE KEY ============
+				    AddDateKey     = Table.AddColumn(AddYearOffset, "DateKey",       each Date.Year([Date]) * 10000 + Date.Month([Date]) * 100 + Date.Day([Date]), Int64.Type)
+				in
+				    AddDateKey
+

@@ -1,0 +1,45 @@
+table _MEASURES
+	lineageTag: 20b2baab-bc58-47af-9dcf-6bc13287fa17
+
+	measure Actual = SUM(FACT_ECLOR_FINANCIALS[Amount])
+		formatString: #,0
+		displayFolder: Financial
+		lineageTag: 18e16dec-5c25-467e-956a-6a153c337f1d
+
+	measure 'Actual M-1' = CALCULATE([Actual],DATEADD('DIM_TIME'[Date],-1,MONTH))
+		formatString: #,0.###############\ "€";-#,0.###############\ "€";#,0.###############\ "€"
+		displayFolder: Financial
+		lineageTag: 47f1b32b-aa2a-4b5b-b517-fd9af3c73aef
+
+	measure 'Δ M-1' = [Actual]-[Actual M-1]
+		formatString: #,0.###############\ "€";-#,0.###############\ "€";#,0.###############\ "€"
+		displayFolder: Financial
+		lineageTag: 743ca438-8032-416d-8d1f-00b006810f0a
+
+	measure 'Δ M-1 %' = DIVIDE([Δ M-1],ABS([Actual M-1]),0)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		displayFolder: Financial
+		lineageTag: 9dbc260a-a85d-457e-a867-0b5330fa664a
+
+	measure 'Ratio to Gross Sales' = ABS(IF(SELECTEDVALUE(FACT_ECLOR_FINANCIALS[Category]) IN {"Gross Sales"}, BLANK(), DIVIDE([Actual], CALCULATE([Actual], REMOVEFILTERS(FACT_ECLOR_FINANCIALS), FACT_ECLOR_FINANCIALS[Category]="Gross Sales", KEEPFILTERS(DIM_TIME)), 0)))
+		formatString: #,0.00\ %;-#,0.00\ %;#,0.00\ %
+		displayFolder: Financial
+		lineageTag: 461aeb43-0937-4eaf-a2f6-9ee229b8ae96
+
+	measure _Color_Category = SWITCH(SELECTEDVALUE(FACT_ECLOR_FINANCIALS[Category]), "Gross Sales", "#1EF5B1", "Sales", "#46EAFF", "Profit", "#8958FE", "#808080")
+		displayFolder: UI & UX
+		lineageTag: 89df75bd-8529-4cba-959b-db8a160a4fce
+
+	measure _Color_Country = SWITCH(SELECTEDVALUE(FACT_ECLOR_FINANCIALS[Country]), "Canada", "#8958FE", "France", "#FFB454", "Germany", "#46EAFF", "#808080")
+		displayFolder: UI & UX
+		lineageTag: 6efcb692-98ca-42e2-b33d-6374086ebd0c
+
+	partition _MEASURES = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [MEASURES = _t]),
+				    #"Removed Columns" = Table.RemoveColumns(Source,{"MEASURES"})
+				in
+				    #"Removed Columns"
+

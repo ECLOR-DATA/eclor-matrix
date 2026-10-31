@@ -1,0 +1,197 @@
+=== DB: 60889755-26a4-440f-bbd6-25efa7850923 compat 1600 culture fr-FR
+
+=== TABLE [_MEASURES] hidden=False
+--- PARTITION [_MEASURES] type=M
+M<<<let
+    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [MEASURES = _t]),
+    #"Removed Columns" = Table.RemoveColumns(Source,{"MEASURES"})
+in
+    #"Removed Columns">>>
+MEASURE [_Color_Country] fmt=[] folder=[UI & UX]
+DAX<<<
+SWITCH(
+    SELECTEDVALUE(FACT_ECLOR_FINANCIALS[Country]),
+    "Canada",  "#8958FE",
+    "France",    "#FFB454",
+    "Germany",  "#46EAFF",
+    "#808080"  // fallback
+)>>>
+MEASURE [Actual] fmt=[#,0] folder=[Financial]
+DAX<<<SUM(FACT_ECLOR_FINANCIALS[Amount])>>>
+MEASURE [Δ M-1 %] fmt=[0.0\ %;-0.0\ %;0.0\ %] folder=[Financial]
+DAX<<<DIVIDE([Δ M-1],ABS([Actual M-1]),0)>>>
+MEASURE [Actual M-1] fmt=[#,0.###############\ "€";-#,0.###############\ "€";#,0.###############\ "€"] folder=[Financial]
+DAX<<<CALCULATE([Actual],DATEADD('DIM_TIME'[Date],-1,MONTH))>>>
+MEASURE [Δ M-1] fmt=[#,0.###############\ "€";-#,0.###############\ "€";#,0.###############\ "€"] folder=[Financial]
+DAX<<<[Actual]-[Actual M-1]>>>
+MEASURE [_Color_Category] fmt=[] folder=[UI & UX]
+DAX<<<
+SWITCH(
+    SELECTEDVALUE(FACT_ECLOR_FINANCIALS[Category]),
+    "Gross Sales",  "#1EF5B1",
+    "Sales",    "#46EAFF",
+    "Profit",  "#8958FE",
+    "#808080"  // fallback
+)>>>
+MEASURE [Ratio to Gross Sales] fmt=[#,0.00\ %;-#,0.00\ %;#,0.00\ %] folder=[Financial]
+DAX<<<
+ABS(
+IF(SELECTEDVALUE(FACT_ECLOR_FINANCIALS[Category]) IN {"Gross Sales"},BLANK(),
+DIVIDE( [Actual],
+    CALCULATE([Actual],REMOVEFILTERS(FACT_ECLOR_FINANCIALS),FACT_ECLOR_FINANCIALS[Category]="Gross Sales",KEEPFILTERS(DIM_TIME)),
+    0)))>>>
+
+=== TABLE [FACT_ECLOR_FINANCIALS] hidden=False
+--- PARTITION [FACT_ECLOR_FINANCIALS] type=M
+M<<<let
+    // ============================================================
+    // Query: financials — loads the Financial Sample workbook,
+    // remaps the sample years, flips Discounts and COGS to
+    // negatives, unpivots the measures into a Category / Amount
+    // structure, and adds a P&L sort key.
+    // ============================================================
+
+    // Load the "financials" sheet from the Financial Sample workbook
+    // path sanitized for redistribution — the rebuilt model reads it through the
+    // DataFolder parameter instead (see semantic-model/expressions.tmdl)
+    Source = Excel.Workbook(File.Contents("C:\pbiviz\sample-base\Financial Sample.xlsx"), null, true),
+    FinancialsTable = Source{[Item="financials",Kind="Table"]}[Data],
+
+    // Set the correct data type for each column
+    ChangedTypes = Table.TransformColumnTypes(FinancialsTable,{{"Units Sold", Currency.Type}, {"Manufacturing Price", Currency.Type}, {"Sale Price", Currency.Type}, {"Gross Sales", Currency.Type}, {"Discounts", Currency.Type}, {" Sales", Currency.Type}, {"COGS", Currency.Type}, {"Profit", Currency.Type}, {"Date", type date}, {"Month Number", Int64.Type}, {"Year", Int64.Type}}),
+
+    // Shift the sample years forward: 2013 -> 2025, 2014 -> 2026
+    RemappedYears = Table.TransformColumns(ChangedTypes, {{"Date", each
+        let y = Date.Year(_) in
+        if y = 2013 then #date(2026, Date.Month(_), Date.Day(_))
+        else if y = 2014 then #date(2025, Date.Month(_), Date.Day(_))
+        else _, type date}}),
+
+    // Flip Discounts to a negative amount (cost)
+    NegateDiscounts = Table.TransformColumns(RemappedYears, {{"Discounts", each _ * -1, Currency.Type}}),
+
+    // Drop redundant date-part columns (kept through the Date column)
+    RemovedMonthYearColumns = Table.RemoveColumns(NegateDiscounts,{"Month Number", "Month Name", "Year"}),
+
+    // Flip COGS to a negative amount (cost)
+    NegateCOGS = Table.TransformColumns(RemovedMonthYearColumns, {{"COGS", each _ * -1, Currency.Type}}),
+
+    // Trim the leading space from the " Sales" column name
+    RenamedSalesColumn = Table.RenameColumns(NegateCOGS,{{" Sales", "Sales"}}),
+
+    // Unpivot all measure columns into Attribute/Value pairs, keeping dimensions
+    UnpivotedMeasures = Table.UnpivotOtherColumns(RenamedSalesColumn, {"Segment", "Country", "Product", "Discount Band", "Date"}, "Attribute", "Value"),
+
+    // Rename the unpivot output columns to Category / Amount
+    RenamedUnpivotColumns = Table.RenameColumns(UnpivotedMeasures,{{"Attribute", "Category"}, {"Value", "Amount"}}),
+
+    // Re-apply data types after the unpivot
+    ChangedUnpivotedTypes = Table.TransformColumnTypes(RenamedUnpivotColumns,{{"Amount", Currency.Type}, {"Discount Band", type text}, {"Product", type text}, {"Country", type text}, {"Segment", type text}}),
+
+    // Add a sort key so categories keep the P&L order in visuals
+    AddedOrderCategory = Table.AddColumn(ChangedUnpivotedTypes, "Order_Category", each if [Category] = "Sale Price" then 0 else if [Category] = "Units Sold" then 1000 else if [Category] = "Manufacturing Price" then 2000 else if [Category] = "Gross Sales" then 3000 else if [Category] = "Discounts" then 4000 else if [Category] = "Sales" then 5000 else if [Category] = "COGS" then 6000 else if [Category] = "Profit" then 7000 else null),
+
+    // Final column order
+    ReorderedColumns = Table.ReorderColumns(AddedOrderCategory,{"Segment", "Country", "Product", "Discount Band", "Date", "Category", "Order_Category", "Amount"})
+in
+    ReorderedColumns>>>
+COL [Segment] String data sum=None
+COL [Country] String data sum=None
+COL [Product] String data sum=None
+COL [Discount Band] String data sum=None
+COL [Date] DateTime data fmt=Long Date sum=None
+COL [Order_Category] String data sum=None
+COL [Category] String data sortBy=Order_Category sum=None
+COL [Amount] Decimal data fmt="£"#,0.###############;-"£"#,0.###############;"£"#,0.############### sum=Sum
+
+=== TABLE [DIM_TIME] hidden=False
+--- PARTITION [DIM_TIME] type=M
+M<<<let
+    // ============ PARAMETERS ============
+    StartDate     = #date(2025, 1, 1),
+    EndDate       = #date(2026, 12, 31),
+    FiscalStartMonth = 1,   // 1 = January, 4 = April, etc.
+    Today         = Date.From(DateTime.LocalNow()),
+
+    // ============ BASE CALENDAR ============
+    DayCount      = Duration.Days(EndDate - StartDate) + 1,
+    Source        = List.Dates(StartDate, DayCount, #duration(1, 0, 0, 0)),
+    ToTable       = Table.FromList(Source, Splitter.SplitByNothing(), {"Date"}, null, ExtraValues.Error),
+    TypedDate     = Table.TransformColumnTypes(ToTable, {{"Date", type date}}),
+
+    // ============ YEAR / MONTH / DAY ============
+    AddYear        = Table.AddColumn(TypedDate, "Year",          each Date.Year([Date]),  Int64.Type),
+    AddMonthNo     = Table.AddColumn(AddYear,   "MonthNumber",   each Date.Month([Date]), Int64.Type),
+    AddMonthName   = Table.AddColumn(AddMonthNo,"MonthName",     each Date.MonthName([Date], "en-US"), type text),
+    AddMonthShort  = Table.AddColumn(AddMonthName,"MonthShort",  each Text.Start(Date.MonthName([Date], "en-US"), 3), type text),
+    AddDay         = Table.AddColumn(AddMonthShort,"Day",        each Date.Day([Date]),   Int64.Type),
+
+    // ============ YEAR-MONTH / YEAR-QUARTER ============
+    AddYearMonthNo = Table.AddColumn(AddDay,        "YearMonthNumber", each Date.Year([Date]) * 100 + Date.Month([Date]), Int64.Type),
+    AddYearMonth   = Table.AddColumn(AddYearMonthNo,"YearMonth",       each Date.ToText([Date], "yyyy-MM"), type text),
+    AddQuarterNo   = Table.AddColumn(AddYearMonth,  "QuarterNumber",   each Date.QuarterOfYear([Date]), Int64.Type),
+    AddQuarter     = Table.AddColumn(AddQuarterNo,  "Quarter",         each "Q" & Text.From(Date.QuarterOfYear([Date])), type text),
+    AddYearQuarter = Table.AddColumn(AddQuarter,    "YearQuarter",     each Text.From(Date.Year([Date])) & "-Q" & Text.From(Date.QuarterOfYear([Date])), type text),
+
+    // ============ WEEK ============
+    AddWeekDayNo   = Table.AddColumn(AddYearQuarter,"WeekDayNumber", each Date.DayOfWeek([Date], Day.Monday) + 1, Int64.Type),
+    AddWeekDay     = Table.AddColumn(AddWeekDayNo,  "WeekDayName",   each Date.DayOfWeekName([Date], "en-US"), type text),
+    AddWeekDayShort= Table.AddColumn(AddWeekDay,    "WeekDayShort",  each Text.Start(Date.DayOfWeekName([Date], "en-US"), 3), type text),
+    AddISOWeek     = Table.AddColumn(AddWeekDayShort,"ISOWeek",      each Date.WeekOfYear([Date], Day.Monday), Int64.Type),
+
+    // ============ FISCAL YEAR ============
+    AddFiscalYear  = Table.AddColumn(AddISOWeek, "FiscalYear", each
+        if Date.Month([Date]) >= FiscalStartMonth then Date.Year([Date]) + (if FiscalStartMonth = 1 then 0 else 1)
+        else Date.Year([Date]) + (if FiscalStartMonth = 1 then 0 else 0), Int64.Type),
+    AddFiscalMonth = Table.AddColumn(AddFiscalYear, "FiscalMonthNumber", each
+        Number.Mod(Date.Month([Date]) - FiscalStartMonth + 12, 12) + 1, Int64.Type),
+    AddFiscalQtr   = Table.AddColumn(AddFiscalMonth,"FiscalQuarter", each
+        "Q" & Text.From(Number.RoundUp([FiscalMonthNumber] / 3)), type text),
+
+    // ============ FLAGS ============
+    AddIsWeekend   = Table.AddColumn(AddFiscalQtr,  "IsWeekend",     each Date.DayOfWeek([Date], Day.Monday) >= 5, type logical),
+    AddIsToday     = Table.AddColumn(AddIsWeekend,  "IsToday",       each [Date] = Today, type logical),
+    AddIsCurrentMonth = Table.AddColumn(AddIsToday, "IsCurrentMonth",each Date.Year([Date]) = Date.Year(Today) and Date.Month([Date]) = Date.Month(Today), type logical),
+    AddIsCurrentYear  = Table.AddColumn(AddIsCurrentMonth,"IsCurrentYear", each Date.Year([Date]) = Date.Year(Today), type logical),
+    AddIsYTD       = Table.AddColumn(AddIsCurrentYear,"IsYTD",       each Date.Year([Date]) = Date.Year(Today) and [Date] <= Today, type logical),
+
+    // ============ RELATIVE OFFSETS ============
+    AddMonthOffset = Table.AddColumn(AddIsYTD,      "MonthOffset",   each (Date.Year([Date]) - Date.Year(Today)) * 12 + (Date.Month([Date]) - Date.Month(Today)), Int64.Type),
+    AddYearOffset  = Table.AddColumn(AddMonthOffset,"YearOffset",    each Date.Year([Date]) - Date.Year(Today), Int64.Type),
+
+    // ============ DATE KEY ============
+    AddDateKey     = Table.AddColumn(AddYearOffset, "DateKey",       each Date.Year([Date]) * 10000 + Date.Month([Date]) * 100 + Date.Day([Date]), Int64.Type)
+in
+    AddDateKey>>>
+COL [Date] DateTime data fmt=Long Date sum=None
+COL [Year] Int64 data fmt=0 sum=None
+COL [MonthNumber] Int64 data fmt=0 sum=None
+COL [MonthName] String data sum=None
+COL [MonthShort] String data sum=None
+COL [Day] Int64 data fmt=0 sum=None
+COL [YearMonthNumber] Int64 data fmt=0 sum=None
+COL [YearMonth] String data sum=None
+COL [QuarterNumber] Int64 data fmt=0 sum=None
+COL [Quarter] String data sum=None
+COL [YearQuarter] String data sum=None
+COL [WeekDayNumber] Int64 data fmt=0 sum=None
+COL [WeekDayName] String data sum=None
+COL [WeekDayShort] String data sum=None
+COL [ISOWeek] Int64 data fmt=0 sum=None
+COL [FiscalYear] Int64 data fmt=0 sum=None
+COL [FiscalMonthNumber] Int64 data fmt=0 sum=None
+COL [FiscalQuarter] String data sum=None
+COL [IsWeekend] Boolean data fmt="TRUE";"TRUE";"FALSE" sum=None
+COL [IsToday] Boolean data fmt="TRUE";"TRUE";"FALSE" sum=None
+COL [IsCurrentMonth] Boolean data fmt="TRUE";"TRUE";"FALSE" sum=None
+COL [IsCurrentYear] Boolean data fmt="TRUE";"TRUE";"FALSE" sum=None
+COL [IsYTD] Boolean data fmt="TRUE";"TRUE";"FALSE" sum=None
+COL [MonthOffset] Int64 data fmt=0 sum=None
+COL [YearOffset] Int64 data fmt=0 sum=None
+COL [DateKey] Int64 data fmt=0 sum=None
+
+=== RELATIONSHIPS
+REL FACT_ECLOR_FINANCIALS[Date] Many -> DIM_TIME[Date] One active=True filter=OneDirection
+
+=== EXPRESSIONS (shared M)
+=== DONE

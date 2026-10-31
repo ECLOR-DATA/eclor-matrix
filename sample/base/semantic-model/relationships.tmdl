@@ -1,0 +1,4 @@
+relationship 3a6de50a-1373-4efd-a7a5-49b4ae391041
+	fromColumn: FACT_ECLOR_FINANCIALS.Date
+	toColumn: DIM_TIME.Date
+

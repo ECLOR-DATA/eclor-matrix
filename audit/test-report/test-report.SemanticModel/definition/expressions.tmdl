@@ -1,0 +1,5 @@
+expression DataFolder = "E:\Dev\eclor-matrix\sample\base" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 94b42ceb-8dcb-4b49-80ac-5e0355c1c66c
+
+	annotation PBI_ResultType = Text
+

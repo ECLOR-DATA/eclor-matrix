@@ -1,0 +1,127 @@
+table FACT_ECLOR_FINANCIALS
+	lineageTag: 21715652-0858-4639-a1a2-e08358938dc6
+
+	column Segment
+		dataType: string
+		lineageTag: 285ee015-0a30-45db-967d-f99de9def1f7
+		summarizeBy: none
+		sourceColumn: Segment
+
+		annotation SummarizationSetBy = Automatic
+
+	column Country
+		dataType: string
+		lineageTag: e7675556-d7e8-49f2-8e76-c591ea7a6e0d
+		summarizeBy: none
+		sourceColumn: Country
+
+		annotation SummarizationSetBy = Automatic
+
+	column Product
+		dataType: string
+		lineageTag: 72edc8c9-23a9-453c-8309-6b85cd59213d
+		summarizeBy: none
+		sourceColumn: Product
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Discount Band'
+		dataType: string
+		lineageTag: 8e57bf0a-90dc-42d1-8373-0afed3ded71d
+		summarizeBy: none
+		sourceColumn: Discount Band
+
+		annotation SummarizationSetBy = Automatic
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: ba90176b-06d0-46dc-a975-12b944345ed4
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column Order_Category
+		dataType: string
+		isHidden
+		lineageTag: 0a5c9647-a8e4-4574-82a0-cace14aeafb1
+		summarizeBy: none
+		sourceColumn: Order_Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		dataType: string
+		lineageTag: 45fe415a-91f2-4926-b5fc-3c860fff7b20
+		summarizeBy: none
+		sourceColumn: Category
+		sortByColumn: Order_Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Amount
+		dataType: decimal
+		formatString: "€"#,0.###############;-"€"#,0.###############;"€"#,0.###############
+		lineageTag: 081621f2-76a8-4a63-b53e-fed4628349fd
+		summarizeBy: sum
+		sourceColumn: Amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	partition FACT_ECLOR_FINANCIALS = m
+		mode: import
+		source =
+				let
+				    // ============================================================
+				    // Query: financials — loads the Financial Sample workbook,
+				    // remaps the sample years, flips Discounts and COGS to
+				    // negatives, unpivots the measures into a Category / Amount
+				    // structure, and adds a P&L sort key.
+				    // ============================================================
+				
+				    // Load the "financials" sheet from the Financial Sample workbook
+				    Source = Excel.Workbook(File.Contents(DataFolder & "\Financial Sample.xlsx"), null, true),
+				    FinancialsTable = Source{[Item="financials",Kind="Table"]}[Data],
+				
+				    // Set the correct data type for each column
+				    ChangedTypes = Table.TransformColumnTypes(FinancialsTable,{{"Units Sold", Currency.Type}, {"Manufacturing Price", Currency.Type}, {"Sale Price", Currency.Type}, {"Gross Sales", Currency.Type}, {"Discounts", Currency.Type}, {" Sales", Currency.Type}, {"COGS", Currency.Type}, {"Profit", Currency.Type}, {"Date", type date}, {"Month Number", Int64.Type}, {"Year", Int64.Type}}),
+				
+				    // Shift the sample years forward: 2013 -> 2025, 2014 -> 2026
+				    RemappedYears = Table.TransformColumns(ChangedTypes, {{"Date", each
+				        let y = Date.Year(_) in
+				        if y = 2013 then #date(2026, Date.Month(_), Date.Day(_))
+				        else if y = 2014 then #date(2025, Date.Month(_), Date.Day(_))
+				        else _, type date}}),
+				
+				    // Flip Discounts to a negative amount (cost)
+				    NegateDiscounts = Table.TransformColumns(RemappedYears, {{"Discounts", each _ * -1, Currency.Type}}),
+				
+				    // Drop redundant date-part columns (kept through the Date column)
+				    RemovedMonthYearColumns = Table.RemoveColumns(NegateDiscounts,{"Month Number", "Month Name", "Year"}),
+				
+				    // Flip COGS to a negative amount (cost)
+				    NegateCOGS = Table.TransformColumns(RemovedMonthYearColumns, {{"COGS", each _ * -1, Currency.Type}}),
+				
+				    // Trim the leading space from the " Sales" column name
+				    RenamedSalesColumn = Table.RenameColumns(NegateCOGS,{{" Sales", "Sales"}}),
+				
+				    // Unpivot all measure columns into Attribute/Value pairs, keeping dimensions
+				    UnpivotedMeasures = Table.UnpivotOtherColumns(RenamedSalesColumn, {"Segment", "Country", "Product", "Discount Band", "Date"}, "Attribute", "Value"),
+				
+				    // Rename the unpivot output columns to Category / Amount
+				    RenamedUnpivotColumns = Table.RenameColumns(UnpivotedMeasures,{{"Attribute", "Category"}, {"Value", "Amount"}}),
+				
+				    // Re-apply data types after the unpivot
+				    ChangedUnpivotedTypes = Table.TransformColumnTypes(RenamedUnpivotColumns,{{"Amount", Currency.Type}, {"Discount Band", type text}, {"Product", type text}, {"Country", type text}, {"Segment", type text}}),
+				
+				    // Add a sort key so categories keep the P&L order in visuals
+				    AddedOrderCategory = Table.AddColumn(ChangedUnpivotedTypes, "Order_Category", each if [Category] = "Sale Price" then 0 else if [Category] = "Units Sold" then 1000 else if [Category] = "Manufacturing Price" then 2000 else if [Category] = "Gross Sales" then 3000 else if [Category] = "Discounts" then 4000 else if [Category] = "Sales" then 5000 else if [Category] = "COGS" then 6000 else if [Category] = "Profit" then 7000 else null),
+				
+				    // Final column order
+				    ReorderedColumns = Table.ReorderColumns(AddedOrderCategory,{"Segment", "Country", "Product", "Discount Band", "Date", "Category", "Order_Category", "Amount"})
+				in
+				    ReorderedColumns
+

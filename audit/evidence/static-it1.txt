@@ -1,0 +1,89 @@
+## SEC greps (src)
+-- eval\(|new Function|[^a-zA-Z]Function\(
+src/expressions.ts:24: * NO eval / new Function — certification forbids dynamic code. Tokenizer +
+-- innerHTML|outerHTML|document\.write|insertAdjacentHTML
+-- fetch\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|new Worker
+-- localStorage|sessionStorage|indexedDB|document\.cookie|caches\.|BroadcastChannel
+src/visual.ts:278:        // User explicitly emptied the buckets: drop caches.
+## eslint rules
+16:    "no-eval": "error",
+17:    "no-implied-eval": "error",
+18:    "no-new-func": "error",
+## bundle scan
+bundle bytes 191796
+## caps
+{"priv":[],"lp":true,"kf":true,"mvs":true,"tt":{"supportedTypes":{"default":true,"canvas":true},"roles":["values","tooltips"]},"sort":{"default":{}},"maps":1,"rowsDR":{"top":{"count":10000}},"objNoKey":["customRows","rowStyles"]}
+## manifest
++    "guid": "eclorMatrixECLOR2026",
+1.11.1.0 1.11.1
+6:## [1.11.1.0] — 2026-08-29
+81796d4ffb7672415fa2604afb4b5a82d2c0003b	refs/heads/certification
+## icon
+20x20 Format32bppArgb
+## tsconfig
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "outDir": "./.tmp/build/",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "declaration": true,
+    "target": "ES2020",
+    "module": "ES2020",
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
+  },
+  "files": ["./src/visual.ts"]
+}
+## patterns
+163:  private allowInteractions: boolean;
+165:  private isHighContrast: boolean = false;
+213:    this.allowInteractions =
+214:      (options.host as unknown as { hostCapabilities?: { allowInteractions?: boolean } })
+215:        .hostCapabilities?.allowInteractions ?? true;
+234:    eventService?.renderingStarted(options);
+246:        isHighContrast?: boolean;
+251:      this.isHighContrast = palette?.isHighContrast === true;
+258:        eventService?.renderingFinished(options);
+273:        eventService?.renderingFinished(options);
+285:        eventService?.renderingFinished(options);
+293:      eventService?.renderingFinished(options);
+296:      eventService?.renderingFailed(options, message);
+304:  public destroy(): void {
+726:      !this.isHighContrast
+895:      if (this.isHighContrast) bar.style.backgroundColor = this.hcForeground;
+907:      if (this.isHighContrast) {
+920:      if (this.isHighContrast) bar.style.backgroundColor = this.hcForeground;
+1156:    const hc = this.isHighContrast;
+1375:      fontColor: this.isHighContrast ? "" : safeHexOrEmpty(c.fontColor.value?.value),
+1397:      const color = this.isHighContrast ? "" : seg.color || base.fontColor;
+1406:    if (!this.allowInteractions) return;
+1999:    const hc = this.isHighContrast;
+2083:          const fc = this.isHighContrast ? "" : parsed.measureOverrides[mi]?.fontColor ?? "";
+2137:    const mfc = this.isHighContrast ? "" : parsed.measureOverrides[leaf.measureIndex]?.fontColor ?? "";
+2171:      if (!row.isSubtotal && !custom && !this.isHighContrast) {
+2204:    const color = this.isHighContrast ? this.hcForeground : border.color;
+2339:    const rhColor = this.isHighContrast ? "" : safeHexOrEmpty(rh.fontColor.value?.value);
+2425:    this.target.classList.toggle("em-hc", this.isHighContrast);
+2426:    if (this.isHighContrast) {
+116:    outline: none;
+## perf test
+41:    expect(elapsed).toBeLessThan(1000);
+## docs
+LICENSE
+
+docs:
+BENCHMARK.md
+CLAUDE_PLAYBOOK.md
+COMMENTS.md
+PRIVACY.md
+WORKFLOW.md
+17

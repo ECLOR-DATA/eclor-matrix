@@ -257,3 +257,22 @@ export function computeMaxAbs(rows: RowModel[]): number {
   }
   return max;
 }
+
+/**
+ * Auto display units for ONE measure column, from its detail values: the
+ * largest unit no non-zero value falls below, so no non-zero cell can round
+ * to 0 or lose its sign. Mixed magnitudes keep full numbers.
+ */
+export function pickAutoUnits(
+  values: Iterable<number>
+): "none" | "thousands" | "millions" | "billions" {
+  let min = Infinity;
+  for (const v of values) {
+    if (Number.isFinite(v) && v !== 0) min = Math.min(min, Math.abs(v));
+  }
+  if (min === Infinity) return "none";
+  if (min >= 1e9) return "billions";
+  if (min >= 1e6) return "millions";
+  if (min >= 1e3) return "thousands";
+  return "none";
+}

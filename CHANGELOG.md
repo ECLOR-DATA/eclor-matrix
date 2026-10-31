@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.3.0] — 2026-10-31
+
+### Fixed
+
+- **Auto display units rounded whole columns to "0M"** (audit GEN-26-a): the scale was picked from the grid-wide max (grand total included) and applied to every column with 0 decimals — 320,000 rendered "0M", -18,000 "0M", a 10k-row page showed nothing but "0M". For measures without a model format string, "Auto" now resolves per column from the detail rows (`pickAutoUnits`): the largest unit no non-zero value falls below, so a non-zero cell can no longer round to 0 or lose its sign; mixed magnitudes keep full numbers. Measures with a model format keep rendering verbatim; `format.ts` semantics unchanged.
+
 ## [1.11.2.0] — 2026-10-31
 
 ### Fixed

@@ -4,6 +4,7 @@ import {
   flattenColumns,
   flattenRows,
   MatrixNodeLike,
+  pickAutoUnits,
   pruneColumnTree
 } from "../src/matrixModel";
 
@@ -252,5 +253,28 @@ describe("computeMaxAbs", () => {
 
   test("no numeric cells → 0", () => {
     expect(computeMaxAbs([])).toBe(0);
+  });
+});
+
+// Audit GEN-26-a: auto units were picked from the grid-wide max (grand total
+// included) — 320,000 rendered "0M". The unit is now per column, bounded by
+// the SMALLEST non-zero detail value, so no non-zero cell can round to 0.
+describe("pickAutoUnits", () => {
+  test("unit bounded by the smallest non-zero magnitude", () => {
+    expect(pickAutoUnits([320000, 450000, 275000, 510000])).toBe("thousands");
+    expect(pickAutoUnits([15000, 22000, -18000, -9500, 31000])).toBe("thousands");
+    expect(pickAutoUnits([2e6, -5e6])).toBe("millions");
+    expect(pickAutoUnits([3e9, 4e9])).toBe("billions");
+  });
+
+  test("mixed magnitudes or small values keep full numbers", () => {
+    expect(pickAutoUnits([3, 2e6])).toBe("none");
+    expect(pickAutoUnits([999, 5000])).toBe("none");
+  });
+
+  test("zeros, NaN and empty input are ignored", () => {
+    expect(pickAutoUnits([0, 2000, NaN])).toBe("thousands");
+    expect(pickAutoUnits([])).toBe("none");
+    expect(pickAutoUnits([0])).toBe("none");
   });
 });

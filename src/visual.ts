@@ -102,6 +102,7 @@ import {
   computeMaxAbs,
   flattenColumns,
   flattenRows,
+  pickAutoUnits,
   pruneColumnTree,
   ColumnLeaf,
   HeaderCell,
@@ -127,6 +128,8 @@ interface ParseResult {
   measureOverrides: MeasureFormatOverride[];
   /** Per-measure min/max over non-subtotal rows (heat-map domain). */
   measureStats: MeasureStats[];
+  /** Per-measure resolution of "auto" display units (pickAutoUnits). */
+  measureAutoUnits: string[];
   /** Per-measure colour override persisted on valueSources[i].objects.cellColors. */
   measureColorOverrides: (CellColorOpts & { useCustom: boolean })[];
   /** Ordered grid columns: measure leaves + client-side calculated columns. */
@@ -398,6 +401,9 @@ export class Visual implements IVisual {
     );
 
     const measureStats = this.computeMeasureStats(valueSources, leaves, rows);
+    const measureAutoUnits = valueSources.map((_vs, mi) =>
+      pickAutoUnits(this.detailValues(leaves, rows, mi))
+    );
 
     return {
       rows,
@@ -408,6 +414,7 @@ export class Visual implements IVisual {
       rowLevels,
       measureOverrides,
       measureStats,
+      measureAutoUnits,
       measureColorOverrides,
       renderCols,
       calcDefs,
@@ -448,6 +455,26 @@ export class Visual implements IVisual {
       }
     }
     return measureStats;
+  }
+
+  /** Numeric cells of one measure over detail rows (subtotal and custom
+   *  rows excluded, like the heat-map domain). */
+  private *detailValues(leaves: ColumnLeaf[], rows: RowModel[], mi: number): Generator<number> {
+    for (const r of rows) {
+      if (r.isSubtotal || (r as WovenRow).customDef) continue;
+      for (let li = 0; li < leaves.length; li++) {
+        const v = r.cells[li];
+        if (leaves[li].measureIndex === mi && typeof v === "number") yield v;
+      }
+    }
+  }
+
+  /** Units applied to a measure's cells: "auto" without a model format
+   *  resolves per column (pickAutoUnits) — never from the grid-wide max,
+   *  which rounded whole columns to "0M" (audit GEN-26-a). */
+  private cellUnits(parsed: ParseResult, mi: number, units: string): string {
+    if (units !== "auto" || (parsed.valueSources[mi]?.format ?? "") !== "") return units;
+    return parsed.measureAutoUnits[mi] ?? units;
   }
 
   /** Interleave calc columns after each column-group's measure leaves.
@@ -1051,6 +1078,7 @@ export class Visual implements IVisual {
       rowLevels: [],
       measureOverrides: [],
       measureStats: [],
+      measureAutoUnits: [],
       measureColorOverrides: [],
       renderCols: [],
       calcDefs: [],
@@ -2144,7 +2172,7 @@ export class Visual implements IVisual {
     if (typeof raw === "number") {
       const fmt = this.measureFormat(parsed, leaf.measureIndex);
       let modelFormat = parsed.valueSources[leaf.measureIndex]?.format ?? "";
-      let cardUnits = fmt.units;
+      let cardUnits = this.cellUnits(parsed, leaf.measureIndex, fmt.units);
       let cardDecimals = fmt.decimals;
       const custom = (row as WovenRow).customDef;
       if (custom?.kind === "formula") {
@@ -2589,7 +2617,7 @@ export class Visual implements IVisual {
           ? formatActualLabel({
               value: raw,
               modelFormat: parsed.valueSources[mi]?.format ?? "",
-              cardUnits: fmt.units,
+              cardUnits: this.cellUnits(parsed, mi, fmt.units),
               cardDecimals: fmt.decimals,
               autoDecimals: 0,
               locale: this.locale,

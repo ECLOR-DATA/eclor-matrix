@@ -139,7 +139,8 @@ interface ParseResult {
   calcLookups: Map<string, Map<string, number>>;
   /** Resolved IBCS scenario per measure (override else name detection). */
   measureScenarios: (IbcsScenario | null)[];
-  /** |max| per calc column over non-subtotal rows — variance-bar domain. */
+  /** |max| per calc column over data rows (subtotals included, custom rows
+   *  excluded) — variance-bar / pin domain. */
   calcMaxAbs: number[];
   /** T04 waterfall runs: start offset per row, keyed `${calcIdx}|${pathKey}`. */
   calcWaterfall: Map<string, (number | null)[]>;
@@ -803,8 +804,10 @@ export class Visual implements IVisual {
       if (col.kind !== "calc") continue;
       const def = calcDefs[col.calcIdx];
       if (def.display === "bar" || def.display === "pin") {
+        // Subtotals share the scale: excluded, a total clamped to the full
+        // half-track whatever its size (audit GEN-25-c).
         for (const row of rows) {
-          if (row.isSubtotal || (row as WovenRow).customDef) continue;
+          if ((row as WovenRow).customDef) continue;
           const v = this.evalCalc(def, calcLookups.get(col.pathKey), row);
           if (v !== null) {
             const a = Math.abs(v);

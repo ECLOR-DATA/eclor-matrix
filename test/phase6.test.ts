@@ -84,4 +84,27 @@ describe("variance bars", () => {
     expect(labels[0]).toBe("+20");
     expect(labels[1]).toBe("-10");
   });
+
+  // Audit GEN-25-c: the domain covered detail rows only, so a total of +10
+  // next to details of +20/-10 was drawn clamped like the largest detail;
+  // with a 3x total every total bar was the same full length.
+  test("subtotal rows share the scale instead of saturating", () => {
+    const { visual, target } = makeVisual();
+    const dv = dvIbcs(BAR_CALC);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).matrix.rows.root.children.push({
+      isSubtotal: true,
+      values: {
+        0: { value: 360, valueSourceIndex: 0 },
+        1: { value: 300, valueSourceIndex: 1 },
+        2: { value: 390, valueSourceIndex: 2 }
+      }
+    });
+    visual.update(makeUpdateOptions(dv));
+    const bars = Array.from(target.querySelectorAll(".em-bar")) as HTMLElement[];
+    expect(bars).toHaveLength(3);
+    // maxAbs = 60 (the total) → Revenue +20 = 1/3 of the half-track.
+    expect(bars[0].style.width).toBe("16.65%");
+    expect(bars[2].style.width).toBe("50%");
+  });
 });

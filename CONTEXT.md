@@ -145,7 +145,9 @@ PY/BU/FC win over AC so "Actual vs Budget" reads as a budget-relative
 column). Semantics are CSS classes (AC underline, PY grey, BU outline, FC
 hatch — hatching is a plain repeating-linear-gradient, one more win for HTML
 rendering). Variance bars live on calculated columns (`display: bar`),
-shared zero axis, domain |max| over detail rows, good/bad = theme
+shared zero axis, domain |max| over detail AND subtotal rows (1.11.5.0 —
+a detail-only domain clamped every total to the full half-track, audit
+GEN-25-c), good/bad = theme
 `#1EF5B1`/`#FF4D6D`, HC-safe. Full market positioning: docs/BENCHMARK.md.
 
 ## 16. Custom rows & the in-visual editor (phase 8, 1.6.0.0)

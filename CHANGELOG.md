@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.5.0] — 2026-10-31
+
+### Fixed
+
+- **IBCS variance bars and pins saturated on totals** (audit GEN-25-c): the domain covered detail rows only, so every subtotal/total bar was clamped to the full half-track whatever its size (T02: a -9.7M total drawn as long as a -3.5M country). Subtotal rows now share the column's scale (custom rows stay excluded).
+
 ## [1.11.4.0] — 2026-10-31
 
 ### Fixed

@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.2.0] — 2026-10-31
+
+### Fixed
+
+- **First measure header blank** (audit GEN-25-a): the host omits `levelSourceIndex` when it is 0, so the first measure-level column node arrived value-less and unlabelled — its header rendered empty on every page using the tree header, and under a column group the leaf landed in a separate group path (breaking calc-column/template grouping). A value-less, non-subtotal node is now recognised as measure 0 in `nodeLabel`, `flattenColumns` and `pruneColumnTree`.
+
 ## [1.11.1.0] — 2026-08-29
 
 ### Fixed

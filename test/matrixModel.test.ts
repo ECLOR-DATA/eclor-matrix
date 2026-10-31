@@ -3,7 +3,8 @@ import {
   computeMaxAbs,
   flattenColumns,
   flattenRows,
-  MatrixNodeLike
+  MatrixNodeLike,
+  pruneColumnTree
 } from "../src/matrixModel";
 
 describe("flattenColumns", () => {
@@ -120,6 +121,60 @@ describe("buildHeaderRows", () => {
     // Filler keeps the second header row rectangular.
     expect(rows[1]).toHaveLength(2);
     expect(rows[1][1].label).toBe("");
+  });
+});
+
+// The host omits `levelSourceIndex` when it is 0 (audit GEN-25-a): the first
+// measure node arrives as a bare `{ level }` with no value.
+describe("measure 0 without levelSourceIndex", () => {
+  test("flat measures: every header carries its measure name", () => {
+    const root: MatrixNodeLike = {
+      children: [{ level: 0 }, { level: 0, levelSourceIndex: 1 }, { level: 0, levelSourceIndex: 2 }]
+    };
+    const rows = buildHeaderRows(root, ["Total Actual", "Pct", "Precise"]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].map((c) => c.label)).toEqual(["Total Actual", "Pct", "Precise"]);
+    const leaves = flattenColumns(root, ["Total Actual", "Pct", "Precise"]);
+    expect(leaves.map((l) => l.path)).toEqual([[], [], []]);
+    expect(leaves.map((l) => l.measureIndex)).toEqual([0, 1, 2]);
+  });
+
+  test("single measure: the lone measure node is labelled", () => {
+    const rows = buildHeaderRows({ children: [{ level: 0 }] }, ["Sum of Actual"]);
+    expect(rows[0].map((c) => c.label)).toEqual(["Sum of Actual"]);
+  });
+
+  test("under a column group, measure 0 stays in its group's path", () => {
+    const root: MatrixNodeLike = {
+      children: [
+        {
+          level: 0,
+          value: 2025,
+          levelValues: [{ value: 2025 }],
+          children: [{ level: 1 }, { level: 1, levelSourceIndex: 1 }]
+        }
+      ]
+    };
+    const rows = buildHeaderRows(root, ["Actual", "PY"]);
+    expect(rows[1].map((c) => c.label)).toEqual(["Actual", "PY"]);
+    const leaves = flattenColumns(root, ["Actual", "PY"]);
+    expect(leaves.map((l) => l.path)).toEqual([["2025"], ["2025"]]);
+  });
+
+  test("a value-less subtotal leaf is still the Total column, not a measure", () => {
+    const root: MatrixNodeLike = {
+      children: [{ level: 0, value: "Q1", levelValues: [{ value: "Q1" }] }, { level: 0, isSubtotal: true }]
+    };
+    const leaves = flattenColumns(root, ["Actual"], "Total");
+    expect(leaves.map((l) => l.path)).toEqual([["Q1"], ["Total"]]);
+  });
+
+  test("pruneColumnTree drops measure 0 when it is auxiliary", () => {
+    const root: MatrixNodeLike = {
+      children: [{ level: 0 }, { level: 0, levelSourceIndex: 1 }]
+    };
+    const pruned = pruneColumnTree(root, new Set([0]));
+    expect(pruned?.children).toEqual([{ level: 0, levelSourceIndex: 1 }]);
   });
 });
 

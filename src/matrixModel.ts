@@ -61,15 +61,20 @@ export interface RowModel {
   cells: (number | string | null)[];
 }
 
+/** Measure-level node: it carries no category value. The host omits
+ *  `levelSourceIndex` when it is 0, so a value-less node without the index
+ *  is measure 0 — unless it is a subtotal (the Total column of a
+ *  single-measure grouping). */
+const isMeasureNode = (node: MatrixNodeLike): boolean =>
+  node.value === undefined &&
+  (node.levelValues === undefined || node.levelValues.length === 0) &&
+  ((node.levelSourceIndex !== undefined && node.levelSourceIndex !== null) ||
+    node.isSubtotal !== true);
+
 const nodeLabel = (node: MatrixNodeLike, measureNames: string[], totalLabel: string): string => {
   if (node.isSubtotal) return totalLabel;
-  if (
-    node.levelSourceIndex !== undefined &&
-    node.levelSourceIndex !== null &&
-    node.value === undefined &&
-    (node.levelValues === undefined || node.levelValues.length === 0)
-  ) {
-    return measureNames[node.levelSourceIndex] ?? "";
+  if (isMeasureNode(node)) {
+    return measureNames[node.levelSourceIndex ?? 0] ?? "";
   }
   const raw = node.levelValues?.[0]?.value ?? node.value;
   if (raw === null || raw === undefined) return "";
@@ -103,11 +108,7 @@ export function flattenColumns(
         node.levelSourceIndex !== undefined && node.levelSourceIndex !== null
           ? node.levelSourceIndex
           : 0;
-      const isMeasureLeaf =
-        node.levelSourceIndex !== undefined &&
-        node.levelSourceIndex !== null &&
-        node.value === undefined &&
-        (node.levelValues === undefined || node.levelValues.length === 0);
+      const isMeasureLeaf = isMeasureNode(node);
       const label = nodeLabel(node, measureNames, totalLabel);
       leaves.push({
         path: isMeasureLeaf ? path : [...path, label],
@@ -230,12 +231,7 @@ export function pruneColumnTree(
   if (!root || !root.children || excludeMeasures.size === 0) return root;
   const prune = (node: MatrixNodeLike): MatrixNodeLike | null => {
     if (!node.children || node.children.length === 0) {
-      const isMeasureLeaf =
-        node.levelSourceIndex !== undefined &&
-        node.levelSourceIndex !== null &&
-        node.value === undefined &&
-        (node.levelValues === undefined || node.levelValues.length === 0);
-      if (isMeasureLeaf && excludeMeasures.has(node.levelSourceIndex as number)) return null;
+      if (isMeasureNode(node) && excludeMeasures.has(node.levelSourceIndex ?? 0)) return null;
       return node;
     }
     const children = node.children

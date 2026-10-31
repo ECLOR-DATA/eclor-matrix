@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.4.0] — 2026-10-31
+
+### Fixed
+
+- **Layout/comments toolbar covered the grid** (audit GEN-15-a): the ✎ / 💬 buttons were absolutely positioned over the top-right of the visual, clipping the last column header ("ΔPL %") and, on narrow grids, the first value (a "500K" total read "5"). The toolbar now docks in the empty, sticky header corner above the row labels; it only falls back to the floating position when the grid has no header row.
+
 ## [1.11.3.0] — 2026-10-31
 
 ### Fixed

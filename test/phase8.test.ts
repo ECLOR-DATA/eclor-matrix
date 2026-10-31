@@ -66,6 +66,20 @@ describe("layout editor", () => {
     expect(target.querySelector(".em-editpanel")).not.toBeNull();
   });
 
+  // Audit GEN-15-a: the absolutely-positioned toolbar covered the last
+  // header label and, on narrow grids, the first value ("500K" read "5").
+  test("toolbar docks in the empty header corner, also after a chrome refresh", () => {
+    const { visual, target } = makeVisual();
+    visual.update(makeUpdateOptions(buildSimpleMatrixDV(["A"], [{ name: "M", values: [1] }])));
+    const corner = target.querySelector("th.em-corner") as HTMLElement;
+    expect(corner.querySelector(".em-toolbar")).not.toBeNull();
+    (target.querySelector('[data-em-action="toggle-panel"]') as HTMLElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true })
+    );
+    expect(target.querySelectorAll(".em-toolbar")).toHaveLength(1);
+    expect(corner.querySelector(".em-toolbar")).not.toBeNull();
+  });
+
   test("subtotal from selection persists and renders immediately", () => {
     const { visual, target } = makeVisual();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

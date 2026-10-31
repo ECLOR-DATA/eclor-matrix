@@ -1458,7 +1458,15 @@ export class Visual implements IVisual {
     btn.setAttribute("title", this.localize("Visual_Edit", "Edit layout"));
     btn.textContent = "✎";
     toolbar.appendChild(btn);
-    this.target.appendChild(toolbar);
+    // The header corner is empty by construction and sticky: docked there
+    // the toolbar never covers header labels or values (audit GEN-15-a).
+    const corner = this.target.querySelector("th.em-corner");
+    if (corner) {
+      toolbar.classList.add("em-toolbar-corner");
+      corner.appendChild(toolbar);
+    } else {
+      this.target.appendChild(toolbar);
+    }
     if (this.editPanelOpen) this.target.appendChild(this.buildEditPanel());
     if (this.commentsPanelOpen) this.target.appendChild(this.buildCommentsPanel());
   }

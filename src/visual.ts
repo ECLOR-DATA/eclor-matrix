@@ -105,6 +105,7 @@ import {
   computeMaxAbs,
   flattenColumns,
   flattenRows,
+  insertGapColumns,
   pickAutoUnits,
   pruneColumnTree,
   ColumnLeaf,
@@ -403,6 +404,12 @@ export class Visual implements IVisual {
     const renderCols = rc.renderCols;
     const calcLookups = rc.calcLookups;
     if (rc.flatHeader) headerRows = [rc.flatHeader];
+    else {
+      headerRows = insertGapColumns(
+        headerRows,
+        renderCols.flatMap((col, i) => (col.kind === "gap" ? [i] : []))
+      );
+    }
 
     const { calcMaxAbs, calcWaterfall } = this.computeCalcDomains(
       calcDefs,
@@ -514,7 +521,8 @@ export class Visual implements IVisual {
 
   /** Interleave calc columns after each column-group's measure leaves.
    *  When calc columns are active the header collapses to the flat shape
-   *  (tree spans no longer match the widened groups). */
+   *  (tree spans no longer match the widened groups). Gap columns alone keep
+   *  the tree header: the caller threads them through (insertGapColumns). */
   private buildRenderColumns(
     leaves: ColumnLeaf[],
     renderLeafIdxs: number[],
@@ -556,6 +564,7 @@ export class Visual implements IVisual {
       // Aeration: a blank column between column groups (never after the last).
       if (gapsOn && i < renderLeafIdxs.length) renderCols.push({ kind: "gap" });
     }
+    if (calcDefs.length === 0) return { renderCols, calcLookups, flatHeader: null };
     const flatHeader: HeaderCell[] = renderCols.map((col) => {
       if (col.kind === "gap") {
         return { label: "", span: 1, isSubtotal: false, isGap: true };

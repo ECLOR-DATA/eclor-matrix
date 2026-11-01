@@ -266,7 +266,12 @@ describe("expand icons, wrap and aeration", () => {
     const gaps = target.querySelectorAll("tbody td.em-gapcol");
     expect(gaps).toHaveLength(1); // between the two groups, none after the last
     expect((gaps[0] as HTMLElement).textContent).toBe("");
-    expect(target.querySelectorAll("thead th.em-gapcol")).toHaveLength(1);
+    // One blank cell per header row: the tree header survives the gaps.
+    const headerRows = target.querySelectorAll("thead tr");
+    expect(headerRows).toHaveLength(2);
+    expect(target.querySelectorAll("thead th.em-gapcol")).toHaveLength(2);
+    expect(headerRows[0].textContent).toContain("2025");
+    expect(headerRows[0].textContent).not.toContain("·");
     // Spacer rows span the gap too.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((visual as any).lastValidRenderInput.parsed.renderCols).toHaveLength(3);

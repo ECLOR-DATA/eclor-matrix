@@ -3,6 +3,7 @@ import {
   computeMaxAbs,
   flattenColumns,
   flattenRows,
+  insertGapColumns,
   MatrixNodeLike,
   pickAutoUnits,
   pruneColumnTree
@@ -176,6 +177,45 @@ describe("measure 0 without levelSourceIndex", () => {
     };
     const pruned = pruneColumnTree(root, new Set([0]));
     expect(pruned?.children).toEqual([{ level: 0, levelSourceIndex: 1 }]);
+  });
+});
+
+// Audit GEN-25-e: gap columns used to replace the tree header by a flat one.
+describe("insertGapColumns", () => {
+  const cell = (label: string, span = 1) => ({ label, span, isSubtotal: false });
+  const labels = (row: { label: string; span: number; isGap?: boolean }[]) =>
+    row.map((c) => (c.isGap ? "_" : `${c.label}:${c.span}`));
+
+  test("a gap on a boundary gets a blank cell in every header row", () => {
+    const rows = [
+      [cell("2025", 2), cell("2026", 2)],
+      [cell("AC"), cell("PY"), cell("AC"), cell("PY")]
+    ];
+    const out = insertGapColumns(rows, [2]);
+    expect(labels(out[0])).toEqual(["2025:2", "_", "2026:2"]);
+    expect(labels(out[1])).toEqual(["AC:1", "PY:1", "_", "AC:1", "PY:1"]);
+  });
+
+  test("a gap inside a spanning cell widens it: the hierarchy survives", () => {
+    const rows = [
+      [cell("2025", 2), cell("2026", 2)],
+      [cell("Q1"), cell("Q2"), cell("Q1"), cell("Q2")]
+    ];
+    const out = insertGapColumns(rows, [1, 3, 5]);
+    expect(labels(out[0])).toEqual(["2025:3", "_", "2026:3"]);
+    expect(labels(out[1])).toEqual(["Q1:1", "_", "Q2:1", "_", "Q1:1", "_", "Q2:1"]);
+  });
+
+  test("every row stays exactly as wide as the grid", () => {
+    const rows = [[cell("A", 3), cell("B", 1)], [cell("a"), cell("b"), cell("c"), cell("d")]];
+    for (const row of insertGapColumns(rows, [1, 5])) {
+      expect(row.reduce((s, c) => s + c.span, 0)).toBe(6);
+    }
+  });
+
+  test("no gaps: rows come back untouched", () => {
+    const rows = [[cell("A")]];
+    expect(insertGapColumns(rows, [])).toBe(rows);
   });
 });
 

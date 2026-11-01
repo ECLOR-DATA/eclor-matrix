@@ -244,6 +244,41 @@ export function pruneColumnTree(
   return { ...root, children };
 }
 
+/**
+ * Thread blank aeration columns through a tree header. `gapIndexes` are grid
+ * positions, counting the gaps themselves. A gap on a cell boundary gets its
+ * own blank cell; a gap inside a spanning cell (two quarters under one year)
+ * widens that cell, so the hierarchy survives.
+ */
+export function insertGapColumns(rows: HeaderCell[][], gapIndexes: number[]): HeaderCell[][] {
+  if (gapIndexes.length === 0) return rows;
+  const gaps = [...gapIndexes].sort((a, b) => a - b);
+  return rows.map((cells) => {
+    const out: HeaderCell[] = [];
+    let pos = 0;
+    let g = 0;
+    const takeBoundaryGaps = (): void => {
+      while (g < gaps.length && gaps[g] === pos) {
+        out.push({ label: "", span: 1, isSubtotal: false, isGap: true });
+        pos++;
+        g++;
+      }
+    };
+    for (const cell of cells) {
+      takeBoundaryGaps();
+      let span = cell.span;
+      while (g < gaps.length && gaps[g] < pos + span) {
+        span++;
+        g++;
+      }
+      out.push(span === cell.span ? cell : { ...cell, span });
+      pos += span;
+    }
+    takeBoundaryGaps();
+    return out;
+  });
+}
+
 /** Largest |numeric cell| across rendered rows — drives auto display units. */
 export function computeMaxAbs(rows: RowModel[]): number {
   let max = 0;

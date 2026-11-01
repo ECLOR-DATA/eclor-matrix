@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.14.0] — 2026-11-01
+
+### Fixed
+
+- **"Blank column between groups" flattened the column header** (audit GEN-25-e): turning it on replaced a multi-level header with single-row "2025 · Actual" labels, even without a calculated column. The gaps are now threaded through the tree header (`insertGapColumns`): a gap on a boundary gets a blank cell in every header row, and a gap inside a spanning cell widens that cell. Calculated columns still force the flat header by design.
+
 ## [1.11.13.0] — 2026-11-01
 
 ### Fixed

@@ -2154,7 +2154,10 @@ export class Visual implements IVisual {
     const grip = document.createElement("span");
     grip.className = "em-colgrip";
     grip.setAttribute("data-col-key", key);
-    grip.setAttribute("title", "Drag to resize · double-click to reset");
+    grip.setAttribute(
+      "title",
+      this.localize("Visual_ColumnGripTitle", "Drag to resize · double-click to reset")
+    );
     grip.setAttribute("aria-hidden", "true");
     return grip;
   }

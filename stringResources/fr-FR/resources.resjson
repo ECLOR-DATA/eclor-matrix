@@ -49,5 +49,6 @@
   "Visual_TargetLabel": "Cellule de libellé",
   "Visual_LineSolid": "Plein",
   "Visual_LineDashed": "Tirets",
-  "Visual_LineDotted": "Pointillés"
+  "Visual_LineDotted": "Pointillés",
+  "Visual_ColumnGripTitle": "Glisser pour redimensionner · double-clic pour réinitialiser"
 }

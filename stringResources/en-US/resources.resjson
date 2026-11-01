@@ -49,5 +49,6 @@
   "Visual_TargetLabel": "Label cell",
   "Visual_LineSolid": "Solid",
   "Visual_LineDashed": "Dashed",
-  "Visual_LineDotted": "Dotted"
+  "Visual_LineDotted": "Dotted",
+  "Visual_ColumnGripTitle": "Drag to resize · double-click to reset"
 }

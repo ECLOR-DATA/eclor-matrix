@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.9.0] — 2026-11-01
+
+### Fixed
+
+- **Column grip tooltip was hard-coded English** (audit I18N-03-a): it now goes through the localization manager like the rest of the in-visual chrome. New guards in `test/manifest.test.ts`: en-US and fr-FR must carry the same keys, and every `localize()` key used by the visual must exist.
+
 ## [1.11.8.0] — 2026-11-01
 
 ### Documentation

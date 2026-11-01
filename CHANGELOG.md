@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.16.0] — 2026-11-01
+
+### Fixed
+
+- **A measure in both Values and Tooltips missed the tooltip of its sibling columns** (audit DATA-05-a): it now also appears when hovering another column of the same group, and is still listed once when hovering its own column. New role-iteration tests cover values + tooltips and values + comments (playbook §4.3.2).
+
 ## [1.11.15.0] — 2026-11-01
 
 ### Fixed

@@ -55,6 +55,65 @@ describe("update — nominal render", () => {
   });
 });
 
+// Audit DATA-05 / playbook §4.3.2: one measure bound to several roles at once.
+describe("measure bound to several roles", () => {
+  const dualRole = () => {
+    const dv = buildSimpleMatrixDV(
+      ["A"],
+      [
+        { name: "Actual", values: [1] },
+        { name: "Budget", values: [2] }
+      ]
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).matrix.valueSources[0].roles = { values: true, tooltips: true };
+    return dv;
+  };
+  const tooltipNames = (visual: unknown, leafIdx: number): string[] => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = visual as any;
+    return v
+      .buildTooltipItems(v.lastValidRenderInput.parsed, 0, leafIdx)
+      .map((i: { displayName: string }) => i.displayName)
+      .filter((n: string) => n !== "");
+  };
+
+  test("values + tooltips stays a grid column", () => {
+    const { visual, target } = makeVisual();
+    visual.update(makeUpdateOptions(dualRole()));
+    expect(target.querySelectorAll("tbody tr:first-child td")).toHaveLength(2);
+  });
+
+  test("values + tooltips also reaches the tooltip of its sibling columns", () => {
+    const { visual } = makeVisual();
+    visual.update(makeUpdateOptions(dualRole()));
+    expect(tooltipNames(visual, 1)).toEqual(["Budget", "Actual"]);
+  });
+
+  test("hovering the dual-role measure itself lists it once", () => {
+    const { visual } = makeVisual();
+    visual.update(makeUpdateOptions(dualRole()));
+    expect(tooltipNames(visual, 0)).toEqual(["Actual"]);
+  });
+
+  test("values + comments stays a grid column and out of the comments layer", () => {
+    const { visual, target } = makeVisual();
+    const dv = buildSimpleMatrixDV(
+      ["A"],
+      [
+        { name: "Actual", values: [1] },
+        { name: "Note", values: ["hello"] }
+      ]
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).matrix.valueSources[1].roles = { values: true, comments: true };
+    visual.update(makeUpdateOptions(dv));
+    expect(target.querySelectorAll("tbody tr:first-child td")).toHaveLength(2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((visual as any).lastValidRenderInput.parsed.hasComments).toBe(false);
+  });
+});
+
 describe("update — page-switch replay vs user-cleared", () => {
   test("null DataView after a valid frame replays the cached render", () => {
     const { visual, target } = makeVisual();

@@ -2770,9 +2770,11 @@ export class Visual implements IVisual {
     // (comments only while the card shows them).
     const showComments = this.commentOpts().show;
     for (let i = 0; i < parsed.leaves.length; i++) {
-      if (parsed.renderLeafIdxs.includes(i)) continue;
+      if (i === leafIdx) continue;
       const other = parsed.leaves[i];
       const roles = parsed.valueSources[other.measureIndex]?.roles;
+      // Grid columns stay out, unless the measure is also in the Tooltips bucket.
+      if (parsed.renderLeafIdxs.includes(i) && roles?.tooltips !== true) continue;
       if (roles?.comments === true && roles?.values !== true && !showComments) continue;
       if (columnGroupKey(other.path) === columnGroupKey(leaf.path)) {
         pushMeasure(other.measureIndex, i);

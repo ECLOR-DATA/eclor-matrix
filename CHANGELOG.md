@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.15.0] — 2026-11-01
+
+### Fixed
+
+- **Column groups could merge when their labels collided** (PR 1 review): groups were keyed by joining their path with a space, so `North America / Q1` and `North / America Q1` counted as one group, which skipped gap columns and mixed calculated-column lookups and tooltips across them. The key now uses a separator that cannot occur in a label.
+
 ## [1.11.14.0] — 2026-11-01
 
 ### Fixed

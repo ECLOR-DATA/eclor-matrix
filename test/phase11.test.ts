@@ -276,4 +276,35 @@ describe("expand icons, wrap and aeration", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((visual as any).lastValidRenderInput.parsed.renderCols).toHaveLength(3);
   });
+
+  // PR 1 review: groups were keyed by path.join(" "), so two distinct groups
+  // differing only by where a space falls were merged.
+  test("column groups whose labels collide once joined stay distinct", () => {
+    const node = (a: string, b: string) => ({
+      levelValues: [{ value: a }],
+      children: [{ levelValues: [{ value: b }] }]
+    });
+    const d = {
+      matrix: {
+        rows: {
+          root: {
+            children: [
+              {
+                levelValues: [{ value: "A" }],
+                identity: { key: "r0" },
+                values: { 0: { value: 1 }, 1: { value: 2 } }
+              }
+            ]
+          },
+          levels: [{ sources: [{ displayName: "L", roles: { rows: true } }] }]
+        },
+        columns: { root: { children: [node("North America", "Q1"), node("North", "America Q1")] } },
+        valueSources: [{ displayName: "Actual", queryName: "M.A_0", roles: { values: true } }]
+      },
+      metadata: { columns: [], objects: { grid: { gapColumns: true } } }
+    };
+    const { visual, target } = makeVisual();
+    visual.update(makeUpdateOptions(d));
+    expect(target.querySelectorAll("tbody td.em-gapcol")).toHaveLength(1);
+  });
 });

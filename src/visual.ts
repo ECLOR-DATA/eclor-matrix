@@ -102,6 +102,7 @@ const EXPAND_ICONS: Record<string, [string, string]> = {
 };
 import {
   buildHeaderRows,
+  columnGroupKey,
   computeMaxAbs,
   flattenColumns,
   flattenRows,
@@ -535,7 +536,7 @@ export class Visual implements IVisual {
   } {
     const renderCols: RenderCol[] = [];
     const calcLookups = new Map<string, Map<string, number>>();
-    const groupCount = new Set(renderLeafIdxs.map((li) => leaves[li].path.join(" "))).size;
+    const groupCount = new Set(renderLeafIdxs.map((li) => columnGroupKey(leaves[li].path))).size;
     const gapsOn =
       this.formattingSettings.grid.gapColumns.value === true && groupCount > 1;
     if (calcDefs.length === 0 && !gapsOn) {
@@ -543,7 +544,7 @@ export class Visual implements IVisual {
       return { renderCols, calcLookups, flatHeader: null };
     }
     for (let li = 0; li < leaves.length; li++) {
-      const key = leaves[li].path.join(" ");
+      const key = columnGroupKey(leaves[li].path);
       let m = calcLookups.get(key);
       if (!m) {
         m = new Map();
@@ -555,8 +556,8 @@ export class Visual implements IVisual {
     let i = 0;
     while (i < renderLeafIdxs.length) {
       const path = leaves[renderLeafIdxs[i]].path;
-      const key = path.join(" ");
-      while (i < renderLeafIdxs.length && leaves[renderLeafIdxs[i]].path.join(" ") === key) {
+      const key = columnGroupKey(path);
+      while (i < renderLeafIdxs.length && columnGroupKey(leaves[renderLeafIdxs[i]].path) === key) {
         renderCols.push({ kind: "leaf", leafIdx: renderLeafIdxs[i] });
         i++;
       }
@@ -765,7 +766,7 @@ export class Visual implements IVisual {
 
     const byGroup = new Map<string, number[]>();
     for (const li of renderLeafIdxs) {
-      const k = leaves[li].path.join(" ");
+      const k = columnGroupKey(leaves[li].path);
       const bucket = byGroup.get(k);
       if (bucket) bucket.push(li);
       else byGroup.set(k, [li]);
@@ -2773,7 +2774,7 @@ export class Visual implements IVisual {
       const other = parsed.leaves[i];
       const roles = parsed.valueSources[other.measureIndex]?.roles;
       if (roles?.comments === true && roles?.values !== true && !showComments) continue;
-      if (other.path.join(" ") === leaf.path.join(" ")) {
+      if (columnGroupKey(other.path) === columnGroupKey(leaf.path)) {
         pushMeasure(other.measureIndex, i);
       }
     }

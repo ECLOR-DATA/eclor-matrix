@@ -61,6 +61,10 @@ export interface RowModel {
   cells: (number | string | null)[];
 }
 
+/** Identity of a column group. The separator cannot occur in a label, so
+ *  ["North America", "Q1"] and ["North", "America Q1"] stay distinct. */
+export const columnGroupKey = (path: string[]): string => path.join("");
+
 /** Measure-level node: it carries no category value. The host omits
  *  `levelSourceIndex` when it is 0, so a value-less node without the index
  *  is measure 0 — unless it is a subtotal (the Total column of a

@@ -109,19 +109,21 @@ export function templateVarianceSpecs(
 
 /**
  * Waterfall run for a variance column (T04): detail rows cascade — each
- * bar starts where the previous ended — while subtotal rows re-anchor at
- * zero and show the running total as a plain bar. Null values (blank
- * cells, custom rows) produce no bar and do not move the cursor.
- * Returns the start offset per row (null = no bar).
+ * bar starts where the previous ended. A subtotal row spans its own group's
+ * cascade and never moves the cursor: at the bottom it ends where the
+ * cascade stands (so a grand total runs from zero), at the top it starts
+ * there. Null values (blank cells, custom rows) produce no bar and do not
+ * move the cursor. Returns the start offset per row (null = no bar).
  */
 export function waterfallStarts(
   values: (number | null)[],
-  isSubtotal: boolean[]
+  isSubtotal: boolean[],
+  subtotalsOnTop: boolean = false
 ): (number | null)[] {
   let cum = 0;
   return values.map((v, i) => {
     if (v === null || !Number.isFinite(v)) return null;
-    if (isSubtotal[i]) return 0;
+    if (isSubtotal[i]) return subtotalsOnTop ? cum : cum - v;
     const start = cum;
     cum += v;
     return start;

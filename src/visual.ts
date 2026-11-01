@@ -854,7 +854,8 @@ export class Visual implements IVisual {
         );
         const starts = waterfallStarts(
           values,
-          rows.map((r) => r.isSubtotal)
+          rows.map((r) => r.isSubtotal),
+          this.formattingSettings.subTotals.rowSubtotalsType.value?.value === "Top"
         );
         calcWaterfall.set(`${col.calcIdx}|${col.pathKey}`, starts);
         const m = waterfallMaxAbs(values, starts);
@@ -979,7 +980,7 @@ export class Visual implements IVisual {
       wrap.appendChild(line);
       wrap.appendChild(dot);
     } else {
-      // T04 waterfall: detail bars cascade, subtotal bars re-anchor at zero.
+      // T04 waterfall: detail bars cascade, subtotal bars span their group.
       const geo = segmentGeometry(wfStart as number, v, maxAbs);
       const bar = document.createElement("div");
       bar.className = v >= 0 ? "em-bar em-bar-wf em-bar-wf-pos" : "em-bar em-bar-wf em-bar-wf-neg";

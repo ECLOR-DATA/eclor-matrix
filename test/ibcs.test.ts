@@ -106,6 +106,24 @@ describe("waterfall math (T04)", () => {
     expect(waterfallMaxAbs(values, starts)).toBe(8);
   });
 
+  // Audit GEN-25-d: with one running cursor and subtotals drawn from zero, a
+  // second group's cascade did not line up with its own subtotal bar.
+  test("multi-level, bottom subtotals: each subtotal spans its group's cascade", () => {
+    const values = [3, 2, 5, -1, 4, 3, 8];
+    const isSub = [false, false, true, false, false, true, true];
+    const starts = waterfallStarts(values, isSub);
+    expect(starts).toEqual([0, 3, 0, 5, 4, 5, 0]);
+    // Group 2 cascades 5 → 4 → 8, and its subtotal bar covers exactly 5 → 8.
+    expect((starts[5] as number) + values[5]).toBe(8);
+    expect(waterfallMaxAbs(values, starts)).toBe(8);
+  });
+
+  test("multi-level, top subtotals: each subtotal opens its group's cascade", () => {
+    const values = [8, 5, 3, 2, 3, -1, 4];
+    const isSub = [true, true, false, false, true, false, false];
+    expect(waterfallStarts(values, isSub, true)).toEqual([0, 0, 0, 3, 5, 5, 4]);
+  });
+
   test("segmentGeometry maps to the shared half-track, clamped", () => {
     expect(segmentGeometry(0, 50, 100)).toEqual({ leftPct: 50, widthPct: 25 });
     expect(segmentGeometry(50, -30, 100)).toEqual({ leftPct: 60, widthPct: 15 });

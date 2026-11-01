@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.13.0] — 2026-11-01
+
+### Fixed
+
+- **T04 waterfall did not line up on multi-level hierarchies** (audit GEN-25-d): a group's detail bars continued from the previous group while its subtotal bar was drawn from zero. A subtotal bar now spans its own group's cascade: at the bottom it ends where the cascade stands (a grand total still runs from zero), at the top it starts there. Single-level calculation schemes render as before.
+
 ## [1.11.12.0] — 2026-11-01
 
 ### Fixed

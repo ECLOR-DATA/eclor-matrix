@@ -72,6 +72,32 @@ describe("IBCS table templates", () => {
     expect(pin.style.left).not.toBe(""); // positioned on the track
   });
 
+  test("T04: the Top subtotal position opens the cascade instead of closing it", () => {
+    const dv = buildSimpleMatrixDV(
+      ["Group", "CA", "Coûts"],
+      [
+        { name: "Réel", values: [70, 100, -30] },
+        { name: "Budget", values: [60, 80, -20] }
+      ]
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).matrix.rows.root.children[0].isSubtotal = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).metadata.objects = {
+      ibcs: { template: "t04" },
+      subTotals: { rowSubtotalsType: "Top" }
+    };
+    const { visual, target } = makeVisual();
+    visual.update(makeUpdateOptions(dv));
+    const rows = target.querySelectorAll("tbody tr");
+    const wf = (tr: Element): HTMLElement => tr.querySelector(".em-bar-wf") as HTMLElement;
+    // ΔPL values: +10 (subtotal), +20, -10; domain 20. The subtotal runs 0 → 10.
+    expect(wf(rows[0]).style.left).toBe("50%");
+    expect(wf(rows[0]).style.width).toBe("25%");
+    expect(wf(rows[1]).style.left).toBe("50%"); // the details start with it
+    expect(wf(rows[2]).style.left).toBe("75%");
+  });
+
   test("T04: waterfall bars cascade, subtotal re-anchors at zero", () => {
     const dv = buildSimpleMatrixDV(
       ["CA", "Coûts", "Total"],

@@ -1,31 +1,40 @@
-# Sample dataset & demo report
+# Sample data & demo report
 
-`pnl-detailed-2y.csv` is the shared ECLOR demo dataset (same file as
-eclor-waterfall's): a 10 080-row monthly P&L (2024-01 → 2025-12), 7 entities ×
-3 business units × 20 P&L lines, with three measures `Prior_Year` / `Budget` /
-`Actual` and a `PnL_Order` sort column. Static, self-contained — just import it.
+Every demo report, screenshot and listing asset starts from the shared ECLOR base
+in [base/](base/): Microsoft Financial Sample (700 rows), star schema, measures,
+theme and logo. Read [base/MODEL.md](base/MODEL.md) first. Never invent a dataset.
 
-## How to build the demo `.pbix`
+## How to build a demo report
 
-1. Start from `template/Template V.1.0.0.pbix` (ECLOR-branded template) — or a
-   blank report with `template/Template V.1.0.0.json` applied as theme.
-2. **File → Get data → Text/CSV** → `sample/pnl-detailed-2y.csv` → **Load**.
-3. Sort `PnL_Line` by `PnL_Order` (**Column tools → Sort by column**).
-4. **Insert → More visuals → From a file** → latest `dist/eclorMatrixECLOR2026.X.X.X.X.pbiviz`.
-5. Field wells:
-   - `Entity`, `PnL_Line` → **Rows** (two-level hierarchy)
-   - `Date` (Year/Quarter) → **Columns**
-   - `Actual`, `Budget` → **Values**
-   - `Prior_Year` → **Tooltips**
-6. Format pane: **Subtotals** → check row subtotals ON, position Top; **Values**
-   → display units Auto; **General** → density Normal.
-7. Exercise: expand/collapse entities, click rows to cross-filter a companion
-   bar chart, hover cells for Prior_Year tooltips.
-8. **File → Save as** → `sample/Eclor Matrix – PnL.pbix`.
+1. Create a PBIP from [base/semantic-model/](base/semantic-model/) and apply
+   `base/eclor-light.theme.json`.
+2. **Transform data → Manage parameters**: point `DataFolder` at your copy of
+   `sample/base` before the first refresh. Grep for your local username before
+   committing anything derived from it: this repo is public.
+3. **Insert → More visuals → From a file** → latest `dist/eclorMatrixECLOR2026.X.X.X.X.pbiviz`.
+4. Field wells for a P&L view: `Category` → **Rows**, `Year` → **Columns**,
+   `Actual` → **Values**.
+
+## IBCS templates T01-T04
+
+The templates need an AC measure plus a PY and/or PL one. The test report adds two
+measures on top of the base (Financial Sample's 2026 only covers Sep–Dec, so PY
+compares the same months):
+
+```dax
+PY = CALCULATE([Actual], SAMEPERIODLASTYEAR(CALCULATETABLE(VALUES('DIM_TIME'[Date]), FACT_ECLOR_FINANCIALS)))
+Plan = ROUND([PY] * 1.05, 0)
+```
+
+`Plan` is a synthetic demo measure, not real budget data. Format → IBCS → Table
+template then picks T01-T04. T03/T04 expect an additive calculation scheme, e.g.
+`Category` filtered to Gross Sales, Discounts and COGS, whose total is Profit.
 
 ## The certification test report
 
-`audit/test-report/` is the 8-page hostile-scenario PBIP (Nominal, Interactions,
-Nulls, Negatives, HostileLabels, MultiInstance, Huge10k, Tiny) inherited from
-eclor-waterfall. Its visuals still reference the WATERFALL guid — the first
-`/pbiviz-cert-audit` run rebinds them to `eclorMatrixECLOR2026`.
+`audit/test-report/` is generated: run `node audit/tools/build-test-report.mjs`
+after `npm run package`. It holds the IBCS, nominal, interaction and format pages
+on the demo base, plus the hostile scenario tables (Nulls, Negatives, HostileLabels,
+OneRow, TwoRows, Huge10k).
+
+`pnl-detailed-2y.csv` is the older demo dataset, kept for reference only.

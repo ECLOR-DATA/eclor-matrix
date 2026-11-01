@@ -3,6 +3,13 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.8.0] — 2026-11-01
+
+### Documentation
+
+- Recorded two deliberate postures in `CLAUDE.md` (audit I18N-02-a, CAP-02-a): Format-pane slice labels stay English while card titles and runtime strings are localized (same as the certified Eclor Waterfall), and the matrix is cross-filtered rather than cross-highlighted (no `supportsHighlight`, native matrix behaviour).
+- README and `sample/README.md` brought up to date: current feature set, roadmap, and every demo now starts from the shared base in `sample/base/`.
+
 ## [1.11.7.0] — 2026-11-01
 
 ### Fixed

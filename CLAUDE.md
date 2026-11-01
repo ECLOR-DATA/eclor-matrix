@@ -7,8 +7,8 @@
 Power BI custom visual (`.pbiviz`) — advanced matrix/cross-tab: hierarchical rows & columns, expand/collapse, engine-computed subtotals, dynamic number formats, rule-based conditional colours, heat maps and IBCS-ready variance reporting. Successor project to `eclor-waterfall` (certified 2026-07) — same shop: workflows, agents, test harness, conventions.
 Target: **AppSource certification** (Stage C from day one — retrofit costs 10x).
 
-- **Current version:** 1.11.1.0 — see [CHANGELOG.md](CHANGELOG.md)
-- **Stage status:** A ⏳ (skeleton) / B ⏳ / C ⏳
+- **Current version:** 1.11.8.0 — see [CHANGELOG.md](CHANGELOG.md)
+- **Stage status:** A ✅ / B ⏳ (listing assets, demo pbix) / C ⏳ (audit⇄fix loop running — latest verdict in [audit/findings.json](audit/findings.json))
 - **API:** `powerbi-visuals-api ~5.11.0`
 
 ## Commands
@@ -35,21 +35,21 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 ## Architecture
 
 - [src/visual.ts](src/visual.ts) — main `IVisual` class (constructor, update, parseMatrix, renderFromInput, interactions, destroy)
-- [src/matrixModel.ts](src/matrixModel.ts) — PURE matrix-tree flattening (flattenRows/flattenColumns/buildHeaderRows/pruneColumnTree/computeMaxAbs) — no host coupling, fully testable
+- [src/matrixModel.ts](src/matrixModel.ts) — PURE matrix-tree flattening (flattenRows/flattenColumns/buildHeaderRows/pruneColumnTree/computeMaxAbs/pickAutoUnits) — no host coupling, fully testable
 - [src/layout.ts](src/layout.ts) — PURE layout state (column widths auto/uniform/custom + per-row style overrides), persisted like customRows
-- [src/settings.ts](src/settings.ts) — `FormattingSettingsModel` (8 cards; dynamic per-measure groups for values/cellColors)
+- [src/settings.ts](src/settings.ts) — `FormattingSettingsModel` (12 cards; dynamic per-measure groups for values/cellColors)
 - [src/format.ts](src/format.ts) — pure number/format-string helpers, copied verbatim from eclor-waterfall (scale-then-format pipeline, ~15 bugs already paid for — don't fork lightly)
 - [src/virtualize.ts](src/virtualize.ts) — pure windowed-scroll math (computeWindow/estimateRowHeight)
 - [src/cellColor.ts](src/cellColor.ts) — pure rules/heat-map engine + WCAG auto text contrast
 - [src/expressions.ts](src/expressions.ts) — eval-free formula engine (tokenizer + shunting-yard): + - * / ^ %, comparisons, SUM/AVERAGE/MIN/MAX/ABS/ROUND/IF with FR aliases (SOMME/MOYENNE/ARRONDI/SI) and `;` separator
 - [src/ibcs.ts](src/ibcs.ts) — IBCS scenario detection (EN/FR tokens), bar/pin/waterfall math, table templates T01-T04 (variance-column specs)
 - [src/comments.ts](src/comments.ts) — PURE data-comments layer (comments role): extraction + inline markup parser (**bold**/*italic*/__underline__/[#hex]) — architecture & porting guide in [docs/COMMENTS.md](docs/COMMENTS.md)
-- Tests in [test/](test/) — Jest + jsdom + ts-jest (21 suites, count via `npm test`); shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
+- Tests in [test/](test/) — Jest + jsdom + ts-jest (count via `npm test`); shared harness [test/_harness.ts](test/_harness.ts) builds matrix DataViews
 
 ## Agent workflow (see docs/WORKFLOW.md for detail)
 
 - Audit: `/pbiviz-cert-audit` — 3 lanes (static / PBI Desktop screenshots / browser service),
-  writes `audit/findings.json` + French report. `audit/test-report/` PBIP is pre-seeded (copied from eclor-waterfall — its 8 scenario pages still bind the WATERFALL visual; first audit run must rebind them to eclorMatrixECLOR2026).
+  writes `audit/findings.json` + French report. `audit/test-report/` is GENERATED: after `npm run package`, run `node audit/tools/build-test-report.mjs` (demo base + IBCS measures + hostile scenario tables, 13 pages, packaged visual embedded).
 - Fix: `/pbiviz-cert-fix` — consumes findings.json (CERT mode) or a described symptom (DEBUG mode).
   One commit per fix, version bumped, CHANGELOG updated. Never trusts itself: re-audit confirms.
 
@@ -66,11 +66,13 @@ CI runs `lint → tsc → jest → package` on push to `main` / `certification`.
 - **The per-measure pattern** (CONTEXT.md §13): dynamic Groups with `selector={metadata:queryName}` rebuilt each update; persisted values come back on `valueSources[i].objects`, NEVER through populate. Resolution = override-if-enabled else global card.
 - **Calc columns force flat headers** when a column tree exists (spans no longer match). Subtotal rows evaluate formulas on engine subtotals (ratio-correct). Invalid formulas skip silently.
 - **IBCS detection order PY/BU/FC before AC** — "Actual vs Budget" must read BU. Hatching = CSS repeating-linear-gradient (HTML rendering win).
+- **Localization posture (deliberate, same as certified eclor-waterfall)**: runtime strings (empty states, in-visual chrome, aria labels) resolve via `localize()` + `stringResources/{en-US,fr-FR}` — always update both resjson together. Format-pane slice labels stay English by design (universal BI vocabulary); only the card titles use `displayNameKey`. Don't re-flag this in audits.
+- **Cross-filter, not cross-highlight (deliberate)**: `supportsHighlight` is NOT declared. Tables and matrices are filtered by selections in other visuals, like the native matrix (audit GEN-04 verified). Declaring the flag would require rendering highlight values in every cell. Don't re-flag this in audits.
 
 ## Project-specific gotchas
 
-- `audit/test-report/` visuals reference `eclorWaterfallECLOR2026` until rebound (see Agent workflow above).
-- `assets/icon.png` is the waterfall icon as placeholder — replace with a matrix-specific 20×20 PNG before Stage B.
+- **The host omits `levelSourceIndex` when it is 0**: the first measure-level column node is a bare `{ level }`. Harness fixtures must reproduce that (`isMeasureNode` in `matrixModel.ts`); setting the index explicitly hid a blank-header bug for ten releases.
+- **Opening the test report in Desktop**: a Microsoft sign-in prompt can stay hidden behind "Working on it" when a `.pbip` is passed on the command line. Launch Desktop bare, dismiss the prompt, open from Recent or Browse. Refresh with Refresh → Schema and data (the PBIP has no cache).
 
 ## Workflow conventions
 

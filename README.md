@@ -11,11 +11,15 @@ audit⇄fix agent pipeline, certification conventions.
 
 ## Status
 
-`1.5.0.0` — feature-complete core (Stage A, cert prep underway). Hierarchical
-matrix with engine subtotals and expand/collapse, virtual scrolling (10k+ rows),
-per-measure format overrides, rule-based colours + heat maps, custom headers
-(rotation 0/45/90°), client-side calculated columns (eval-free formula engine),
-IBCS scenarios (AC/PY/BU/FC, EN+FR detection) with in-cell variance bars,
+Feature-complete core, certification audit loop running (current version in
+[CHANGELOG.md](CHANGELOG.md), latest audit verdict in
+[audit/findings.json](audit/findings.json)). Hierarchical matrix with engine
+subtotals and expand/collapse, virtual scrolling (10k+ rows), per-measure format
+overrides, rule-based colours + heat maps, custom headers (rotation 0/45/90°),
+column widths, frames and per-row styling, client-side calculated rows and
+columns (eval-free Excel-style formula engine), IBCS scenarios (AC/PY/BU/FC,
+EN+FR detection), table templates T01-T04 with variance bars, pins and
+waterfalls, model-fed data comments ([docs/COMMENTS.md](docs/COMMENTS.md)),
 selection/tooltips/keyboard/high-contrast, en-US + fr-FR.
 Market positioning: [docs/BENCHMARK.md](docs/BENCHMARK.md).
 
@@ -66,16 +70,16 @@ Portable pbiviz patterns and certification standards: [docs/CLAUDE_PLAYBOOK.md](
 4. ~~Custom headers (styling, rotation) + spacing controls~~ (1.3)
 5. ~~Client-side calculated columns (no-DAX expression engine)~~ (1.4)
 6. ~~IBCS scenarios, semantic styling, variance bars~~ (1.5)
-7. Top-N + comments + in-cell charts (see [docs/BENCHMARK.md](docs/BENCHMARK.md) gaps)
-8. AppSource listing + Microsoft certification (audit⇄fix loop)
+7. ~~Excel-style custom rows + in-visual layout editor~~ (1.6)
+8. ~~Simplified calc engine, data comments, IBCS templates T01-T04, layout options~~ (1.7–1.11)
+9. AppSource listing + Microsoft certification (audit⇄fix loop — in progress)
+10. Top-N + in-cell sparklines (see [docs/BENCHMARK.md](docs/BENCHMARK.md) gaps)
 
 ## Demo data
 
-`sample/pnl-detailed-2y.csv` — 10 080-row monthly P&L (2024–2025), 7 entities ×
-3 business units × 20 P&L lines with `Actual` / `Budget` / `Prior_Year` measures.
-Import it in Power BI Desktop, drop `PnL_Line` (and `Entity`) into **Rows**, a
-date hierarchy into **Columns**, the three measures into **Values**.
-`template/Template V.1.0.0.pbix` is the ECLOR-branded starting report.
+Every demo starts from the shared ECLOR base in [sample/base/](sample/base/)
+(Microsoft Financial Sample, star schema, theme — see its `MODEL.md`).
+[sample/README.md](sample/README.md) explains how to build a demo report on it.
 
 ## License
 

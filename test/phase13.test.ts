@@ -217,4 +217,105 @@ describe("column grips", () => {
     const state2 = JSON.parse((persisted[1] as any).merge[0].properties.state);
     expect(state2["·Actual"]).toBeUndefined();
   });
+
+  const customDv = (state: Record<string, number> = {}) => {
+    const dv = buildSimpleMatrixDV(["A"], [{ name: "Actual", values: [1] }]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).metadata.objects = {
+      columnWidths: { mode: "custom", uniformWidth: 100, state: serializeColumnWidthsState(state) }
+    };
+    return dv;
+  };
+
+  // PR 1 review: a plain click pinned the uniform width as a custom override,
+  // so raising the uniform width later left that column behind.
+  test("a click without moving neither pins the width nor persists", () => {
+    const { visual, target } = makeVisual();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const host = (visual as any).host;
+    const persisted: unknown[] = [];
+    host.persistProperties = (c: unknown) => persisted.push(c);
+    visual.update(makeUpdateOptions(customDv()));
+    const grip = target.querySelector('.em-colgrip[data-col-key="·Actual"]') as HTMLElement;
+    grip.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, clientX: 300 }));
+    document.dispatchEvent(new MouseEvent("mouseup", {}));
+    expect(persisted).toHaveLength(0);
+  });
+
+  // Audit A11Y-02-a: column widths could only be set with the mouse.
+  describe("keyboard", () => {
+    const key = (el: HTMLElement, type: string, k: string): void => {
+      el.dispatchEvent(new KeyboardEvent(type, { key: k, bubbles: true, cancelable: true }));
+    };
+    const gripOf = (target: HTMLElement): HTMLElement =>
+      target.querySelector('.em-colgrip[data-col-key="·Actual"]') as HTMLElement;
+
+    test("grips are focusable separators named after their column", () => {
+      const { visual, target } = makeVisual();
+      visual.update(makeUpdateOptions(customDv({ "·Actual": 120 })));
+      const grip = gripOf(target);
+      expect(grip.getAttribute("tabindex")).toBe("0");
+      expect(grip.getAttribute("role")).toBe("separator");
+      expect(grip.getAttribute("aria-hidden")).toBeNull();
+      expect(grip.getAttribute("aria-orientation")).toBe("vertical");
+      expect(grip.getAttribute("aria-valuenow")).toBe("120");
+      expect(grip.getAttribute("aria-label")).toContain("Actual");
+    });
+
+    test("arrows resize live, keyup persists once, focus survives the re-render", () => {
+      const { visual, target } = makeVisual();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const host = (visual as any).host;
+      const persisted: unknown[] = [];
+      host.persistProperties = (c: unknown) => persisted.push(c);
+      visual.update(makeUpdateOptions(customDv({ "·Actual": 120 })));
+      const grip = gripOf(target);
+      grip.focus();
+      key(grip, "keydown", "ArrowRight");
+      key(grip, "keydown", "ArrowRight");
+      const cols = target.querySelectorAll("colgroup col");
+      expect((cols[1] as HTMLElement).style.width).toBe("140px");
+      expect(grip.getAttribute("aria-valuenow")).toBe("140");
+      expect(persisted).toHaveLength(0);
+
+      key(grip, "keyup", "ArrowRight");
+      expect(persisted).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const state = JSON.parse((persisted[0] as any).merge[0].properties.state);
+      expect(state["·Actual"]).toBe(140);
+
+      // The host echoes the state back: thead is rebuilt, focus must follow.
+      visual.update(makeUpdateOptions(customDv({ "·Actual": 140 })));
+      expect(gripOf(target)).not.toBe(grip);
+      expect(document.activeElement).toBe(gripOf(target));
+    });
+
+    test("left arrow shrinks, clamped at the minimum, without persisting a no-op", () => {
+      const { visual, target } = makeVisual();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const host = (visual as any).host;
+      const persisted: unknown[] = [];
+      host.persistProperties = (c: unknown) => persisted.push(c);
+      visual.update(makeUpdateOptions(customDv({ "·Actual": 24 })));
+      const grip = gripOf(target);
+      key(grip, "keydown", "ArrowLeft");
+      key(grip, "keyup", "ArrowLeft");
+      expect(grip.getAttribute("aria-valuenow")).toBe("24");
+      expect(persisted).toHaveLength(0);
+    });
+
+    test("Delete resets the column, like a double-click", () => {
+      const { visual, target } = makeVisual();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const host = (visual as any).host;
+      const persisted: unknown[] = [];
+      host.persistProperties = (c: unknown) => persisted.push(c);
+      visual.update(makeUpdateOptions(customDv({ "·Actual": 120 })));
+      key(gripOf(target), "keydown", "Delete");
+      expect(persisted).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const state = JSON.parse((persisted[0] as any).merge[0].properties.state);
+      expect(state["·Actual"]).toBeUndefined();
+    });
+  });
 });

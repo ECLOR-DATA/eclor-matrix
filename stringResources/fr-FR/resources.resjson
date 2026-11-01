@@ -50,5 +50,6 @@
   "Visual_LineSolid": "Plein",
   "Visual_LineDashed": "Tirets",
   "Visual_LineDotted": "Pointillés",
-  "Visual_ColumnGripTitle": "Glisser pour redimensionner · double-clic pour réinitialiser"
+  "Visual_ColumnGripTitle": "Glisser ou ←/→ pour redimensionner · double-clic ou Suppr pour réinitialiser",
+  "Visual_ColumnGripLabel": "Redimensionner la colonne"
 }

@@ -3,6 +3,13 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.10.0] — 2026-11-01
+
+### Fixed
+
+- **Column widths could only be set with the mouse** (audit A11Y-02-a): in Custom mode the grips are now focusable separators named after their column. ←/→ resize by 10 px live and persist on keyup, Delete resets like a double-click, and focus follows the header rebuild that the persist triggers.
+- **A plain click on a grip pinned the column** (PR 1 review): it stored the current uniform width as a custom override, so raising the uniform width later left that column behind. A grip now persists only when the width really changed.
+
 ## [1.11.9.0] — 2026-11-01
 
 ### Fixed

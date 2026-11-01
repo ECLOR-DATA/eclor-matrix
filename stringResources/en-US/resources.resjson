@@ -50,5 +50,6 @@
   "Visual_LineSolid": "Solid",
   "Visual_LineDashed": "Dashed",
   "Visual_LineDotted": "Dotted",
-  "Visual_ColumnGripTitle": "Drag to resize · double-click to reset"
+  "Visual_ColumnGripTitle": "Drag or press ←/→ to resize · double-click or Delete to reset",
+  "Visual_ColumnGripLabel": "Resize column"
 }

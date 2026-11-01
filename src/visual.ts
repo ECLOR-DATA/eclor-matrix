@@ -90,6 +90,9 @@ type RenderCol =
   | { kind: "calc"; calcIdx: number; path: string[]; pathKey: string }
   | { kind: "gap" };
 
+/** Px per ←/→ press on a focused column grip. */
+const KEY_RESIZE_STEP = 10;
+
 /** Expand/collapse icon pairs (collapsed, expanded) — Format → Row headers. */
 const EXPAND_ICONS: Record<string, [string, string]> = {
   chevron: ["▸", "▾"],
@@ -197,9 +200,12 @@ export class Visual implements IVisual {
     key: string;
     startX: number;
     startWidth: number;
-    startTableWidth: number;
     cols: HTMLTableColElement[];
   } | null = null;
+  /** Column whose keyboard resize waits for its keyup to persist. */
+  private keyResizeKey: string | null = null;
+  /** Grip to refocus once the persist echo has rebuilt the header. */
+  private refocusGripKey: string | null = null;
 
   constructor(options?: VisualConstructorOptions) {
     if (!options) {
@@ -226,6 +232,7 @@ export class Visual implements IVisual {
     this.target.addEventListener("mousemove", this.handleMouseMove);
     this.target.addEventListener("mouseleave", this.handleMouseLeave);
     this.target.addEventListener("keydown", this.handleKeydown);
+    this.target.addEventListener("keyup", this.handleGripKeyup);
     this.target.addEventListener("mousedown", this.handleGripDown);
     this.target.addEventListener("dblclick", this.handleDblClick);
 
@@ -1176,6 +1183,7 @@ export class Visual implements IVisual {
     this.target.replaceChildren(scroll);
     this.renderChrome();
     this.applySelectionVisuals();
+    this.restoreGripFocus();
   }
 
   /** Push the Grid & borders / spacing / hierarchy / subtotal-style options
@@ -1337,7 +1345,6 @@ export class Visual implements IVisual {
       key,
       startX: e.clientX,
       startWidth: parseFloat(cols[0].style.width) || MIN_COL_WIDTH,
-      startTableWidth: parseFloat(this.tableEl.style.width) || 0,
       cols
     };
     document.addEventListener("mousemove", this.handleGripMove);
@@ -1345,15 +1352,11 @@ export class Visual implements IVisual {
   };
 
   private handleGripMove = (e: MouseEvent): void => {
-    if (!this.drag || !this.tableEl) return;
-    const w = Math.min(
-      MAX_COL_WIDTH,
-      Math.max(MIN_COL_WIDTH, Math.round(this.drag.startWidth + e.clientX - this.drag.startX))
+    if (!this.drag) return;
+    this.setColWidth(
+      this.drag.cols,
+      Math.round(this.drag.startWidth + e.clientX - this.drag.startX)
     );
-    for (const col of this.drag.cols) col.style.width = `${w}px`;
-    this.tableEl.style.width = `${
-      this.drag.startTableWidth + (w - this.drag.startWidth) * this.drag.cols.length
-    }px`;
   };
 
   private handleGripUp = (): void => {
@@ -1361,12 +1364,69 @@ export class Visual implements IVisual {
     document.removeEventListener("mouseup", this.handleGripUp);
     if (!this.drag) return;
     const w = parseFloat(this.drag.cols[0].style.width);
-    if (Number.isFinite(w)) {
+    // A plain click must not pin the current width as a custom override.
+    if (Number.isFinite(w) && w !== this.drag.startWidth) {
       this.colWidths[this.drag.key] = Math.round(w);
       this.persistColumnWidths();
     }
     this.drag = null;
   };
+
+  /** Clamp and apply a width to one column's cols, widening the fixed table
+   *  by the difference. Returns the width actually applied. */
+  private setColWidth(cols: HTMLTableColElement[], width: number): number {
+    const w = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, width));
+    const current = parseFloat(cols[0].style.width) || MIN_COL_WIDTH;
+    for (const col of cols) col.style.width = `${w}px`;
+    if (this.tableEl) {
+      const tableWidth = parseFloat(this.tableEl.style.width) || 0;
+      this.tableEl.style.width = `${tableWidth + (w - current) * cols.length}px`;
+    }
+    return w;
+  }
+
+  /** Keyboard route to the grips: ←/→ resize live (persisted on keyup, one
+   *  host round-trip per press or hold), Delete resets like a double-click. */
+  private handleGripKeydown(e: KeyboardEvent, grip: HTMLElement): void {
+    const key = grip.getAttribute("data-col-key");
+    const cols = key ? this.colEls.get(key) : undefined;
+    if (!key || !cols || cols.length === 0) return;
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (this.colWidths[key] !== undefined) this.refocusGripKey = key;
+      this.handleGripReset(grip);
+      return;
+    }
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const current = parseFloat(cols[0].style.width) || MIN_COL_WIDTH;
+    const step = e.key === "ArrowRight" ? KEY_RESIZE_STEP : -KEY_RESIZE_STEP;
+    const w = this.setColWidth(cols, current + step);
+    if (w === current) return;
+    this.colWidths[key] = w;
+    this.colWidthsDirty = true;
+    this.keyResizeKey = key;
+    grip.setAttribute("aria-valuenow", String(w));
+  }
+
+  private handleGripKeyup = (): void => {
+    if (!this.keyResizeKey) return;
+    this.refocusGripKey = this.keyResizeKey;
+    this.keyResizeKey = null;
+    this.persistColumnWidths();
+  };
+
+  /** The persist echo rebuilds the header, which drops the focused grip.
+   *  Put focus back unless it already moved on inside the visual. */
+  private restoreGripFocus(): void {
+    const key = this.refocusGripKey;
+    if (!key) return;
+    this.refocusGripKey = null;
+    const active = document.activeElement;
+    if (active && active !== document.body && this.target.contains(active)) return;
+    const grips = Array.from(this.target.querySelectorAll<HTMLElement>(".em-colgrip"));
+    grips.find((g) => g.getAttribute("data-col-key") === key)?.focus();
+  }
 
   /** Double-click a grip: forget that column's custom width. */
   private handleGripReset(el: HTMLElement): void {
@@ -2135,7 +2195,11 @@ export class Visual implements IVisual {
   private attachColumnGrips(thead: HTMLTableSectionElement, parsed: ParseResult): void {
     if (this.columnWidthMode() !== "custom") return;
     const corner = thead.querySelector("th.em-corner");
-    if (corner) corner.appendChild(this.makeGrip(ROW_HEADER_COL_KEY));
+    if (corner) {
+      corner.appendChild(
+        this.makeGrip(ROW_HEADER_COL_KEY, this.localize("Visual_RowHeaders", "Row headers"))
+      );
+    }
     const lastRow = thead.lastElementChild;
     const cells = lastRow
       ? Array.from(lastRow.querySelectorAll("th:not(.em-corner):not(.em-commentth)"))
@@ -2143,22 +2207,33 @@ export class Visual implements IVisual {
     if (cells.length === parsed.renderCols.length) {
       cells.forEach((cell, idx) => {
         const key = this.columnKeyFor(parsed, parsed.renderCols[idx]);
-        if (key) cell.appendChild(this.makeGrip(key));
+        if (key) cell.appendChild(this.makeGrip(key, cell.textContent ?? ""));
       });
     }
     const cth = thead.querySelector("th.em-commentth");
-    if (cth) cth.appendChild(this.makeGrip(COMMENTS_COL_KEY));
+    if (cth) cth.appendChild(this.makeGrip(COMMENTS_COL_KEY, cth.textContent ?? ""));
   }
 
-  private makeGrip(key: string): HTMLSpanElement {
+  private makeGrip(key: string, columnName: string): HTMLSpanElement {
     const grip = document.createElement("span");
     grip.className = "em-colgrip";
     grip.setAttribute("data-col-key", key);
     grip.setAttribute(
       "title",
-      this.localize("Visual_ColumnGripTitle", "Drag to resize · double-click to reset")
+      this.localize(
+        "Visual_ColumnGripTitle",
+        "Drag or press ←/→ to resize · double-click or Delete to reset"
+      )
     );
-    grip.setAttribute("aria-hidden", "true");
+    const label = this.localize("Visual_ColumnGripLabel", "Resize column");
+    grip.setAttribute("aria-label", columnName ? `${label}: ${columnName}` : label);
+    grip.setAttribute("tabindex", "0");
+    grip.setAttribute("role", "separator");
+    grip.setAttribute("aria-orientation", "vertical");
+    grip.setAttribute("aria-valuemin", String(MIN_COL_WIDTH));
+    grip.setAttribute("aria-valuemax", String(MAX_COL_WIDTH));
+    const width = parseFloat(this.colEls.get(key)?.[0]?.style.width ?? "");
+    if (Number.isFinite(width)) grip.setAttribute("aria-valuenow", String(width));
     return grip;
   }
 
@@ -2661,6 +2736,11 @@ export class Visual implements IVisual {
   }
 
   private handleKeydown = (e: KeyboardEvent): void => {
+    const grip = (e.target as Element)?.closest?.(".em-colgrip") as HTMLElement | null;
+    if (grip) {
+      this.handleGripKeydown(e, grip);
+      return;
+    }
     const rowEl = (e.target as Element)?.closest?.("tr[data-row-idx]") as HTMLElement | null;
     if (!rowEl) return;
     const idx = parseInt(rowEl.getAttribute("data-row-idx") || "-1", 10);

@@ -272,6 +272,18 @@ describe("capabilities.json shape guard (load-bearing blocks)", () => {
     expect(model.subTotals.rowSubtotalsType.value).toMatchObject({ value: "Bottom" });
   });
 
+  // Audit CAP-07-a. Every bucket is optional and multi-field. A min >= 1 would be
+  // worse than nothing: an unmet condition leaves the DataView without `matrix`,
+  // which update() replays as a page-switch transient — a ghost frame once the
+  // user removes the last field.
+  test("conditions declare every role, optional and uncapped", () => {
+    const conditions = cap.dataViewMappings[0].conditions;
+    expect(conditions).toHaveLength(1);
+    const roles = cap.dataRoles.map((r: { name: string }) => r.name).sort();
+    expect(Object.keys(conditions[0]).sort()).toEqual(roles);
+    for (const role of roles) expect(conditions[0][role]).toEqual({ min: 0 });
+  });
+
   test("no privileges (certification) and comments role declared as Measure", () => {
     expect(cap.privileges).toEqual([]);
     const role = cap.dataRoles.find((r: { name: string }) => r.name === "comments");

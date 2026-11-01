@@ -29,6 +29,11 @@ single most expensive lesson from the waterfall (its CONTEXT.md §20). Subtotal
 rows/columns come from the ENGINE, not client-side summation: a client-side sum of
 a non-additive measure (ratio, distinct count) is simply wrong.
 
+The mapping's `conditions` state the real cardinality: every bucket optional and
+multi-field (`min: 0`, no `max`). Never raise a `min`: an unmet condition leaves
+the DataView without `matrix`, which `update()` reads as a page-switch transient
+and replays the last frame — a ghost after the user removes the last field.
+
 ## 4. Pure-module split
 
 `matrixModel.ts` owns every tree-flattening rule (DFS leaf ordering = cell-key

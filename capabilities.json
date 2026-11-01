@@ -33,6 +33,15 @@
   ],
   "dataViewMappings": [
     {
+      "conditions": [
+        {
+          "rows": { "min": 0 },
+          "columns": { "min": 0 },
+          "values": { "min": 0 },
+          "tooltips": { "min": 0 },
+          "comments": { "min": 0 }
+        }
+      ],
       "matrix": {
         "rows": {
           "for": {

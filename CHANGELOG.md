@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.11.0] — 2026-11-01
+
+### Fixed
+
+- **No min/max conditions on the matrix mapping** (audit CAP-07-a): every bucket now states its cardinality explicitly (optional and multi-field, `min: 0`, no `max`). A `min` of 1 is deliberately avoided: it would leave the DataView without `matrix` when the last field is removed, which the visual replays as a page-switch transient (ghost frame). Guard test added; rationale in CONTEXT §3.
+
 ## [1.11.10.0] — 2026-11-01
 
 ### Fixed

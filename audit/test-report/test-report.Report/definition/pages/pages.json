@@ -13,7 +13,10 @@
     "p10-hostile",
     "p11-multi",
     "p12-huge10k",
-    "p13-tiny"
+    "p13-tiny",
+    "p14-gaps",
+    "p15-t04-multi",
+    "p16-widths"
   ],
   "activePageName": "p01-ibcs-t01"
 }

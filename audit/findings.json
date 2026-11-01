@@ -3,14 +3,14 @@
   "project": {
     "name": "eclorMatrix",
     "guid": "eclorMatrixECLOR2026",
-    "version": "1.11.6.0",
-    "commit": "9d068af",
-    "branch": "main"
+    "version": "1.11.16.0",
+    "commit": "e7e9384",
+    "branch": "cert/audit-loop-it3"
   },
   "run": {
-    "iteration": 2,
+    "iteration": 3,
     "mode": "incremental",
-    "startedAt": "2026-10-31T12:15:00+01:00",
+    "startedAt": "2026-11-01T10:00:00+01:00",
     "lanesRun": [
       "S",
       "D"
@@ -21,177 +21,21 @@
         "msedge",
         "chrome"
       ],
-      "testReport": "audit/test-report/test-report.pbip rebuilt with 1.11.6.0 (same 13 pages)",
+      "testReport": "audit/test-report/test-report.pbip rebuilt with 1.11.16.0 (16 pages: Gaps, T04 multi, Widths added)",
       "docDrift": "none — submission-testing page fetched 2026-10-31 matches references/checklist.md (min/max conditions case already covered by CAP-07)"
     },
     "coverage": {
-      "pass": 47,
-      "fail": 4,
-      "warn": 6,
+      "pass": 55,
+      "fail": 0,
+      "warn": 2,
       "blocked": 3,
       "manual": 24,
       "na": 3
     }
   },
-  "verdict": "NOT_READY",
+  "verdict": "READY_EXCEPT_MANUAL",
   "blockers": 0,
   "findings": [
-    {
-      "id": "GEN-26-a",
-      "testId": "GEN-26",
-      "title": "Auto display units scale every cell by the grand-total magnitude with 0 decimals — values collapse to 0M and lose their sign",
-      "lane": "D",
-      "severity": "major",
-      "verdict": "FAIL",
-      "status": "fixed",
-      "expected": "Cell values stay readable and faithful (native matrix shows full values; at minimum a non-zero value never renders as 0 and a negative never loses its sign)",
-      "actual": "Nulls page: Alpha 320,000 → '0M', Echo 275,000 → '0M', Variance -18,000 → '0M'. Huge 10k page: every row '0M' (total 50M). Nominal 3rd instance: 355,000 → '0M'. The scale is chosen from computeMaxAbs over ALL rows (grand total included) and applied to every measure column with 0 decimals",
-      "evidence": [
-        "audit/screens/D-p08-nulls.png",
-        "audit/screens/D-p12-huge10k.png",
-        "audit/screens/D-p11-multi.png",
-        "audit/screens/it2-D-p08-nulls.png (it2: PASS)"
-      ],
-      "repro": [
-        "Open audit/test-report, page 'Nulls' (Values card left at defaults: display units Auto, decimals 0)",
-        "Read the Sum of Actual / Sum of Variance cells"
-      ],
-      "suspectedArea": [
-        "src/visual.ts:fillTbody (dataMaxAbs = computeMaxAbs(parsed.rows))",
-        "src/visual.ts:buildLeafCell → formatActualLabel",
-        "src/format.ts:getDisplayScale"
-      ],
-      "fixHint": "In a grid, 'auto' units must not rescale cells to a magnitude where they round to 0 — default to no scaling (native matrix parity) or derive the scale per column without the totals and keep enough decimals",
-      "firstSeenIteration": 1,
-      "outcome": "fixed-claimed",
-      "fixCommit": "e8f3264",
-      "fixedInVersion": "1.11.3.0",
-      "fixNote": "Auto units resolve per column from detail rows (pickAutoUnits: largest unit no non-zero value falls below) for measures without a model format; format.ts untouched. Residual: calc columns still use the grid-wide path; unformatted full numbers render without grouping (\"2500000\") — host formatter behaviour."
-    },
-    {
-      "id": "GEN-25-a",
-      "testId": "GEN-25",
-      "title": "First measure's column header is blank whenever the tree header path is used",
-      "lane": "D",
-      "severity": "major",
-      "verdict": "FAIL",
-      "status": "fixed",
-      "expected": "Every measure column carries its measure name (as on the IBCS pages, where the flat header path is used)",
-      "actual": "Header empty over the first value column on Interactions ('Actual'), Formats ('Total Actual'), Nulls / Negatives / Hostile labels / Huge 10k ('Sum of Actual'), One row and Two rows. Second and later measures are labelled. The IBCS template pages are unaffected because templates force the flat header",
-      "evidence": [
-        "audit/screens/D-p06-interactions.png",
-        "audit/screens/D-p07-formats.png",
-        "audit/screens/D-p08-nulls.png",
-        "audit/screens/D-p11-multi.png",
-        "audit/screens/it2-D-p11-multi.png (it2: PASS)"
-      ],
-      "repro": [
-        "Open page 'Formats' (3 measures, no column field)",
-        "Look at the header above the first value column"
-      ],
-      "suspectedArea": [
-        "src/matrixModel.ts:nodeLabel",
-        "src/matrixModel.ts:pruneColumnTree (same levelSourceIndex !== undefined test)"
-      ],
-      "fixHint": "The host omits levelSourceIndex when it is 0 — treat a measure-level leaf with undefined levelSourceIndex as measure 0 (and add a harness case where the first measure node has no levelSourceIndex)",
-      "firstSeenIteration": 1,
-      "outcome": "fixed-claimed",
-      "fixCommit": "befe921",
-      "fixedInVersion": "1.11.2.0",
-      "fixNote": "Root cause confirmed: host omits levelSourceIndex 0; value-less non-subtotal node = measure 0 in nodeLabel/flattenColumns/pruneColumnTree. Also fixes measure 0 being split from its column group path."
-    },
-    {
-      "id": "GEN-15-a",
-      "testId": "GEN-15",
-      "title": "In-visual ✎ / 💬 toolbar is drawn over the grid and hides header text and data values",
-      "lane": "D",
-      "severity": "major",
-      "verdict": "FAIL",
-      "status": "fixed",
-      "expected": "Visual chrome never overlaps data (Microsoft: elements positioned in accord with the rest of the visual)",
-      "actual": "The absolutely-positioned toolbar (top:4px; right:4px) covers the last column header on every page ('ΔPL %' clipped on the four IBCS pages) and the first data cell when the grid is narrow: One row shows Total '5' instead of 500K, Two rows '7' instead of 750K, Tiny '6' instead of 6M",
-      "evidence": [
-        "audit/screens/D-p11-multi.png",
-        "audit/screens/D-p01-ibcs-t01.png",
-        "audit/screens/D-p13-tiny.png",
-        "audit/screens/it2-D-p11-multi.png (it2: PASS)"
-      ],
-      "repro": [
-        "Open page 'Multi-instance'",
-        "Read the Total row of 'One row' and 'Two rows'"
-      ],
-      "suspectedArea": [
-        "style/visual.less:.em-toolbar",
-        "src/visual.ts:renderChrome"
-      ],
-      "fixHint": "Reserve space for the toolbar (or reveal it only on hover/focus and outside the cell area) so it never sits on top of header or value text",
-      "firstSeenIteration": 1,
-      "outcome": "fixed-claimed",
-      "fixCommit": "c0b6a95",
-      "fixedInVersion": "1.11.4.0",
-      "fixNote": "Toolbar docked in the empty sticky header corner (floating fallback only without a header row). jest checks DOM placement only — auditor must re-test the overlap in lane D."
-    },
-    {
-      "id": "GEN-25-b",
-      "testId": "GEN-25",
-      "title": "Row subtotals default to 'Top': grand total renders first, and each hierarchy group renders an empty header row followed by a separate 'Total' row",
-      "lane": "D",
-      "severity": "major",
-      "verdict": "FAIL",
-      "status": "fixed",
-      "expected": "Out-of-the-box layout matches the native matrix (row subtotals at the bottom; with 'Top', the subtotal values sit on the group row itself)",
-      "actual": "Every page shows 'Total' as the first row. On 'Nominal' (Segment > Country) each segment shows a blank group row, then a 'Total' row, then its countries — two rows per group for one piece of information. On IBCS T04 the result bar is drawn before the cascade it closes",
-      "evidence": [
-        "audit/screens/D-p05-nominal.png",
-        "audit/screens/D-p04-ibcs-t04.png",
-        "audit/screens/D-p01-ibcs-t01.png",
-        "audit/screens/it2-D-p05-nominal.png (it2: PASS)"
-      ],
-      "repro": [
-        "Open page 'Nominal'",
-        "Observe the Channel Partners group: blank row, 'Total' row, then countries"
-      ],
-      "suspectedArea": [
-        "capabilities.json:subtotals.matrix.rowSubtotalsType.defaultValue",
-        "src/settings.ts:SubTotalsCardSettings.rowSubtotalsType",
-        "src/matrixModel.ts:flattenRows"
-      ],
-      "fixHint": "Default rowSubtotalsType to 'Bottom' in capabilities AND settings together (keep all six switch mappings — CLAUDE.md), and for 'Top' fold the subtotal values onto the group header row",
-      "firstSeenIteration": 1,
-      "outcome": "fixed-claimed",
-      "fixCommit": "be98376",
-      "fixedInVersion": "1.11.6.0",
-      "fixNote": "Default Top -> Bottom in capabilities + settings (six mappings untouched). NOT done: folding Top subtotals onto the group row — an explicit Top still shows blank group row + Total row."
-    },
-    {
-      "id": "GEN-25-c",
-      "testId": "GEN-25",
-      "title": "IBCS bars and pins: total and subtotal rows saturate at the full half-track",
-      "lane": "D",
-      "severity": "major",
-      "verdict": "FAIL",
-      "status": "fixed",
-      "expected": "Bar length is proportional to the value on every row, or totals use their own scale",
-      "actual": "T02: Total ΔPY -9,742,264 is drawn exactly as long as France -3,513,983 (the domain is computed over detail rows only, totals are clamped to 100 %)",
-      "evidence": [
-        "audit/screens/D-p02-ibcs-t02.png",
-        "audit/screens/ibcs/T02-barres-et-pins.png",
-        "audit/screens/it2-D-p02-ibcs-t02.png (it2: PASS)"
-      ],
-      "repro": [
-        "Open page 'IBCS T02'",
-        "Compare the Total ΔPY bar with the France ΔPY bar"
-      ],
-      "suspectedArea": [
-        "src/visual.ts:computeCalcDomains"
-      ],
-      "fixHint": "Include subtotal rows in the bar/pin domain, or give totals a separate scale",
-      "firstSeenIteration": 1,
-      "outcome": "fixed-claimed",
-      "fixCommit": "e88b810",
-      "fixedInVersion": "1.11.5.0",
-      "fixNote": "Subtotal rows now enter the bar/pin |max| domain (shared scale, not a separate total scale). CONTEXT §15 updated."
-    },
     {
       "id": "MAN-05-a",
       "testId": "MAN-05",
@@ -199,12 +43,13 @@
       "lane": "S",
       "severity": "major",
       "verdict": "FAIL",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "A matrix-specific 20×20 RGBA icon (CLAUDE.md gotcha: replace before Stage B)",
       "actual": "assets/icon.png is 20×20 RGBA but byte-identical to eclor-waterfall/assets/icon.png (md5 99a8a60f…)",
       "evidence": [
         "audit/evidence/static-it1.txt",
-        "md5sum assets/icon.png ../eclor-waterfall/assets/icon.png"
+        "md5sum assets/icon.png ../eclor-waterfall/assets/icon.png",
+        "audit/screens/it3-open.png (new icon in the Visualizations pane) (it3: PASS)"
       ],
       "repro": [
         "md5sum assets/icon.png ../eclor-waterfall/assets/icon.png"
@@ -226,11 +71,12 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "FAIL",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Microsoft case 'Check min/max dataViewMapping conditions': each bucket's cardinality intent encoded",
       "actual": "dataViewMappings[0].conditions is absent — every role (including comments) accepts unlimited fields",
       "evidence": [
-        "audit/evidence/static-it1.txt"
+        "audit/evidence/static-it1.txt",
+        "audit/screens/it3-D-*.png (16 pages render with the conditions); field removal still in GEN-05 manual (it3: PASS)"
       ],
       "repro": [
         "node -e \"console.log(require('./capabilities.json').dataViewMappings[0].conditions)\""
@@ -252,11 +98,12 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "FAIL",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Every interactive feature reachable from the keyboard",
       "actual": "Column grips are aria-hidden spans without tabindex; no keyboard path or Format-pane equivalent for individual widths",
       "evidence": [
-        "src/visual.ts:makeGrip (aria-hidden, no tabindex)"
+        "src/visual.ts:makeGrip (aria-hidden, no tabindex)",
+        "audit/screens/it3-A11Y-5-resized.png (Shift+Tab to the grip, 6 x right arrow in Desktop) (it3: PASS)"
       ],
       "repro": [
         "Columns widths → Custom",
@@ -280,12 +127,13 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "FAIL",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Each group's cascade connects to its own subtotal bar",
       "actual": "waterfallStarts keeps one running cursor across groups while subtotal bars start at 0, so group N's detail bars start where group N-1 ended (single-level schemes such as the T04 page are correct)",
       "evidence": [
         "src/ibcs.ts:waterfallStarts",
-        "code review 2026-10-31 (PR 1)"
+        "code review 2026-10-31 (PR 1)",
+        "audit/screens/it3-D-p15-t04-multi.png + test/ibcs.test.ts (bars too small on this data to read the join by eye) (it3: PASS)"
       ],
       "repro": [
         "T04 template, Rows = Segment > Country",
@@ -309,11 +157,12 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Aeration columns keep the hierarchical header",
       "actual": "buildRenderColumns returns a flat header as soon as gap columns are on, even without calc columns",
       "evidence": [
-        "src/visual.ts:buildRenderColumns (calcDefs.length === 0 && !gapsOn)"
+        "src/visual.ts:buildRenderColumns (calcDefs.length === 0 && !gapsOn)",
+        "audit/screens/it3-D-p14-gaps.png (it3: PASS)"
       ],
       "repro": [
         "Columns = Year > Quarter, 2 measures",
@@ -336,12 +185,13 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Per project policy — eclor-waterfall shipped certified with English slice labels BY DESIGN, but eclor-matrix CLAUDE.md does not document that posture",
       "actual": "12 displayNameKey for 105 cards/slices; a French Desktop shows French card titles over English options",
       "evidence": [
         "src/settings.ts",
-        "audit/evidence/static-it1.txt"
+        "audit/evidence/static-it1.txt",
+        "CLAUDE.md: PASS (documented posture) (it3: PASS)"
       ],
       "repro": [
         "grep -c displayNameKey src/settings.ts"
@@ -364,11 +214,12 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Checklist expects the four cert flags; Microsoft only requires that selections in other visuals filter this one",
       "actual": "Flag absent; the host therefore filters the matrix on cross-selection (GEN-04 verified working — same behaviour as the native matrix)",
       "evidence": [
-        "audit/screens/GEN-04-bar-select-government.png"
+        "audit/screens/GEN-04-bar-select-government.png",
+        "CLAUDE.md: PASS (documented posture) (it3: PASS)"
       ],
       "repro": [
         "Interactions page: click 'Government' in the bar chart"
@@ -390,11 +241,12 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "User-facing runtime strings go through the localization manager (36 other chrome strings do)",
       "actual": "'Drag to resize · double-click to reset' is a literal",
       "evidence": [
-        "src/visual.ts:makeGrip"
+        "src/visual.ts:makeGrip",
+        "test/manifest.test.ts (it3: PASS)"
       ],
       "repro": [
         "French Desktop, Column widths → Custom, hover a grip"
@@ -416,11 +268,12 @@
       "lane": "S",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "persisting",
+      "status": "fixed",
       "expected": "Playbook §4.3.2 role-iteration test: the same measure in Values + Tooltips (+ Comments) renders once in the grid and once in the tooltip",
       "actual": "lifecycle.test.ts covers tooltip-only measures, not a measure carrying values AND tooltips/comments roles",
       "evidence": [
-        "test/lifecycle.test.ts:43"
+        "test/lifecycle.test.ts:43",
+        "test/lifecycle.test.ts (it3: PASS)"
       ],
       "repro": [
         "grep for a values+tooltips dual-role fixture in test/"
@@ -467,13 +320,14 @@
       "lane": "D",
       "severity": "minor",
       "verdict": "WARN",
-      "status": "new",
+      "status": "fixed",
       "expected": "Scaled values stay easy to read (\"5,630K\" or \"5.6M\")",
       "actual": "Columns resolved to thousands show \"5630K\", \"1555K\", \"1020K\"; unscaled General-format numbers show \"7352\" (the latter matches the host formatter for a General column)",
       "evidence": [
         "audit/screens/it2-D-p11-multi.png",
         "audit/screens/it2-D-p08-nulls.png",
-        "audit/screens/it2-D-p12-huge10k.png"
+        "audit/screens/it2-D-p12-huge10k.png",
+        "audit/screens/it3-D-p11-multi.png (it3: PASS)"
       ],
       "repro": [
         "Page Multi-instance, Nominal (3rd instance): Total row"
@@ -488,6 +342,29 @@
       "fixCommit": "9321819",
       "fixedInVersion": "1.11.12.0",
       "fixNote": "Opt-in groupScaled on formatActualLabel (format.ts delta flagged in CONTEXT §5). Also closes the calc-column residual of GEN-26-a."
+    },
+    {
+      "id": "GEN-25-f",
+      "testId": "GEN-25",
+      "title": "An explicit 'Top' subtotal position still renders a blank group row plus a separate Total row",
+      "lane": "D",
+      "severity": "minor",
+      "verdict": "WARN",
+      "status": "new",
+      "expected": "With 'Top', the subtotal values sit on the group row itself, like the native matrix",
+      "actual": "Residual of GEN-25-b. The default is now Bottom, so only reports that choose Top see two rows per group",
+      "evidence": [
+        "audit/screens/D-p05-nominal.png (it1, when Top was the default)"
+      ],
+      "repro": [
+        "Format > Subtotals > Row subtotal position = Top on page Nominal"
+      ],
+      "suspectedArea": [
+        "src/matrixModel.ts:flattenRows",
+        "src/visual.ts:buildRowSelectionIds"
+      ],
+      "fixHint": "Fold the subtotal onto the group row while keeping it selectable and out of the detail domains",
+      "firstSeenIteration": 3
     }
   ],
   "manualQueue": [
@@ -700,10 +577,15 @@
     }
   ],
   "fixedSinceLastRun": [
-    "GEN-25-a",
-    "GEN-26-a",
-    "GEN-15-a",
-    "GEN-25-c",
-    "GEN-25-b"
+    "MAN-05-a",
+    "I18N-02-a",
+    "CAP-02-a",
+    "I18N-03-a",
+    "A11Y-02-a",
+    "CAP-07-a",
+    "GEN-26-b",
+    "GEN-25-d",
+    "GEN-25-e",
+    "DATA-05-a"
   ]
 }

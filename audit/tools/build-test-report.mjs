@@ -319,6 +319,48 @@ const pages = [
         values: [sum("Nominal", "Actual")]
       })
     ]
+  },
+  {
+    name: "p14-gaps",
+    displayName: "Gaps",
+    filters: [salesOnly],
+    visuals: [
+      matrix(
+        "matrix-gaps",
+        FULL,
+        {
+          rows: [col(F, "Country")],
+          columns: [col("DIM_TIME", "Year"), col("DIM_TIME", "Quarter")],
+          values: [meas(M, "Actual")]
+        },
+        {
+          title: "Gaps — blank column between groups keeps the Year > Quarter header",
+          objects: { grid: [{ properties: { gapColumns: lit("true") } }] }
+        }
+      )
+    ]
+  },
+  {
+    name: "p15-t04-multi",
+    displayName: "T04 multi",
+    filters: [year2026, salesOnly],
+    visuals: [
+      matrix("ibcs-t04-multi", FULL, { rows: [col(F, "Segment"), col(F, "Country")], values: scenarios }, {
+        objects: ibcs("t04"),
+        title: "T04 on a two-level hierarchy: each subtotal spans its group's cascade"
+      })
+    ]
+  },
+  {
+    name: "p16-widths",
+    displayName: "Widths",
+    filters: [salesOnly],
+    visuals: [
+      matrix("matrix-widths", FULL, { rows: [col(F, "Country")], values: [meas(M, "Actual"), meas(M, "PY")] }, {
+        title: "Custom widths — grips, keyboard resize",
+        objects: { columnWidths: [{ properties: { mode: str("custom") } }] }
+      })
+    ]
   }
 ];
 

@@ -3,6 +3,12 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.7.0] — 2026-11-01
+
+### Fixed
+
+- **Pane icon was the Eclor Waterfall icon** (audit MAN-05-a): replaced by a matrix glyph — 3×3 grid in ECLOR ink `#091612` with an emerald `#1EF5B1` header band, pixel-exact 20×20 RGBA. Guard test added (`test/manifest.test.ts`).
+
 ## [1.11.6.0] — 2026-10-31
 
 ### Fixed

@@ -49,4 +49,39 @@ describe("auto display units (GEN-26-a)", () => {
     // Unscaled and unrounded (grouping depends on the host formatter).
     expect(cells[1][0]).toMatch(/^2,?500,?000$/);
   });
+
+  // Audit GEN-26-b: scaled values above 999K lost their separator ("1555K").
+  test("scaled cells keep their group separator", () => {
+    const { visual, target } = makeVisual();
+    visual.update(makeUpdateOptions(NULLS()));
+    const cells = cellTexts(target);
+    expect(cells[cells.length - 1][0]).toBe("1,555K");
+  });
+
+  test("a model format string still renders verbatim", () => {
+    const { visual, target } = makeVisual();
+    const dv = buildSimpleMatrixDV(["A", "B"], [
+      { name: "Sales", values: [320000, 450000], format: "#,0" }
+    ]);
+    visual.update(makeUpdateOptions(dv));
+    expect(cellTexts(target)[0][0]).toBe("320,000");
+  });
+
+  // Residual of GEN-26-a: calc columns kept the grid-wide scale, so a variance
+  // far smaller than its measures still collapsed to "+0M".
+  test("an inherit-format calc column resolves its own unit", () => {
+    const { visual, target } = makeVisual();
+    const dv = buildSimpleMatrixDV(["A", "B"], [
+      { name: "Actual", values: [1000000, 2000000] },
+      { name: "Budget", values: [999000, 1995000] }
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dv as any).metadata.objects = {
+      calculatedColumns: { calc1Show: true, calc1Name: "Delta", calc1Formula: "[Actual] - [Budget]" }
+    };
+    visual.update(makeUpdateOptions(dv));
+    const cells = cellTexts(target);
+    expect(cells[0][2]).toBe("+1K");
+    expect(cells[1][2]).toBe("+5K");
+  });
 });

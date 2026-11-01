@@ -248,6 +248,10 @@ export function formatActualLabel(opts: {
   locale: string;
   dataMaxAbs: number;
   withSign?: boolean;
+  /** Keep the group separator on scaled values when no model format is set
+   *  (the bare formatter renders "5630K"). Off by default: Eclor Matrix delta,
+   *  precision and every other label stay as they are. */
+  groupScaled?: boolean;
 }): string {
   const {
     value,
@@ -257,7 +261,8 @@ export function formatActualLabel(opts: {
     autoDecimals,
     locale,
     dataMaxAbs,
-    withSign
+    withSign,
+    groupScaled
   } = opts;
 
   const hasModelFormat = !!modelFormat && modelFormat.length > 0;
@@ -324,6 +329,7 @@ export function formatActualLabel(opts: {
     value: scaleValue
   };
   if (hasModelFormat) createOpts.format = modelFormat;
+  else if (groupScaled && scaleValue !== 0) createOpts.format = "#,0";
   if (cardDecimals > 0) {
     createOpts.precision = cardDecimals;
   } else if (!hasModelFormat) {

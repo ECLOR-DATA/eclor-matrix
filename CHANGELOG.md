@@ -3,6 +3,13 @@
 All notable changes to Eclor Matrix are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning `X.Y.Z.W` (pbiviz four-part).
 
+## [1.11.12.0] — 2026-11-01
+
+### Fixed
+
+- **Scaled values lost their group separator** (audit GEN-26-b): auto or explicit units on a measure without a model format rendered "5630K"; they now read "5,630K", with the same precision. Done through a new opt-in `groupScaled` option on `formatActualLabel`, so the shared pipeline keeps its default behaviour (CONTEXT §5).
+- **Calculated columns could still collapse to "+0M"** (residual of GEN-26-a): with the inherit format they used the grid-wide scale, so a variance far smaller than its measures rounded away. Each such column now resolves its own unit from its detail values.
+
 ## [1.11.11.0] — 2026-11-01
 
 ### Fixed

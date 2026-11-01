@@ -208,3 +208,32 @@ describe("getDisplayScale", () => {
     expect(getDisplayScale("auto", 5e12)).toEqual({ scale: 1e12, suffix: "T" });
   });
 });
+
+// Matrix delta (CONTEXT §5): opt-in, the shared default must not move.
+describe("formatActualLabel — groupScaled option", () => {
+  const base = {
+    modelFormat: "",
+    cardDecimals: 0,
+    autoDecimals: 0,
+    locale: "en-US",
+    dataMaxAbs: 0
+  };
+
+  test("off by default: the shared pipeline renders as before", () => {
+    expect(formatActualLabel({ ...base, value: 5630000, cardUnits: "thousands" })).toBe("5630K");
+  });
+
+  test("on: scaled values keep their separator and their precision", () => {
+    const opts = { ...base, groupScaled: true };
+    expect(formatActualLabel({ ...opts, value: 5630000, cardUnits: "thousands" })).toBe("5,630K");
+    expect(formatActualLabel({ ...opts, value: 2500000, cardUnits: "millions" })).toBe("3M");
+  });
+
+  test("on: unscaled values and model formats are untouched", () => {
+    const opts = { ...base, groupScaled: true };
+    expect(formatActualLabel({ ...opts, value: 7352, cardUnits: "none" })).toBe("7352");
+    expect(
+      formatActualLabel({ ...opts, value: 7352, cardUnits: "none", modelFormat: "#,0" })
+    ).toBe("7,352");
+  });
+});

@@ -49,7 +49,8 @@ Copied verbatim from eclor-waterfall (scale-then-format pipeline, Excel
 multi-pattern parsing, `[…]` bracket stripping, display-units interplay). Its
 test suite came with it. Divergence policy: if Matrix needs a formatting
 behaviour change, add it BEHIND a new option — never mutate the shared semantics —
-and flag the delta for back-porting to the waterfall + playbook.
+and flag the delta for back-porting to the waterfall + playbook. Current delta: `groupScaled` on `formatActualLabel` (1.11.12.0), a separator on
+scaled values without a model format, off by default.
 
 ## 6. "Custom measures" = client-side calculated rows/columns
 

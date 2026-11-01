@@ -133,6 +133,9 @@ interface ParseResult {
   measureStats: MeasureStats[];
   /** Per-measure resolution of "auto" display units (pickAutoUnits). */
   measureAutoUnits: string[];
+  /** Same, per calc column ("inherit" format only): a variance is usually
+   *  far smaller than the measures it comes from. */
+  calcAutoUnits: string[];
   /** Per-measure colour override persisted on valueSources[i].objects.cellColors. */
   measureColorOverrides: (CellColorOpts & { useCustom: boolean })[];
   /** Ordered grid columns: measure leaves + client-side calculated columns. */
@@ -412,6 +415,11 @@ export class Visual implements IVisual {
     const measureAutoUnits = valueSources.map((_vs, mi) =>
       pickAutoUnits(this.detailValues(leaves, rows, mi))
     );
+    const calcAutoUnits = calcDefs.map((def, ci) =>
+      def.format === "inherit"
+        ? pickAutoUnits(this.calcDetailValues(def, ci, renderCols, calcLookups, rows))
+        : "none"
+    );
 
     return {
       rows,
@@ -423,6 +431,7 @@ export class Visual implements IVisual {
       measureOverrides,
       measureStats,
       measureAutoUnits,
+      calcAutoUnits,
       measureColorOverrides,
       renderCols,
       calcDefs,
@@ -473,6 +482,24 @@ export class Visual implements IVisual {
       for (let li = 0; li < leaves.length; li++) {
         const v = r.cells[li];
         if (leaves[li].measureIndex === mi && typeof v === "number") yield v;
+      }
+    }
+  }
+
+  /** Values of one calc column over detail rows, every column group included. */
+  private *calcDetailValues(
+    def: CalcDef,
+    calcIdx: number,
+    renderCols: RenderCol[],
+    calcLookups: Map<string, Map<string, number>>,
+    rows: RowModel[]
+  ): Generator<number> {
+    for (const col of renderCols) {
+      if (col.kind !== "calc" || col.calcIdx !== calcIdx) continue;
+      for (const row of rows) {
+        if (row.isSubtotal || (row as WovenRow).customDef) continue;
+        const v = this.evalCalc(def, calcLookups.get(col.pathKey), row);
+        if (v !== null) yield v;
       }
     }
   }
@@ -875,7 +902,10 @@ export class Visual implements IVisual {
         const mi = parsed.leaves[li].measureIndex;
         modelFormat = parsed.valueSources[mi]?.format ?? "";
         const fmt = this.measureFormat(parsed, mi);
-        units = fmt.units;
+        units =
+          fmt.units === "auto" && modelFormat === ""
+            ? parsed.calcAutoUnits[col.calcIdx] ?? fmt.units
+            : fmt.units;
         decimals = fmt.decimals;
       }
     }
@@ -883,6 +913,7 @@ export class Visual implements IVisual {
       value,
       modelFormat,
       cardUnits: units,
+      groupScaled: true,
       cardDecimals: decimals,
       autoDecimals: 0,
       locale: this.locale,
@@ -1089,6 +1120,7 @@ export class Visual implements IVisual {
       measureOverrides: [],
       measureStats: [],
       measureAutoUnits: [],
+      calcAutoUnits: [],
       measureColorOverrides: [],
       renderCols: [],
       calcDefs: [],
@@ -2278,6 +2310,7 @@ export class Visual implements IVisual {
         value: raw,
         modelFormat,
         cardUnits,
+        groupScaled: true,
         cardDecimals,
         autoDecimals: 0,
         locale: this.locale,
@@ -2701,12 +2734,14 @@ export class Visual implements IVisual {
       const name = parsed.valueSources[mi]?.displayName ?? "";
       const fmt = this.measureFormat(parsed, mi);
       const isComment = parsed.valueSources[mi]?.roles?.comments === true;
+      const cardUnits = this.cellUnits(parsed, mi, fmt.units);
       const value =
         typeof raw === "number"
           ? formatActualLabel({
               value: raw,
               modelFormat: parsed.valueSources[mi]?.format ?? "",
-              cardUnits: this.cellUnits(parsed, mi, fmt.units),
+              cardUnits,
+              groupScaled: true,
               cardDecimals: fmt.decimals,
               autoDecimals: 0,
               locale: this.locale,

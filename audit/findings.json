@@ -214,8 +214,10 @@
       ],
       "fixHint": "Design is the user's call — needs a matrix glyph in the ECLOR style; the fixer should not invent branding",
       "firstSeenIteration": 1,
-      "outcome": "needs-decision",
-      "fixNote": "Branding asset: the user must supply or approve a matrix glyph (20x20 RGBA). Recommendation: a 3x3 grid glyph in ECLOR ink #091612 with the emerald #1EF5B1 header band."
+      "outcome": "fixed-claimed",
+      "fixNote": "User approved the proposed glyph: 3x3 ink grid with an emerald header band, 20x20 RGBA. Guard test in test/manifest.test.ts.",
+      "fixCommit": "3b166f6",
+      "fixedInVersion": "1.11.7.0"
     },
     {
       "id": "CAP-07-a",
@@ -237,7 +239,11 @@
         "capabilities.json:dataViewMappings[0]"
       ],
       "fixHint": "Declare explicit conditions matching the intended cardinality (single mapping only — never a second mapping, CLAUDE.md)",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "f74e188",
+      "fixedInVersion": "1.11.11.0",
+      "fixNote": "Explicit min:0 on every role. Deviation: no min>=1, it would reintroduce the ghost frame (no dv.matrix -> replay). Auditor must re-check all pages still render."
     },
     {
       "id": "A11Y-02-a",
@@ -261,7 +267,11 @@
         "src/visual.ts:handleGripDown"
       ],
       "fixHint": "Make the grip focusable with arrow-key resizing, or expose per-column widths elsewhere",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "d7db678",
+      "fixedInVersion": "1.11.10.0",
+      "fixNote": "Grips are focusable separators: arrows resize, keyup persists, Delete resets, focus restored after the header rebuild. Host focus behaviour needs the browser lane."
     },
     {
       "id": "GEN-25-d",
@@ -286,7 +296,11 @@
         "src/visual.ts:computeCalcDomains"
       ],
       "fixHint": "Reset or rebase the cursor at each group boundary so the cascade and subtotal agree",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "13df3f1",
+      "fixedInVersion": "1.11.13.0",
+      "fixNote": "Subtotal bar spans its group's cascade (cum - v at the bottom, cum at the top); the cursor stays continuous."
     },
     {
       "id": "GEN-25-e",
@@ -309,7 +323,11 @@
         "src/visual.ts:buildRenderColumns"
       ],
       "fixHint": "Insert gap cells into the tree header rows instead of switching to the flat header",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "d3c0467",
+      "fixedInVersion": "1.11.14.0",
+      "fixNote": "insertGapColumns threads gaps through the tree header. No page in the test report exercises it: the auditor needs a Year > Quarter gap page."
     },
     {
       "id": "I18N-02-a",
@@ -334,8 +352,10 @@
       ],
       "fixHint": "Decision needed: adopt the waterfall posture (document it in CLAUDE.md) or add keys + fr/en strings for every slice",
       "firstSeenIteration": 1,
-      "outcome": "needs-decision",
-      "fixNote": "Recommendation: adopt the eclor-waterfall posture (card titles localized, options English by design) and record it in CLAUDE.md — 93 keys x 2 locales is a large surface for little reviewer value."
+      "outcome": "fixed-claimed",
+      "fixNote": "User chose the eclor-waterfall posture; documented in CLAUDE.md as a critical design decision. No code change: auditor should record PASS (documented posture).",
+      "fixCommit": "f6841a7",
+      "fixedInVersion": "1.11.8.0"
     },
     {
       "id": "CAP-02-a",
@@ -358,8 +378,10 @@
       ],
       "fixHint": "Decision needed: keep filter semantics (document why) or implement highlight rendering before declaring the flag",
       "firstSeenIteration": 1,
-      "outcome": "needs-decision",
-      "fixNote": "Recommendation: keep filter semantics (native matrix behaviour, GEN-04 verified) and document the posture in CLAUDE.md; declaring supportsHighlight would require rendering highlight values in every cell."
+      "outcome": "fixed-claimed",
+      "fixNote": "User chose to keep filter semantics; documented in CLAUDE.md. No code change: auditor should record PASS (documented posture).",
+      "fixCommit": "f6841a7",
+      "fixedInVersion": "1.11.8.0"
     },
     {
       "id": "I18N-03-a",
@@ -381,7 +403,11 @@
         "src/visual.ts:makeGrip"
       ],
       "fixHint": "Route through this.localize with en/fr resjson keys",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "39214e6",
+      "fixedInVersion": "1.11.9.0",
+      "fixNote": "Grip tooltip localized; locale parity and used-key guards added."
     },
     {
       "id": "DATA-05-a",
@@ -404,7 +430,11 @@
         "src/visual.ts:parseMatrix (isAuxOnly)"
       ],
       "fixHint": "Add the dual-role fixture; also add one where the first measure node has no levelSourceIndex (see GEN-25-a)",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "fixed-claimed",
+      "fixCommit": "057a9d4",
+      "fixedInVersion": "1.11.16.0",
+      "fixNote": "Tests added; they exposed a real gap (dual-role measure missing from sibling tooltips), fixed in buildTooltipItems."
     },
     {
       "id": "MAN-06-a",
@@ -426,7 +456,9 @@
         "git branch certification"
       ],
       "fixHint": "Fast-forward certification once the audit loop reaches READY",
-      "firstSeenIteration": 1
+      "firstSeenIteration": 1,
+      "outcome": "skipped",
+      "fixNote": "Per the finding's own hint: fast-forward certification once the loop reaches READY."
     },
     {
       "id": "GEN-26-b",
@@ -451,7 +483,11 @@
         "src/format.ts:formatActualLabel (single-pattern path, no model format)"
       ],
       "fixHint": "When auto resolves to a unit for a measure without a model format, give the formatter a grouped pattern (#,0) or allow one decimal at the next unit",
-      "firstSeenIteration": 2
+      "firstSeenIteration": 2,
+      "outcome": "fixed-claimed",
+      "fixCommit": "9321819",
+      "fixedInVersion": "1.11.12.0",
+      "fixNote": "Opt-in groupScaled on formatActualLabel (format.ts delta flagged in CONTEXT §5). Also closes the calc-column residual of GEN-26-a."
     }
   ],
   "manualQueue": [
